@@ -1,0 +1,488 @@
+"use client";
+
+import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
+import { useRouter } from "next/navigation";
+
+import { formatSupabaseError, useSupabase } from "@/lib/supabase";
+
+export default function AuthPage() {
+  const supabase = useSupabase();
+  const [isLogin, setIsLogin] = useState(true);
+
+  const [firstName, setFirstName] = useState("");
+  const [middleName, setMiddleName] = useState("");
+  const [surname, setSurname] = useState("");
+  const [dob, setDob] = useState("");
+  const [phone, setPhone] = useState("");
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+
+  const [loading, setLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [formSuccess, setFormSuccess] = useState<string | null>(null);
+
+  const [errors, setErrors] = useState({
+    firstName: false,
+    surname: false,
+    dob: false,
+    phone: false,
+    email: false,
+    password: false,
+    confirmPassword: false,
+    terms: false,
+  });
+  const router = useRouter();
+
+  async function handleAuth() {
+    setFormError(null);
+    setFormSuccess(null);
+    setLoading(true);
+
+    // LOGIN
+    if (isLogin) {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+
+      if (error) {
+        setFormError(formatSupabaseError(error));
+        setLoading(false);
+        return;
+      }
+
+      if (!data.session) {
+        setFormError(
+          "Your account exists, but no login session was created. If you just signed up, open the email Supabase sent and confirm your email, then try logging in again."
+        );
+        setLoading(false);
+        return;
+      }
+
+      await supabase.auth.getSession();
+
+      window.location.assign("/dashboard");
+      return;
+    }
+
+    // VALIDATIONS
+    // REQUIRED FIELD VALIDATION
+const newErrors = {
+  firstName: !firstName,
+  surname: !surname,
+  dob: !dob,
+  phone: !phone,
+  email: !email,
+  password: !password,
+  confirmPassword: !confirmPassword,
+  terms: !acceptedTerms,
+}
+
+setErrors(newErrors)
+
+if (Object.values(newErrors).some(Boolean)) {
+  setLoading(false)
+  return
+}
+
+if (password !== confirmPassword) {
+
+  setErrors({
+    ...newErrors,
+    password: true,
+    confirmPassword: true,
+  })
+
+  setLoading(false)
+
+  return
+}
+setLoading(true)
+
+    // REGISTER
+const { data, error } = await supabase.auth.signUp({
+  email,
+  password,
+});
+
+if (error) {
+  setFormError(formatSupabaseError(error))
+  setLoading(false)
+  return
+}
+
+// GET CREATED USER
+const user = data.user;
+
+if (!user) {
+  setFormError("Failed to create user");
+  setLoading(false);
+  return;
+}
+
+// CREATE INVESTOR PROFILE
+const { error: investorError } = await supabase
+  .from("investors")
+  .insert([
+    {
+      user_id: user.id,
+      full_name: `${firstName} ${middleName} ${surname}`,
+      first_name: firstName,
+      middle_name: middleName,
+      surname: surname,
+      dob: dob,
+      phone: phone,
+      email: email,
+      balance: 0,
+      total_profit: 0,
+      investment_plan: "Starter",
+      status: "active",
+    },
+  ]);
+
+if (investorError) {
+  setFormError(formatSupabaseError(investorError));
+  setLoading(false);
+  return;
+}
+
+setFormSuccess("Account created successfully. You can sign in now.");
+
+setIsLogin(true);
+setLoading(false);
+return;
+  }
+
+  // SUCCESS SCREEN
+
+  return (
+    <main className="min-h-screen bg-black text-white flex items-center justify-center relative overflow-hidden">
+
+      {/* Ambient Background */}
+      <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-yellow-500/10 blur-[140px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-yellow-500/5 blur-[120px] rounded-full pointer-events-none" />
+
+      <div className="relative z-10 w-full max-w-2xl bg-zinc-900/90 border border-zinc-800 backdrop-blur-xl rounded-[36px] p-10 shadow-2xl">
+
+        <div className="mb-10">
+          <h1 className="text-5xl font-black text-yellow-500 mb-3 tracking-tight">
+            {isLogin ? "Login" : "Sign Up"}
+          </h1>
+
+          <p className="text-zinc-500 text-lg leading-relaxed">
+            {isLogin
+              ? "Secure access to your ASKPAULFX investment dashboard"
+              : "Begin your premium investment journey with ASKPAULFX"}
+          </p>
+        </div>
+
+        {formError ? (
+          <div
+            className="mb-6 rounded-2xl border border-red-500/60 bg-red-500/10 px-5 py-4 text-red-300"
+            role="alert"
+          >
+            {formError}
+          </div>
+        ) : null}
+
+        {formSuccess ? (
+          <div
+            className="mb-6 rounded-2xl border border-green-500/60 bg-green-500/10 px-5 py-4 text-green-300"
+            role="status"
+          >
+            {formSuccess}
+          </div>
+        ) : null}
+
+        {/* REGISTRATION FIELDS */}
+        {!isLogin && (
+          <>
+
+            <div className="grid md:grid-cols-2 gap-6 mb-6">
+
+              <div>
+                <label className="block mb-3 text-zinc-400 text-sm">
+                  First Name
+                </label>
+
+                <input
+                  type="text"
+                  placeholder="Enter first name"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className={`w-full bg-zinc-900 border rounded-2xl px-5 py-4 text-white outline-none transition-all duration-300 ${
+  errors.firstName
+    ? "border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.35)]"
+    : "border-zinc-700 focus:border-yellow-500"
+}`}
+                />
+              </div>
+
+              <div>
+                <label className="block mb-3 text-zinc-400 text-sm">
+                  Middle Name (Optional)
+                </label>
+
+                <input
+                  type="text"
+                  placeholder="Enter middle name"
+                  value={middleName}
+                  onChange={(e) => setMiddleName(e.target.value)}
+                  className="w-full bg-black border border-zinc-800 rounded-2xl px-5 py-4 outline-none focus:border-yellow-500 transition"
+                />
+              </div>
+
+            </div>
+
+            <div className="mb-6">
+              <label className="block mb-3 text-zinc-400 text-sm">
+                Surname
+              </label>
+
+              <input
+                type="text"
+                placeholder="Enter surname"
+                value={surname}
+                onChange={(e) => setSurname(e.target.value)}
+                className={`w-full bg-zinc-900 border rounded-2xl px-5 py-4 text-white outline-none transition-all duration-300 ${
+  errors.surname
+    ? "border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.35)]"
+    : "border-zinc-700 focus:border-yellow-500"
+}`}
+              />
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6 mb-6">
+
+              <div>
+                <label className="block mb-3 text-zinc-400 text-sm">
+                  Date of Birth
+                </label>
+
+                <input
+                  type="date"
+                  value={dob}
+                  onChange={(e) => setDob(e.target.value)}
+                 className={`w-full bg-zinc-900 border rounded-2xl px-5 py-4 text-white outline-none transition-all duration-300 ${
+  errors.dob
+    ? "border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.35)]"
+    : "border-zinc-700 focus:border-yellow-500"
+}`}
+                />
+              </div>
+
+              <div>
+                <label className="block mb-3 text-zinc-400 text-sm">
+                  Phone Number
+                </label>
+
+                <input
+                  type="tel"
+                  placeholder="+254 700 000 000"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className={`w-full bg-zinc-900 border rounded-2xl px-5 py-4 text-white outline-none transition-all duration-300 ${
+  errors.phone
+    ? "border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.35)]"
+    : "border-zinc-700 focus:border-yellow-500"
+}`}
+                />
+              </div>
+
+            </div>
+
+          </>
+        )}
+
+        {/* EMAIL */}
+        <div className="mb-6">
+
+          <label className="block mb-3 text-zinc-400 text-sm">
+            Email Address
+          </label>
+
+          <input
+            type="email"
+            placeholder="Enter email address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+           className={`w-full bg-zinc-900 border rounded-2xl px-5 py-4 text-white outline-none transition-all duration-300 ${
+  errors.email
+    ? "border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.35)]"
+    : "border-zinc-700 focus:border-yellow-500"
+}`}
+          />
+
+        </div>
+
+        {/* PASSWORD */}
+        <div className="mb-6 relative">
+
+          <label className="block mb-3 text-zinc-400 text-sm">
+            Password
+          </label>
+
+          <input
+            type={showPassword ? "text" : "password"}
+            placeholder="Enter password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className={`w-full bg-zinc-900 border rounded-2xl px-5 py-4 text-white outline-none transition-all duration-300 ${
+  errors.password
+    ? "border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.35)]"
+    : "border-zinc-700 focus:border-yellow-500"
+}`}
+
+          />
+  
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-5 top-[52px] text-zinc-500 hover:text-yellow-500 transition"
+          >
+            {showPassword ? <EyeOff size={22} /> : <Eye size={22} />}
+          </button>
+
+        </div>
+
+        <div className="flex justify-end -mt-2 mb-6">
+  <button
+    type="button"
+    onClick={() => router.push("/forgot-password")}
+    className="text-sm text-yellow-500 hover:text-yellow-400 transition"
+  >
+    Forgot Password?
+  </button>
+</div>
+
+        {/* CONFIRM PASSWORD */}
+        {!isLogin && (
+          <div className="mb-6 relative">
+
+            <label className="block mb-3 text-zinc-400 text-sm">
+              Confirm Password
+            </label>
+
+            <input
+              type={showConfirmPassword ? "text" : "password"}
+              placeholder="Confirm password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className={`w-full bg-zinc-900 border rounded-2xl px-5 py-4 text-white outline-none transition-all duration-300 ${
+  errors.password
+    ? "border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.35)]"
+    : "border-zinc-700 focus:border-yellow-500"
+}`}
+            />
+
+            <button
+              type="button"
+              onClick={() =>
+                setShowConfirmPassword(!showConfirmPassword)
+              }
+              className="absolute right-5 top-[52px] text-zinc-500 hover:text-yellow-500 transition"
+            >
+              {showConfirmPassword ? (
+                <EyeOff size={22} />
+              ) : (
+                <Eye size={22} />
+              )}
+            </button>
+
+          </div>
+        )}
+
+        {/* TERMS */}
+{!isLogin && (
+  <div
+    className={`mb-8 rounded-2xl border p-5 transition-all duration-300 ${
+      errors.terms
+        ? "border-red-500 bg-red-500/5 shadow-[0_0_20px_rgba(239,68,68,0.25)]"
+        : "border-zinc-800 bg-black"
+    }`}
+  >
+
+    <label className="flex items-start gap-4 cursor-pointer">
+
+      <input
+        type="checkbox"
+        checked={acceptedTerms}
+        onChange={(e) => setAcceptedTerms(e.target.checked)}
+        className="mt-1 w-5 h-5 accent-yellow-500"
+      />
+
+      <div>
+
+        <p className="text-zinc-300 leading-relaxed">
+          I agree to the ASKPAULFX Terms & Conditions,
+          Privacy Policy, and understand that investment
+          performance may vary depending on market conditions.
+        </p>
+
+        <a
+          href="/terms"
+          target="_blank"
+          className="mt-3 inline-block text-yellow-500 hover:text-yellow-400 transition font-semibold"
+        >
+          View Terms & Conditions
+        </a>
+
+        {errors.terms && (
+          <p className="text-red-400 text-sm mt-3">
+            You must accept the Terms & Conditions before registering.
+          </p>
+        )}
+
+      </div>
+
+    </label>
+
+  </div>
+)}
+
+        {/* BUTTON */}
+        <button
+          onClick={handleAuth}
+          disabled={loading}
+          className="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-black py-5 rounded-2xl transition-all duration-300 hover:scale-[1.01] text-lg"
+        >
+          {loading
+            ? "Processing..."
+            : isLogin
+            ? "Login"
+            : "Create Account"}
+        </button>
+
+        {/* TOGGLE */}
+        <div className="mt-8 text-center text-zinc-500">
+
+          {isLogin
+            ? "Don't have an account?"
+            : "Already have an account?"}
+
+          <button
+            onClick={() => {
+              setIsLogin(!isLogin);
+              setFormError(null);
+              setFormSuccess(null);
+            }}
+            className="ml-2 text-yellow-500 hover:text-yellow-400 font-semibold transition"
+          >
+            {isLogin ? "Create Account" : "Login"}
+          </button>
+
+        </div>
+
+      </div>
+
+    </main>
+  );
+}
