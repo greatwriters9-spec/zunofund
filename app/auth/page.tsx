@@ -1,14 +1,25 @@
 "use client";
 
-import { useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { ArrowLeft, Eye, EyeOff } from "lucide-react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 
+import { sanitizeNextParam } from "@/lib/authLinks";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 
-export default function AuthPage() {
+function AuthPageInner() {
   const supabase = useSupabase();
-  const [isLogin, setIsLogin] = useState(true);
+  const searchParams = useSearchParams();
+  const wantsSignup = searchParams.get("signup") === "1";
+  const nextDestination =
+    sanitizeNextParam(searchParams.get("next")) ?? "/dashboard";
+
+  const [isLogin, setIsLogin] = useState(!wantsSignup);
+
+  useEffect(() => {
+    setIsLogin(!wantsSignup);
+  }, [wantsSignup]);
 
   const [firstName, setFirstName] = useState("");
   const [middleName, setMiddleName] = useState("");
@@ -69,7 +80,7 @@ export default function AuthPage() {
 
       await supabase.auth.getSession();
 
-      window.location.assign("/dashboard");
+      window.location.assign(nextDestination);
       return;
     }
 
@@ -164,20 +175,28 @@ return;
   // SUCCESS SCREEN
 
   return (
-    <main className="min-h-screen text-white flex items-center justify-center relative overflow-hidden">
+    <main className="relative min-h-[100svh] text-white overflow-hidden">
 
       {/* Ambient Background */}
       <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-yellow-500/10 blur-[140px] rounded-full pointer-events-none" />
       <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-yellow-500/5 blur-[120px] rounded-full pointer-events-none" />
 
-      <div className="relative z-10 w-full max-w-2xl bg-zinc-900/90 border border-zinc-800 backdrop-blur-xl rounded-[36px] p-10 shadow-2xl">
+      <div className="relative z-10 mx-auto flex min-h-[100svh] w-full max-w-2xl flex-col bg-zinc-900/90 border border-zinc-800 backdrop-blur-xl px-6 py-8 sm:my-10 sm:rounded-[36px] sm:p-10 sm:shadow-2xl">
 
-        <div className="mb-10">
-          <h1 className="text-5xl font-black text-yellow-500 mb-3 tracking-tight">
+        <Link
+          href="/"
+          className="mb-6 inline-flex items-center gap-2 self-start text-sm text-zinc-400 transition hover:text-yellow-500 sm:mb-4"
+        >
+          <ArrowLeft size={16} />
+          Back to home
+        </Link>
+
+        <div className="mb-8 sm:mb-10">
+          <h1 className="text-3xl font-black tracking-tight text-yellow-500 mb-3 sm:text-5xl">
             {isLogin ? "Login" : "Sign Up"}
           </h1>
 
-          <p className="text-zinc-500 text-lg leading-relaxed">
+          <p className="text-zinc-500 text-base leading-relaxed sm:text-lg">
             {isLogin
               ? "Secure access to your ZUNO investment dashboard"
               : "Begin your premium investment journey with ZUNO"}
@@ -353,15 +372,17 @@ return;
 
         </div>
 
-        <div className="flex justify-end -mt-2 mb-6">
-  <button
-    type="button"
-    onClick={() => router.push("/forgot-password")}
-    className="text-sm text-yellow-500 hover:text-yellow-400 transition"
-  >
-    Forgot Password?
-  </button>
-</div>
+        {isLogin ? (
+          <div className="flex justify-end -mt-2 mb-6">
+            <button
+              type="button"
+              onClick={() => router.push("/forgot-password")}
+              className="text-sm text-yellow-500 hover:text-yellow-400 transition"
+            >
+              Forgot Password?
+            </button>
+          </div>
+        ) : null}
 
         {/* CONFIRM PASSWORD */}
         {!isLogin && (
@@ -484,5 +505,19 @@ return;
       </div>
 
     </main>
+  );
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-[100svh] text-white flex items-center justify-center">
+          <p className="text-zinc-400 text-sm">Loading…</p>
+        </main>
+      }
+    >
+      <AuthPageInner />
+    </Suspense>
   );
 }

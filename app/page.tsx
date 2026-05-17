@@ -4,6 +4,8 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 
 import { MarketingNavbar } from "@/components/navbar";
+import { LiveMarketTickerView, useLiveMarketPrices } from "@/components/LiveMarketTicker";
+import { HeadlineStats } from "@/components/HeadlineStats";
 import {
   ArrowRight,
   ShieldCheck,
@@ -16,6 +18,8 @@ import {
 } from "lucide-react";
 
 export default function HomePage() {
+  const liveMarkets = useLiveMarketPrices();
+
   const plans = [
     {
       name: "Starter",
@@ -97,24 +101,22 @@ export default function HomePage() {
 
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#D4AF37]/20 bg-[#D4AF37]/10 text-[#D4AF37] text-sm mb-8">
               <ShieldCheck size={16} />
-              Institutional Grade Investment Platform
+              Trusted By 2,400+ Active Investors Worldwide
             </div>
 
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-black leading-[1.05] tracking-tight max-w-3xl">
-
-              Strategic Capital
-              <span className="text-[#D4AF37]"> Growth </span>
-              Built For Modern Investors
-
+              The World&rsquo;s Leading
+              <span className="text-[#D4AF37]"> Fund Management </span>
+              Firm
             </h1>
 
             <p className="text-lg text-gray-400 leading-relaxed max-w-2xl mt-8">
-              Access structured investment opportunities, disciplined portfolio
-              management, and scalable capital allocation strategies designed
-              to support long-term financial growth with confidence.
+              Disciplined portfolio management, structured investment plans,
+              and scalable capital allocation — engineered for serious
+              investors and settled in real time across global markets.
             </p>
 
-            <div className="flex flex-wrap items-center gap-5 mt-12">
+            <div className="mt-12 flex flex-col gap-8 lg:flex-row lg:flex-wrap lg:items-center lg:gap-5">
 
               <Link
                 href="/investment-plans"
@@ -127,6 +129,13 @@ export default function HomePage() {
                   className="group-hover:translate-x-1 transition"
                 />
               </Link>
+
+              <LiveMarketTickerView
+                {...liveMarkets}
+                embedded
+                headingId="live-markets-mobile"
+                className="lg:hidden"
+              />
 
               <Link
                 href="/contact"
@@ -312,7 +321,17 @@ export default function HomePage() {
             </div>
           </motion.div>
         </div>
+
+        <LiveMarketTickerView
+          {...liveMarkets}
+          stripe
+          headingId="live-markets-desktop"
+          className="hidden lg:block"
+        />
       </section>
+
+      {/* HEADLINE STATS */}
+      <HeadlineStats />
 
       {/* INVESTMENT PLANS */}
       <section
@@ -386,7 +405,7 @@ export default function HomePage() {
                   </div>
 
                   <Link
-                    href="/auth"
+                    href="/auth?signup=1"
                     className="mt-10 flex items-center justify-center gap-3 bg-zinc-900 border border-zinc-700 hover:border-[#D4AF37] hover:bg-zinc-800 transition py-4 rounded-2xl font-semibold"
                   >
                     {plan.button}
@@ -516,7 +535,7 @@ export default function HomePage() {
               </Link>
 
               <Link
-                href="/auth"
+                href="/auth?signup=1"
                 className="flex items-center gap-3 bg-[#D4AF37] hover:bg-[#E5BD45] transition px-8 py-5 rounded-2xl text-black font-semibold text-lg"
               >
                 Create Account

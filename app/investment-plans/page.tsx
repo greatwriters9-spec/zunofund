@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
+import { AnimatePresence, motion } from "framer-motion";
 import {
   normalizeInvestmentPlan,
   displayPlanName,
@@ -16,6 +17,7 @@ import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 import {
   ArrowLeft,
   Check,
+  ChevronDown,
   Crown,
   Gem,
   Rocket,
@@ -139,6 +141,8 @@ const plans = [
   },
 ];
 
+const PLAN_ICONS = [Shield, Rocket, Gem, Crown] as const;
+
 export default function InvestmentPlansPage() {
   const supabase = useSupabase();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -146,39 +150,66 @@ export default function InvestmentPlansPage() {
     useState<CanonicalInvestmentPlan | null>(null);
   const [planActionError, setPlanActionError] = useState<string | null>(null);
   const [planBusySlug, setPlanBusySlug] = useState<string | null>(null);
+  const [expandedSlugs, setExpandedSlugs] = useState<Set<string>>(
+    () => new Set(),
+  );
+
+  const togglePlanExpansion = (slug: string) => {
+    setExpandedSlugs((prev) => {
+      const next = new Set(prev);
+      if (next.has(slug)) {
+        next.delete(slug);
+      } else {
+        next.add(slug);
+      }
+      return next;
+    });
+  };
 
 useEffect(() => {
-  loadSessionAndPlan()
-}, [])
+  async function loadSessionAndPlan() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-async function loadSessionAndPlan() {
+    setIsLoggedIn(!!user);
+    setPlanActionError(null);
 
-  const { data: { user } } =
-    await supabase.auth.getUser()
+    if (!user?.id) {
+      setCurrentPlanSlug(null);
+      return;
+    }
 
-  setIsLoggedIn(!!user)
-  setPlanActionError(null)
+    const { data, error } = await supabase
+      .from("investors")
+      .select("investment_plan")
+      .eq("user_id", user.id)
+      .maybeSingle();
 
-  if (!user?.id) {
-    setCurrentPlanSlug(null);
-    return;
+    if (error) {
+      setPlanActionError(formatSupabaseError(error));
+      return;
+    }
+
+    const raw =
+      typeof data?.investment_plan === "string" ? data.investment_plan : null;
+    const normalized = normalizeInvestmentPlan(raw);
+    setCurrentPlanSlug(normalized);
+
+    // Auto-expand the investor's current plan so the CTA + status is in view
+    // without forcing them to tap first.
+    if (normalized) {
+      setExpandedSlugs((prev) => {
+        if (prev.has(normalized)) return prev;
+        const next = new Set(prev);
+        next.add(normalized);
+        return next;
+      });
+    }
   }
 
-  const { data, error } = await supabase
-    .from("investors")
-    .select("investment_plan")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (error) {
-    setPlanActionError(formatSupabaseError(error));
-    return;
-  }
-
-  const raw = typeof data?.investment_plan === "string" ? data.investment_plan : null;
-  setCurrentPlanSlug(normalizeInvestmentPlan(raw));
-
-}
+  loadSessionAndPlan();
+}, [supabase]);
   const router = useRouter()
   return (
     <div className="min-h-screen text-white relative overflow-hidden">
@@ -236,171 +267,216 @@ async function loadSessionAndPlan() {
           </p>
         ) : null}
 
+        {/* Helper row for power users */}
+        <div className="mb-5 flex items-center justify-end">
+          <button
+            type="button"
+            onClick={() =>
+              setExpandedSlugs((prev) => {
+                if (prev.size === plans.length) return new Set();
+                return new Set(plans.map((p) => p.slug));
+              })
+            }
+            className="text-sm font-medium text-yellow-500 hover:text-yellow-400 transition"
+          >
+            {expandedSlugs.size === plans.length
+              ? "Collapse all"
+              : "Expand all"}
+          </button>
+        </div>
+
         {/* Plans Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-          {plans.map((plan, index) => (
-            <div
-              key={plan.slug}
-              className={`relative overflow-hidden rounded-3xl border ${plan.border} bg-zinc-950/70 backdrop-blur-xl p-7 flex flex-col justify-between transition duration-500 hover:-translate-y-1 hover:border-yellow-500/70`}
-            >
-              {/* Ambient Glow */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-start">
+          {plans.map((plan, index) => {
+            const Icon = PLAN_ICONS[index] ?? Shield;
+            const isExpanded = expandedSlugs.has(plan.slug);
+            const isCurrentPlan =
+              isLoggedIn && currentPlanSlug === plan.slug;
+            const summaryId = `plan-summary-${plan.slug}`;
+            const detailsId = `plan-details-${plan.slug}`;
+
+            return (
               <div
-                className={`absolute inset-0 bg-gradient-to-b ${plan.glow} opacity-60 pointer-events-none`}
-              />
-
-              {/* Elite Badge */}
-              {plan.elite && (
-                <div className="absolute top-5 right-5 bg-yellow-500 text-black text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
-                  <Crown size={12} />
-                  VIP ACCESS
-                </div>
-              )}
-
-              {isLoggedIn && currentPlanSlug === plan.slug ? (
+                key={plan.slug}
+                className={`relative overflow-hidden rounded-3xl border ${plan.border} bg-zinc-950/70 backdrop-blur-xl flex flex-col transition duration-500 hover:border-yellow-500/70`}
+              >
+                {/* Ambient Glow */}
                 <div
-                  className={`absolute top-5 ${
-                    plan.elite ? "left-5" : "right-5"
-                  } bg-yellow-500/20 text-yellow-400 text-xs font-semibold px-3 py-1 rounded-full border border-yellow-500/40`}
+                  className={`absolute inset-0 bg-gradient-to-b ${plan.glow} opacity-60 pointer-events-none`}
+                />
+
+                {/* Compact summary — always visible, click to expand */}
+                <button
+                  type="button"
+                  id={summaryId}
+                  aria-expanded={isExpanded}
+                  aria-controls={detailsId}
+                  onClick={() => togglePlanExpansion(plan.slug)}
+                  className="relative z-10 w-full text-left p-6 sm:p-7 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
                 >
-                  Your plan
-                </div>
-              ) : null}
+                  {/* Top badges row */}
+                  <div className="mb-5 flex items-start justify-between gap-3">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-yellow-500/20 bg-yellow-500/10">
+                      <Icon size={22} className="text-yellow-500" aria-hidden />
+                    </div>
 
-              <div className="relative z-10">
-                {/* Icon */}
-                <div className="mb-6">
-                  <div className="w-14 h-14 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center">
-                    {index === 0 && (
-                      <Shield
-                        className="text-yellow-500"
-                        size={26}
-                      />
-                    )}
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      {isCurrentPlan ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-yellow-500/40 bg-yellow-500/20 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-yellow-300">
+                          Your plan
+                        </span>
+                      ) : null}
 
-                    {index === 1 && (
-                      <Rocket
-                        className="text-yellow-500"
-                        size={26}
-                      />
-                    )}
-
-                    {index === 2 && (
-                      <Gem
-                        className="text-yellow-500"
-                        size={26}
-                      />
-                    )}
-
-                    {index === 3 && (
-                      <Crown
-                        className="text-yellow-500"
-                        size={26}
-                      />
-                    )}
+                      {plan.elite ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-yellow-500 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-black">
+                          <Crown size={11} aria-hidden />
+                          VIP
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
 
-                {/* Name */}
-                <h2 className="text-2xl font-bold mb-2">
-                  {plan.name}
-                </h2>
+                  {/* Name */}
+                  <h2 className="mb-1 text-xl font-bold sm:text-2xl">
+                    {plan.name}
+                  </h2>
 
-                {/* Deposit Range */}
-                <p className="text-yellow-500 text-lg font-semibold mb-5">
-                  {plan.range}
-                </p>
-
-                {/* Yield */}
-                <div className="mb-6">
-                  <p className="text-gray-500 text-sm mb-1">
-                    {plan.yield}
+                  {/* Range */}
+                  <p className="mb-4 text-base font-semibold text-yellow-500 sm:text-lg">
+                    {plan.range}
                   </p>
 
-                  <p className="text-3xl font-bold">
-                    {plan.rate}
-                  </p>
-                </div>
+                  {/* Daily yield */}
+                  <div className="mb-4">
+                    <p className="text-xs uppercase tracking-wide text-gray-500">
+                      {plan.yield}
+                    </p>
+                    <p className="text-2xl font-bold sm:text-3xl">
+                      {plan.rate}
+                    </p>
+                  </div>
 
-                {/* Description */}
-                <p className="text-gray-400 leading-relaxed mb-7 text-sm">
-                  {plan.description}
-                </p>
+                  {/* Expand affordance */}
+                  <div className="mt-4 flex items-center justify-between border-t border-white/5 pt-4 text-sm font-medium text-yellow-500/90">
+                    <span>{isExpanded ? "Hide details" : "View details"}</span>
+                    <ChevronDown
+                      size={18}
+                      aria-hidden
+                      className={`transition-transform duration-300 ${
+                        isExpanded ? "rotate-180" : "rotate-0"
+                      }`}
+                    />
+                  </div>
+                </button>
 
-                {/* Benefits */}
-                <div className="space-y-4 mb-8">
-                  {plan.benefits.map(
-                    (benefit, benefitIndex) => (
-                      <div
-                        key={benefitIndex}
-                        className="flex items-start gap-3"
-                      >
-                        <div className="mt-1">
-                          <Check
-                            size={16}
-                            className="text-yellow-500"
-                          />
-                        </div>
-
-                        <p className="text-gray-300 text-sm">
-                          {benefit}
+                {/* Expandable details */}
+                <AnimatePresence initial={false}>
+                  {isExpanded ? (
+                    <motion.div
+                      key="details"
+                      id={detailsId}
+                      role="region"
+                      aria-labelledby={summaryId}
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{
+                        height: { duration: 0.3, ease: "easeInOut" },
+                        opacity: { duration: 0.2, ease: "easeOut" },
+                      }}
+                      className="relative z-10 overflow-hidden"
+                    >
+                      <div className="border-t border-white/5 px-6 pb-6 pt-5 sm:px-7 sm:pb-7">
+                        {/* Description */}
+                        <p className="mb-6 text-sm leading-relaxed text-gray-400">
+                          {plan.description}
                         </p>
+
+                        {/* Benefits */}
+                        <ul className="mb-7 space-y-3">
+                          {plan.benefits.map((benefit) => (
+                            <li
+                              key={benefit}
+                              className="flex items-start gap-3"
+                            >
+                              <Check
+                                size={16}
+                                className="mt-0.5 shrink-0 text-yellow-500"
+                                aria-hidden
+                              />
+                              <span className="text-sm text-gray-300">
+                                {benefit}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+
+                        {/* CTA BUTTON */}
+                        <button
+                          type="button"
+                          disabled={planBusySlug === plan.slug}
+                          onClick={async (event) => {
+                            event.stopPropagation();
+
+                            const {
+                              data: { user },
+                            } = await supabase.auth.getUser();
+
+                            if (!user) {
+                              router.push("/auth");
+                              return;
+                            }
+
+                            if (
+                              typeof currentPlanSlug === "string" &&
+                              isTierDowngrade(
+                                currentPlanSlug,
+                                plan.slug as CanonicalInvestmentPlan,
+                              )
+                            ) {
+                              const proceed = confirm(
+                                "This tier is lower than your current bracket. Proceed and use the lower daily compound rate?",
+                              );
+                              if (!proceed) return;
+                            }
+
+                            setPlanActionError(null);
+                            setPlanBusySlug(plan.slug);
+
+                            const { error } = await supabase
+                              .from("investors")
+                              .update({ investment_plan: plan.slug })
+                              .eq("user_id", user.id);
+
+                            setPlanBusySlug(null);
+
+                            if (error) {
+                              setPlanActionError(formatSupabaseError(error));
+                              return;
+                            }
+
+                            setCurrentPlanSlug(
+                              plan.slug as CanonicalInvestmentPlan,
+                            );
+                            router.push("/deposit");
+                          }}
+                          className={`flex w-full items-center justify-center rounded-2xl py-4 font-bold transition disabled:opacity-50 ${
+                            plan.elite
+                              ? "bg-yellow-500 text-black hover:bg-yellow-400"
+                              : "bg-zinc-900 border border-zinc-800 hover:border-yellow-500 text-white"
+                          }`}
+                        >
+                          {planBusySlug === plan.slug
+                            ? "Updating…"
+                            : plan.button}
+                        </button>
                       </div>
-                    )
-                  )}
-                </div>
+                    </motion.div>
+                  ) : null}
+                </AnimatePresence>
               </div>
-
-             {/* CTA BUTTON */}
-<button
-  disabled={planBusySlug === plan.slug}
-  onClick={async () => {
-
-    const { data: { user } } =
-      await supabase.auth.getUser()
-
-    if (!user) {
-      router.push("/auth")
-      return
-    }
-
-    if (
-      typeof currentPlanSlug === "string" &&
-      isTierDowngrade(currentPlanSlug, plan.slug as CanonicalInvestmentPlan)
-    ) {
-      const proceed = confirm(
-        "This tier is lower than your current bracket. Proceed and use the lower daily compound rate?",
-      );
-      if (!proceed) return;
-    }
-
-    setPlanActionError(null)
-    setPlanBusySlug(plan.slug)
-
-    const { error } = await supabase
-      .from("investors")
-      .update({ investment_plan: plan.slug })
-      .eq("user_id", user.id)
-
-    setPlanBusySlug(null)
-
-    if (error) {
-      setPlanActionError(formatSupabaseError(error))
-      return
-    }
-
-    setCurrentPlanSlug(plan.slug as CanonicalInvestmentPlan)
-    router.push("/deposit")
-  }}
-  className={`relative z-10 mt-auto w-full py-4 rounded-2xl font-bold transition flex items-center justify-center disabled:opacity-50 ${
-    plan.elite
-      ? "bg-yellow-500 text-black hover:bg-yellow-400"
-      : "bg-zinc-900 border border-zinc-800 hover:border-yellow-500 text-white"
-  }`}
->
-  {planBusySlug === plan.slug ? "Updating…" : plan.button}
-</button>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Bottom Disclaimer */}

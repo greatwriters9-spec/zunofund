@@ -91,7 +91,7 @@ export default function DashboardProfilePage() {
     if (!user?.id) {
       setInvestor(null);
       setLoading(false);
-      window.location.href = "/auth";
+      window.location.href = "/";
       return;
     }
 

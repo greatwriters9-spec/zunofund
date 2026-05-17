@@ -230,17 +230,19 @@ async function copyWallet() {
     Wallet Address
   </label>
 
-  <div className="flex gap-3">
+  <div className="flex flex-col gap-3 sm:flex-row">
     <input
       type="text"
       value={walletAddress}
       readOnly
-      className="flex-1 bg-black border border-zinc-800 rounded-xl px-4 py-3 outline-none text-white"
+      className="flex-1 min-w-0 bg-black border border-zinc-800 rounded-xl px-4 py-3 outline-none text-white text-sm sm:text-base font-mono break-all"
     />
 
     <button
+      type="button"
       onClick={copyWallet}
-      className="bg-yellow-500 hover:bg-yellow-400 text-black font-bold px-5 rounded-xl transition"
+      className="inline-flex h-12 w-full shrink-0 items-center justify-center rounded-xl bg-yellow-500 px-6 font-bold text-black transition hover:bg-yellow-400 sm:w-auto sm:min-w-[120px]"
+      aria-label="Copy wallet address"
     >
       Copy
     </button>

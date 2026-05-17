@@ -89,12 +89,19 @@ export default function DashboardPage() {
   const [showBalance, setShowBalance] = useState(true);
 
   async function handleLogout() {
-  await supabase.auth.signOut()
-
-  localStorage.clear()
-
-  window.location.href = "/auth"
-}
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      try {
+        localStorage.clear();
+      } catch {
+        /* ignore — private browsing or unavailable storage */
+      }
+      window.location.href = "/";
+    }
+  }
 
   const [showNotifications, setShowNotifications] = useState(false);
 
@@ -144,20 +151,6 @@ export default function DashboardPage() {
       setLoading(false);
       return;
     }
-
-    async function handleLogout() {
-  try {
-
-    await supabase.auth.signOut()
-
-    localStorage.clear()
-
-    router.push("/auth")
-
-  } catch (error) {
-    console.log("Logout error:", error)
-  }
-}
 
     const { data: investorData } = await supabase
   .from("investors")
@@ -359,7 +352,63 @@ export default function DashboardPage() {
     <div className="min-h-screen text-white relative overflow-hidden">
       <div className="relative z-10 max-w-7xl mx-auto p-5 md:p-7">
 
-        <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        {/* Mobile top toolbar: menu hard-left, profile+bell hard-right */}
+        <div className="mb-5 flex items-center justify-between gap-2 md:hidden">
+          <button
+            type="button"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-950/70 backdrop-blur-xl transition hover:border-yellow-500"
+            aria-expanded={mobileNavOpen}
+            aria-label={mobileNavOpen ? "Close navigation menu" : "Open navigation menu"}
+            onClick={() => setMobileNavOpen((o) => !o)}
+          >
+            {mobileNavOpen ? (
+              <X size={22} className="text-yellow-500" aria-hidden />
+            ) : (
+              <Menu size={22} className="text-yellow-500" aria-hidden />
+            )}
+          </button>
+
+          <div className="flex shrink-0 items-center gap-2">
+            <Link
+              href="/dashboard/profile"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-950/70 backdrop-blur-xl transition hover:border-yellow-500"
+              aria-label="Profile and security"
+            >
+              <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-lg border border-yellow-500/25 bg-yellow-500/10">
+                {investor?.avatar_url && !profileAvatarBroken ? (
+                  <Image
+                    src={investor.avatar_url}
+                    alt=""
+                    fill
+                    sizes="32px"
+                    className="object-cover"
+                    onError={() => setProfileAvatarBroken(true)}
+                  />
+                ) : (
+                  <span className="flex h-full w-full items-center justify-center">
+                    <UserRound className="text-yellow-500" size={18} aria-hidden />
+                  </span>
+                )}
+              </div>
+            </Link>
+
+            <Link
+              href="/notifications"
+              className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-950/70 backdrop-blur-xl transition hover:border-yellow-500"
+              aria-label="Notifications"
+            >
+              <Bell className="text-yellow-500" size={20} aria-hidden />
+              {unreadNotificationCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                  {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
+                </span>
+              )}
+            </Link>
+          </div>
+        </div>
+
+        {/* Header (greeting + desktop action cluster) */}
+        <div className="mb-7 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
 
           <div className="min-w-0 flex-1">
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-yellow-500 mb-2">
@@ -371,21 +420,7 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-            <button
-              type="button"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-950/70 backdrop-blur-xl transition hover:border-yellow-500 md:hidden"
-              aria-expanded={mobileNavOpen}
-              aria-label={mobileNavOpen ? "Close navigation menu" : "Open navigation menu"}
-              onClick={() => setMobileNavOpen((o) => !o)}
-            >
-              {mobileNavOpen ? (
-                <X size={22} className="text-yellow-500" aria-hidden />
-              ) : (
-                <Menu size={22} className="text-yellow-500" aria-hidden />
-              )}
-            </button>
-
+          <div className="hidden shrink-0 items-center gap-3 md:flex">
             <Link
               href="/dashboard/profile"
               className="bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 hover:border-yellow-500 transition p-3 rounded-2xl"
@@ -1098,7 +1133,7 @@ export default function DashboardPage() {
               <X size={22} aria-hidden />
             </button>
           </div>
-          <nav className="mt-8 flex flex-col gap-1 text-[15px] font-medium">
+          <nav className="mt-6 flex flex-col gap-1 text-[15px] font-medium">
             <Link
               href="/dashboard"
               className="rounded-xl px-4 py-4 text-[#E5E7EB]/90 transition hover:bg-white/5 hover:text-[#D4AF37]"
@@ -1149,6 +1184,19 @@ export default function DashboardPage() {
               Support
             </Link>
           </nav>
+
+          <div className="mt-auto pt-6">
+            <button
+              type="button"
+              onClick={() => {
+                setMobileNavOpen(false);
+                handleLogout();
+              }}
+              className="flex w-full items-center justify-center rounded-xl border border-red-500/40 bg-red-500/5 px-4 py-4 text-base font-semibold text-red-300 transition hover:border-red-500 hover:bg-red-500/10 hover:text-red-200"
+            >
+              Logout
+            </button>
+          </div>
         </div>
       ) : null}
     </div>

@@ -2,9 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { ArrowRight, Bell, Headset, Menu, UserRound, X } from "lucide-react";
+
+import { loginHref, signupHref } from "@/lib/authLinks";
 
 const NAV_DASHBOARD = [
   { href: "/dashboard", label: "Dashboard" },
@@ -103,8 +105,10 @@ function NavLinkDash({
   );
 }
 
-export function MarketingNavbar() {
+function MarketingNavbarInner() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const nextParam = searchParams.get("next");
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => setMobileOpen(false), [pathname]);
@@ -112,6 +116,9 @@ export function MarketingNavbar() {
   function closeMobile() {
     setMobileOpen(false);
   }
+
+  const loginUrl = loginHref(nextParam);
+  const signupUrl = signupHref(nextParam);
 
   return (
     <>
@@ -156,15 +163,18 @@ export function MarketingNavbar() {
               Support
             </Link>
 
-            <Link href="/auth" className="hidden sm:block text-sm text-[#E5E7EB]/90 hover:text-[#D4AF37]">
+            <Link
+              href={loginUrl}
+              className="hidden sm:block text-sm text-[#E5E7EB]/90 hover:text-[#D4AF37]"
+            >
               Login
             </Link>
 
             <Link
-              href="/investment-plans"
+              href={signupUrl}
               className="flex items-center gap-2 rounded-lg bg-[#D4AF37] px-4 py-2 text-sm font-semibold text-black hover:opacity-90 hover:shadow-[0_0_22px_rgba(212,175,55,0.45)] transition"
             >
-              Start
+              Sign up
               <ArrowRight size={16} />
             </Link>
           </div>
@@ -191,7 +201,7 @@ export function MarketingNavbar() {
             </button>
           </div>
 
-          <nav className="mt-8 flex flex-col gap-1 text-[15px] font-medium">
+          <nav className="mt-6 flex flex-col gap-1 text-[15px] font-medium">
             <a
               href="#home"
               className="rounded-xl px-4 py-4 text-[#E5E7EB]/90 transition hover:bg-white/5 hover:text-[#D4AF37]"
@@ -220,17 +230,40 @@ export function MarketingNavbar() {
             >
               Support
             </Link>
+          </nav>
+
+          <div className="mt-auto flex flex-col gap-3 pt-6">
             <Link
-              href="/auth"
-              className="rounded-xl px-4 py-4 text-[#E5E7EB]/90 transition hover:bg-white/5 hover:text-[#D4AF37]"
+              href={loginUrl}
               onClick={closeMobile}
+              className="flex h-12 items-center justify-center rounded-xl border border-white/15 text-base font-semibold text-[#E5E7EB] transition hover:border-[#D4AF37]/60 hover:text-[#D4AF37]"
             >
               Login
             </Link>
-          </nav>
+            <Link
+              href={signupUrl}
+              onClick={closeMobile}
+              className="flex h-12 items-center justify-center gap-2 rounded-xl bg-[#D4AF37] text-base font-semibold text-black transition hover:opacity-90 hover:shadow-[0_0_22px_rgba(212,175,55,0.45)]"
+            >
+              Sign up
+              <ArrowRight size={18} />
+            </Link>
+          </div>
         </div>
       ) : null}
     </>
+  );
+}
+
+export function MarketingNavbar() {
+  return (
+    <Suspense
+      fallback={
+        <header className="sticky top-0 z-[200] h-[80px] border-b border-white/5 bg-black/80 backdrop-blur-xl" />
+      }
+    >
+      <MarketingNavbarInner />
+    </Suspense>
   );
 }
 

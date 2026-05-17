@@ -102,7 +102,7 @@ export async function updateSession(request: NextRequest) {
   if (isInvestorProtectedPath(path) && !uid) {
     if (!isDev) {
       const url = request.nextUrl.clone();
-      url.pathname = "/auth";
+      url.pathname = "/";
       url.searchParams.set("next", `${path}${request.nextUrl.search}`);
       const redirect = NextResponse.redirect(url);
       copyCookies(response, redirect);
@@ -112,7 +112,7 @@ export async function updateSession(request: NextRequest) {
     // Allow through only when cookies exist but getUser()/refresh failed (local TLS issue).
     if (!hasSupabaseSessionCookies(request)) {
       const url = request.nextUrl.clone();
-      url.pathname = "/auth";
+      url.pathname = "/";
       url.searchParams.set("next", `${path}${request.nextUrl.search}`);
       const redirect = NextResponse.redirect(url);
       copyCookies(response, redirect);
