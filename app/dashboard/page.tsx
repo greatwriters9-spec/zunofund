@@ -521,51 +521,58 @@ export default function DashboardPage() {
             </button>
 
             {showNotifications && (
-              <div className="absolute right-0 mt-4 z-50 w-[min(360px,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 rounded-3xl shadow-2xl overflow-hidden">
+              <div className="absolute right-0 z-50 mt-4 w-[min(360px,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] overflow-hidden border border-zinc-800/80 bg-zinc-950/95 shadow-2xl backdrop-blur-md lg:rounded-xl">
 
-                <div className="p-5 border-b border-zinc-800">
-                  <h2 className="text-xl font-bold">
+                <div className="flex items-center justify-between gap-3 border-b border-zinc-800/80 px-4 py-3">
+                  <h2 className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
                     Notifications
                   </h2>
+                  <Link
+                    href="/notifications"
+                    className="text-xs font-semibold text-yellow-500 transition hover:text-yellow-400"
+                  >
+                    View all
+                  </Link>
                 </div>
 
-                <div className="max-h-[420px] overflow-y-auto">
-
+                <div className="max-h-[min(420px,55vh)] overflow-y-auto">
                   {notifications.length > 0 ? (
-                    notifications.map((notification) => (
-                      <button
-                        key={notification.id}
-                        type="button"
-                        onClick={() =>
-                          markNotificationAsRead(notification.id)
-                        }
-                        className="w-full text-left p-5 border-b border-zinc-800 transition hover:bg-zinc-900"
-                      >
-                        <h3 className="font-semibold text-white mb-2 flex items-center gap-2">
-                          {notification.title}
-                          <span
-                            className="h-2 w-2 shrink-0 rounded-full bg-yellow-500"
-                            aria-hidden
-                          />
-                        </h3>
-
-                        <p className="text-gray-400 text-sm mb-2">
-                          {notification.message}
-                        </p>
-
-                        <p className="text-gray-600 text-xs">
-                          {new Date(notification.created_at).toLocaleString()}
-                        </p>
-                      </button>
-                    ))
+                    <div className="divide-y divide-zinc-800/80">
+                      {notifications.map((notification) => (
+                        <button
+                          key={notification.id}
+                          type="button"
+                          onClick={() =>
+                            markNotificationAsRead(notification.id)
+                          }
+                          className="w-full px-4 py-3 text-left transition hover:bg-zinc-900/50"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <h3 className="text-sm font-semibold text-white">
+                              {notification.title}
+                            </h3>
+                            <span
+                              className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-yellow-500"
+                              aria-hidden
+                            />
+                          </div>
+                          <p className="mt-1 line-clamp-2 text-xs leading-snug text-zinc-500">
+                            {notification.message}
+                          </p>
+                          <p className="mt-2 text-[11px] tabular-nums text-zinc-600">
+                            {new Date(notification.created_at).toLocaleString()}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
                   ) : (
-                    <div className="p-10 text-center text-gray-500">
+                    <div className="px-4 py-10 text-center text-sm text-zinc-500">
                       No notifications.
                     </div>
                   )}
                 </div>
 
-                <div className="border-t border-zinc-800 p-4 flex justify-between items-center gap-3">
+                <div className="flex items-center justify-between gap-3 border-t border-zinc-800/80 px-4 py-3">
                   <p className="text-xs text-zinc-500">
                     {unreadNotificationCount > 0
                       ? `${unreadNotificationCount} unread`
@@ -573,9 +580,9 @@ export default function DashboardPage() {
                   </p>
                   <Link
                     href="/notifications"
-                    className="text-sm font-medium text-yellow-500 hover:text-yellow-400"
+                    className="text-xs font-semibold text-yellow-500 transition hover:text-yellow-400"
                   >
-                    Open inbox →
+                    View all
                   </Link>
                 </div>
               </div>
@@ -803,170 +810,153 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 mb-7">
+        <div className="mb-7 grid grid-cols-1 gap-3 xl:grid-cols-3 xl:gap-4">
 
-          <div id="portfolio-growth" className="xl:col-span-2 bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 rounded-3xl p-5">
+          <div
+            id="portfolio-growth"
+            className="flex flex-col border border-zinc-800/80 bg-zinc-950/40 p-4 sm:p-5 lg:rounded-xl xl:col-span-2"
+          >
+            <div className="mb-4 border-b border-zinc-800/80 pb-3">
+              <h2 className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+                Portfolio growth
+              </h2>
+              <p className="mt-0.5 text-xs text-zinc-600">
+                Real growth based on actual profits.
+              </p>
+            </div>
 
-            <h2 className="text-2xl font-bold mb-1">
-              Portfolio Growth
-            </h2>
-
-            <p className="text-gray-400 mb-6">
-              Real growth based on actual profits.
-            </p>
-
-            <div className="w-full min-h-[260px] sm:min-h-[300px] md:min-h-[320px]" style={{ height: 320 }}>
+            <div
+              className="min-h-[240px] w-full sm:min-h-[280px] md:min-h-[300px]"
+              style={{ height: 300 }}
+            >
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
-                <defs>
-                  <linearGradient
-                    id="profit"
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop
-                      offset="5%"
-                      stopColor="#facc15"
-                      stopOpacity={0.4}
-                    />
+                  <defs>
+                    <linearGradient id="profit" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#facc15" stopOpacity={0.35} />
+                      <stop offset="95%" stopColor="#facc15" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
 
-                    <stop
-                      offset="95%"
-                      stopColor="#facc15"
-                      stopOpacity={0}
-                    />
-                  </linearGradient>
-                </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
 
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="#27272a"
-                />
+                  <XAxis dataKey="date" stroke="#71717a" tick={{ fontSize: 11 }} />
 
-                <XAxis
-                  dataKey="date"
-                  stroke="#71717a"
-                />
+                  <YAxis stroke="#71717a" tick={{ fontSize: 11 }} width={44} />
 
-                <YAxis stroke="#71717a" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#09090b",
+                      border: "1px solid #3f3f46",
+                      borderRadius: "8px",
+                      color: "#fff",
+                      fontSize: "12px",
+                    }}
+                  />
 
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#09090b",
-                    border: "1px solid #27272a",
-                    borderRadius: "16px",
-                    color: "#fff",
-                  }}
-                />
-
-                <Area
-                  type="monotone"
-                  dataKey="profit"
-                  stroke="#facc15"
-                  fill="url(#profit)"
-                  strokeWidth={4}
-                />
-              </AreaChart>
+                  <Area
+                    type="monotone"
+                    dataKey="profit"
+                    stroke="#facc15"
+                    fill="url(#profit)"
+                    strokeWidth={2}
+                  />
+                </AreaChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          <div className="bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 rounded-3xl p-5 flex flex-col max-h-[min(420px,55vh)]">
-
-            <div className="flex items-center justify-between mb-4 shrink-0">
-              <h2 className="text-2xl font-bold">
+          <div className="flex max-h-[min(420px,55vh)] flex-col border border-zinc-800/80 bg-zinc-950/40 p-4 sm:p-5 lg:rounded-xl">
+            <div className="mb-0 flex shrink-0 items-center justify-between gap-3 border-b border-zinc-800/80 pb-3">
+              <h2 className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
                 Notifications
               </h2>
-
-              <div className="flex items-center gap-3">
-                <Link
-                  href="/notifications"
-                  className="text-yellow-500 hover:text-yellow-400 transition font-medium text-sm"
-                >
-                  View all
-                </Link>
-                <Bell className="text-yellow-500 shrink-0" size={22} />
-              </div>
+              <Link
+                href="/notifications"
+                className="text-xs font-semibold text-yellow-500 transition hover:text-yellow-400"
+              >
+                View all
+              </Link>
             </div>
 
-            <div className="space-y-3 min-h-0 overflow-y-auto pr-1 -mr-1">
-
+            <div className="min-h-0 flex-1 overflow-y-auto">
               {notifications.length > 0 ? (
-                notifications.map((notification) => (
-                  <button
-                    key={notification.id}
-                    type="button"
-                    className="w-full shrink-0 rounded-2xl border border-zinc-800 bg-black/40 p-3.5 text-left transition hover:border-yellow-500/30"
-                    onClick={() => markNotificationAsRead(notification.id)}
-                  >
-                    <h3 className="font-semibold text-sm mb-1 text-white line-clamp-1">
-                      {notification.title}
-                    </h3>
-
-                    <p className="text-gray-400 text-xs leading-snug line-clamp-2">
-                      {notification.message}
-                    </p>
-                  </button>
-                ))
+                <div className="divide-y divide-zinc-800/80">
+                  {notifications.map((notification) => (
+                    <button
+                      key={notification.id}
+                      type="button"
+                      className="w-full py-3 text-left transition first:pt-1 hover:bg-zinc-900/40"
+                      onClick={() => markNotificationAsRead(notification.id)}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-sm font-semibold text-white line-clamp-1">
+                          {notification.title}
+                        </span>
+                        <span
+                          className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-yellow-500"
+                          aria-hidden
+                        />
+                      </div>
+                      <p className="mt-1 line-clamp-2 text-xs leading-snug text-zinc-500">
+                        {notification.message}
+                      </p>
+                    </button>
+                  ))}
+                </div>
               ) : (
-                <div className="text-gray-500 text-center py-8 text-sm shrink-0">
+                <div className="py-10 text-center text-sm text-zinc-500">
                   No notifications.
                 </div>
               )}
             </div>
-
           </div>
         </div>
 
-        <div className="bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 rounded-3xl overflow-hidden">
+        <div className="overflow-hidden border border-zinc-800/80 bg-zinc-950/40 lg:rounded-xl">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800/80 px-4 py-3 sm:px-5">
+            <h2 className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+              Recent activity
+            </h2>
+            <Link
+              href="/history"
+              className="text-xs font-semibold text-yellow-500 transition hover:text-yellow-400"
+            >
+              View all
+            </Link>
+          </div>
 
-          <div className="p-5 border-b border-zinc-800 flex items-center justify-between">
-
-  <h2 className="text-2xl font-bold">
-    Recent Activities
-  </h2>
-
-  <Link
-    href="/history"
-    className="text-yellow-500 hover:text-yellow-400 transition font-medium text-sm"
-  >
-    View All
-  </Link>
-</div>
-
-          <div className="divide-y divide-zinc-800">
-
-            {activities.map((activity) => (
-              <div
-                key={activity.id}
-                className="flex items-center justify-between p-5"
-              >
-                <div>
-                  <h3 className="font-semibold capitalize">
-                    {activity.type}
-                  </h3>
-
-                  <p className="text-gray-500 text-sm">
-                    {activity.status}
-                  </p>
-                </div>
-
+          <div className="divide-y divide-zinc-800/80">
+            {activities.length > 0 ? (
+              activities.map((activity) => (
                 <div
-                  className={`text-xl font-bold ${
-                    activity.type === "withdrawal"
-                      ? "text-red-500"
-                      : "text-green-500"
-                  }`}
+                  key={activity.id}
+                  className="flex items-center justify-between gap-3 px-4 py-3 sm:px-5"
                 >
-                  {activity.type === "withdrawal"
-                    ? "-"
-                    : "+"}
-                  ${Number(activity.amount).toFixed(2)}
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-semibold capitalize text-white">
+                      {activity.type}
+                    </h3>
+                    <p className="text-xs text-zinc-500">{activity.status}</p>
+                  </div>
+
+                  <div
+                    className={`shrink-0 text-base font-bold tabular-nums sm:text-lg ${
+                      activity.type === "withdrawal"
+                        ? "text-red-500"
+                        : "text-emerald-400"
+                    }`}
+                  >
+                    {activity.type === "withdrawal" ? "-" : "+"}$
+                    {Number(activity.amount).toFixed(2)}
+                  </div>
                 </div>
+              ))
+            ) : (
+              <div className="px-4 py-10 text-center text-sm text-zinc-500 sm:px-5">
+                No recent activity.
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>

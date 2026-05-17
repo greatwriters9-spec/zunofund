@@ -223,13 +223,6 @@ export default function NotificationsPage() {
     window.dispatchEvent(new CustomEvent("tp:investor-notifications-sync"));
   }
 
-  const tabCls = (t: FilterTab) =>
-    `rounded-xl px-4 py-2 text-sm font-medium transition border ${
-      filter === t
-        ? "bg-yellow-500 text-black border-yellow-500"
-        : "bg-black/40 border-zinc-800 text-zinc-300 hover:border-zinc-600"
-    }`;
-
   if (loading) {
     return (
       <div className="min-h-screen text-white flex items-center justify-center text-zinc-400">
@@ -240,160 +233,194 @@ export default function NotificationsPage() {
 
   return (
     <div className="min-h-screen text-white">
-      <div className="mx-auto max-w-4xl p-10">
-        <h1 className="text-3xl font-bold text-yellow-500 mb-2">
-          Notifications
-        </h1>
-        <p className="text-zinc-400 mb-10">
-          Deposits, withdrawals, profits, and support replies in one place.
-        </p>
+      <div className="relative z-10 mx-auto max-w-7xl p-5 md:p-7">
+        <header className="mb-5 border-b border-zinc-800/80 pb-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+                Inbox
+              </p>
+              <h1 className="mt-1 text-2xl font-bold text-white sm:text-3xl">
+                Notifications
+              </h1>
+              <p className="mt-1 text-sm text-zinc-600">
+                Same layout as your dashboard — deposits, withdrawals, profits,
+                support.
+              </p>
+            </div>
+            <Link
+              href="/dashboard"
+              className="shrink-0 text-xs font-semibold text-yellow-500 transition hover:text-yellow-400"
+            >
+              ← Dashboard
+            </Link>
+          </div>
+        </header>
 
         {(fetchError || actionError) && (
           <div
-            className="mb-6 rounded-2xl border border-red-500/50 bg-red-500/10 px-6 py-4 text-red-300 text-sm"
+            className="mb-4 border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300"
             role="alert"
           >
             {fetchError || actionError}
           </div>
         )}
 
-        <section className="mb-10 rounded-2xl border border-zinc-800 bg-zinc-950/70 backdrop-blur-xl px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <section className="mb-5 flex flex-col gap-3 border border-zinc-800/80 bg-zinc-950/40 px-4 py-3 sm:flex-row sm:items-center sm:justify-between lg:rounded-lg">
           <div>
-            <p className="text-sm text-zinc-500 mb-1">Unread</p>
-            <p className="text-2xl font-semibold text-white">
-              {unreadCount === 0
-                ? "You’re caught up"
-                : `${unreadCount} notification${unreadCount === 1 ? "" : "s"}`}
+            <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+              Unread
+            </p>
+            <p className="text-lg font-semibold tabular-nums text-white">
+              {unreadCount === 0 ? "—" : unreadCount}
             </p>
           </div>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => markAllAsRead()}
               disabled={unreadCount === 0}
-              className="flex items-center gap-2 rounded-2xl border border-zinc-800 bg-black px-5 py-3 text-sm text-zinc-200 transition hover:border-yellow-500 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex items-center gap-2 rounded-lg border border-zinc-700/90 px-3 py-2 text-xs font-semibold text-zinc-200 transition hover:border-yellow-500/40 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              <CheckCheck size={18} />
+              <CheckCheck size={16} aria-hidden />
               Mark all read
             </button>
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-2 rounded-2xl border border-zinc-800 bg-black px-5 py-3 text-sm text-zinc-200 transition hover:border-yellow-500"
+              className="inline-flex items-center gap-2 rounded-lg border border-zinc-700/90 px-3 py-2 text-xs font-semibold text-zinc-200 transition hover:border-yellow-500/40"
             >
-              <ArrowLeft size={18} />
+              <ArrowLeft size={16} aria-hidden />
               Dashboard
             </Link>
           </div>
         </section>
 
-        <div className="flex flex-wrap gap-2 mb-8">
-          <button type="button" className={tabCls("all")} onClick={() => setFilter("all")}>
-            All ({notifications.length})
-          </button>
-          <button
-            type="button"
-            className={tabCls("unread")}
-            onClick={() => setFilter("unread")}
-          >
-            Unread ({notifications.filter((n) => n.is_read !== true).length})
-          </button>
-          <button type="button" className={tabCls("read")} onClick={() => setFilter("read")}>
-            Read ({notifications.filter((n) => n.is_read === true).length})
-          </button>
+        <div className="-mx-1 mb-4 flex gap-1 overflow-x-auto border-b border-zinc-800/80 px-1 pb-px">
+          {(
+            [
+              ["all", `All (${notifications.length})`] as const,
+              [
+                "unread",
+                `Unread (${notifications.filter((n) => n.is_read !== true).length})`,
+              ] as const,
+              [
+                "read",
+                `Read (${notifications.filter((n) => n.is_read === true).length})`,
+              ] as const,
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setFilter(key)}
+              className={`shrink-0 border-b-2 px-3 pb-2 pt-1 text-sm font-medium transition ${
+                filter === key
+                  ? "border-yellow-500 text-white"
+                  : "border-transparent text-zinc-500 hover:text-zinc-300"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
 
-        <div className="space-y-4">
+        <div className="overflow-hidden border border-zinc-800/80 bg-zinc-950/40 lg:rounded-lg">
           {visibleList.length > 0 ? (
-            visibleList.map((notification) => {
-              const { Icon, chip, iconWrap } = typeStyles(notification.type || "");
-              const unread = notification.is_read !== true;
-              const cardClassName = [
-                "block w-full text-left rounded-2xl border p-6 transition",
-                unread
-                  ? "border-yellow-500/25 bg-zinc-950/70 backdrop-blur-xl hover:border-yellow-500/50 cursor-pointer"
-                  : "border-zinc-800 bg-zinc-950/50 backdrop-blur-xl cursor-default",
-              ].join(" ");
-              const body = (
-                <>
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="flex gap-4 min-w-0">
-                      <div className={`shrink-0 p-3 rounded-2xl ${iconWrap}`}>
-                        <Icon size={20} />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h2 className="text-lg font-semibold text-white truncate">
+            <div className="divide-y divide-zinc-800/80">
+              {visibleList.map((notification) => {
+                const { Icon, chip, iconWrap } = typeStyles(
+                  notification.type || "",
+                );
+                const unread = notification.is_read !== true;
+                const rowInner = (
+                  <div className="flex gap-3 px-4 py-4 sm:px-5">
+                    <div
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border ${iconWrap}`}
+                    >
+                      <Icon size={16} aria-hidden />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <h2 className="text-sm font-semibold text-white">
                           {notification.title}
                         </h2>
-                        <p
-                          className={`inline-flex mt-2 text-xs capitalize rounded-lg px-3 py-1 border ${chip}`}
-                        >
-                          {(notification.type || "update").replace(/-/g, " ")}
-                        </p>
-                        <p className="text-zinc-300 text-sm leading-relaxed mt-4">
-                          {notification.message}
-                        </p>
+                        <div className="flex shrink-0 items-center gap-2">
+                          {unread ? (
+                            <span
+                              className="h-1.5 w-1.5 rounded-full bg-yellow-500"
+                              aria-hidden
+                            />
+                          ) : (
+                            <span className="text-[10px] uppercase tracking-wide text-zinc-600">
+                              Read
+                            </span>
+                          )}
+                          <span className="text-[11px] tabular-nums text-zinc-600">
+                            {new Date(notification.created_at).toLocaleString()}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex sm:flex-col items-center sm:items-end gap-3 shrink-0 justify-between sm:justify-start">
-                      {unread ? (
-                        <span
-                          className="h-2.5 w-2.5 rounded-full bg-yellow-500"
-                          aria-hidden
-                        />
-                      ) : (
-                        <span className="text-xs text-zinc-500">Read</span>
-                      )}
-                      <span className="text-xs text-zinc-500 tabular-nums whitespace-nowrap">
-                        {new Date(notification.created_at).toLocaleString()}
-                      </span>
+                      <p
+                        className={`mt-1 inline-block text-[10px] capitalize tracking-wide ${chip} rounded border px-2 py-0.5`}
+                      >
+                        {(notification.type || "update").replace(/-/g, " ")}
+                      </p>
+                      <p className="mt-2 text-sm leading-snug text-zinc-400">
+                        {notification.message}
+                      </p>
                     </div>
                   </div>
-                </>
-              );
-              return unread ? (
-                <button
-                  type="button"
-                  key={notification.id}
-                  onClick={() => markAsRead(notification.id)}
-                  className={cardClassName}
-                  title="Click to mark as read"
-                >
-                  {body}
-                </button>
-              ) : (
-                <div key={notification.id} className={cardClassName}>
-                  {body}
-                </div>
-              );
-            })
+                );
+
+                return unread ? (
+                  <button
+                    type="button"
+                    key={notification.id}
+                    onClick={() => markAsRead(notification.id)}
+                    className="block w-full text-left transition hover:bg-zinc-900/40"
+                    title="Tap to mark as read"
+                  >
+                    {rowInner}
+                  </button>
+                ) : (
+                  <div key={notification.id} className="opacity-90">
+                    {rowInner}
+                  </div>
+                );
+              })}
+            </div>
           ) : (
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 backdrop-blur-xl px-8 py-16 text-center">
-              <Bell className="mx-auto text-zinc-600 mb-5" size={48} strokeWidth={1.25} />
-              <h2 className="text-xl font-semibold text-white mb-2">
+            <div className="px-6 py-14 text-center">
+              <Bell
+                className="mx-auto mb-4 text-zinc-700"
+                size={36}
+                strokeWidth={1.25}
+                aria-hidden
+              />
+              <h2 className="text-base font-semibold text-white">
                 {filter === "unread"
-                  ? "Nothing unread"
+                  ? "No unread notifications."
                   : filter === "read"
-                    ? "No read notifications yet"
-                    : "No notifications yet"}
+                    ? "No read notifications yet."
+                    : "No notifications yet."}
               </h2>
-              <p className="text-zinc-500 text-sm mb-8 max-w-sm mx-auto">
-                When admins approve payouts, support replies, or the system sends
-                alerts, they will appear here.
+              <p className="mx-auto mt-2 max-w-sm text-sm text-zinc-600">
+                Alerts from payouts, support, and your portfolio show here.
               </p>
               <Link
                 href="/dashboard"
-                className="inline-flex items-center gap-2 rounded-2xl border border-zinc-700 px-6 py-3 text-sm text-yellow-500 hover:border-yellow-500"
+                className="mt-6 inline-flex items-center gap-2 text-xs font-semibold text-yellow-500 hover:text-yellow-400"
               >
-                <ArrowLeft size={16} />
+                <ArrowLeft size={14} aria-hidden />
                 Back to dashboard
               </Link>
             </div>
           )}
         </div>
 
-        <p className="text-zinc-600 text-xs mt-12">
-          Tip: unread items mark as read when you open them. Use “Mark all read” if
-          you prefer to clear the badge without tapping each row.
+        <p className="mt-6 text-xs text-zinc-600">
+          Unread rows mark as read when opened. Use Mark all read to clear the
+          badge quickly.
         </p>
       </div>
     </div>

@@ -175,55 +175,41 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="min-h-screen text-white relative overflow-hidden">
-      <div className="relative z-10 max-w-7xl mx-auto p-5 md:p-7">
+    <div className="relative min-h-screen overflow-hidden text-white">
+      <div className="relative z-10 mx-auto max-w-7xl p-5 md:p-7">
 
-        {/* Header */}
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-
-          <div className="min-w-0">
-            <h1 className="text-3xl font-bold text-yellow-500 mb-2 sm:text-4xl">
-              Transaction History
-            </h1>
-
-            <p className="text-gray-400">
-              Complete financial activity overview.
-            </p>
+        <header className="mb-5 border-b border-zinc-800/80 pb-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+                Activity
+              </p>
+              <h1 className="mt-1 text-2xl font-bold text-white sm:text-3xl">
+                Transaction history
+              </h1>
+              <p className="mt-1 text-sm text-zinc-600">
+                Same row layout as dashboard recent activity — full ledger.
+              </p>
+            </div>
+            <Link
+              href="/dashboard"
+              className="shrink-0 text-xs font-semibold text-yellow-500 transition hover:text-yellow-400"
+            >
+              ← Dashboard
+            </Link>
           </div>
+        </header>
 
-          <Link
-            href="/dashboard"
-            className="flex w-fit shrink-0 items-center gap-2 bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 hover:border-yellow-500 transition px-5 py-3 rounded-2xl"
-          >
-            <ArrowLeft size={18} />
-            Dashboard
-          </Link>
-        </div>
-
-        {/* Filters */}
-        <div className="flex flex-wrap gap-4 mb-8">
-
-          {[
-            "all",
-            "deposit",
-            "withdrawal",
-            "profit",
-          ].map((filter) => (
+        <div className="-mx-1 mb-4 flex gap-1 overflow-x-auto border-b border-zinc-800/80 px-1 pb-px">
+          {(["all", "deposit", "withdrawal", "profit"] as const).map((filter) => (
             <button
               key={filter}
-              onClick={() =>
-                setActiveFilter(
-                  filter as
-                    | "all"
-                    | "deposit"
-                    | "withdrawal"
-                    | "profit"
-                )
-              }
-              className={`px-5 py-3 rounded-2xl border transition capitalize font-medium ${
+              type="button"
+              onClick={() => setActiveFilter(filter)}
+              className={`shrink-0 border-b-2 px-3 pb-2 pt-1 text-sm font-medium capitalize transition ${
                 activeFilter === filter
-                  ? "bg-yellow-500 text-black border-yellow-500"
-                  : "bg-zinc-950/70 backdrop-blur-xl border-zinc-800 hover:border-yellow-500"
+                  ? "border-yellow-500 text-white"
+                  : "border-transparent text-zinc-500 hover:text-zinc-300"
               }`}
             >
               {filter}
@@ -231,15 +217,14 @@ export default function HistoryPage() {
           ))}
         </div>
 
-        {/* Transactions */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 rounded-3xl overflow-hidden"
+          className="overflow-hidden border border-zinc-800/80 bg-zinc-950/40 lg:rounded-lg"
         >
 
           {/* Table Header */}
-          <div className="hidden md:grid grid-cols-5 gap-4 p-5 border-b border-zinc-800 text-gray-400 text-sm font-medium">
+          <div className="hidden md:grid md:grid-cols-5 md:gap-4 border-b border-zinc-800/80 p-4 text-xs font-medium uppercase tracking-wide text-zinc-500 sm:px-5">
             <div>Transaction</div>
             <div>Status</div>
             <div>Description</div>
@@ -249,10 +234,9 @@ export default function HistoryPage() {
             </div>
           </div>
 
-          {/* Loading */}
           {loading ? (
-            <div className="p-10 text-center text-gray-500">
-              Loading transactions...
+            <div className="px-4 py-12 text-center text-sm text-zinc-500 sm:px-5">
+              Loading transactions…
             </div>
           ) : filteredTransactions.length > 0 ? (
             filteredTransactions.map((transaction) => {
@@ -269,84 +253,69 @@ export default function HistoryPage() {
               return (
                 <div
                   key={transaction.id}
-                  className="border-b border-zinc-800 last:border-b-0 transition md:hover:bg-zinc-900/40"
+                  className="border-b border-zinc-800/80 transition last:border-b-0 md:hover:bg-zinc-900/30"
                 >
-                  <div className="space-y-4 p-5 md:hidden">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-zinc-800 bg-black">
-                          {getTransactionIcon(transaction.type)}
-                        </div>
-                        <div className="min-w-0">
-                          <h3 className="font-semibold capitalize">
-                            {transaction.type}
-                          </h3>
-                          <p className="text-gray-500 text-sm">
-                            Transaction
-                          </p>
-                        </div>
-                      </div>
-                      <div
-                        className={`shrink-0 text-lg font-bold tabular-nums sm:text-xl ${getAmountColor(
-                          transaction.type,
-                        )}`}
-                      >
-                        {amountPrefix}$
-                        {Number(transaction.amount).toFixed(2)}
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span
-                        className={`rounded-xl px-4 py-2 text-sm font-medium capitalize ${statusUi}`}
-                      >
-                        {transaction.status}
-                      </span>
-                      <span className="text-gray-500 text-xs sm:text-sm">
-                        {new Date(
-                          transaction.created_at,
-                        ).toLocaleString()}
-                      </span>
-                    </div>
-                    <p className="text-sm leading-snug text-gray-300">
-                      {transaction.description}
-                    </p>
-                  </div>
-
-                  <div className="hidden md:grid md:grid-cols-5 md:gap-4 md:p-5">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-zinc-800 bg-black">
+                  <div className="flex items-center justify-between gap-3 px-4 py-3 md:hidden sm:px-5">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-black/40">
                         {getTransactionIcon(transaction.type)}
                       </div>
-                      <div>
-                        <h3 className="font-semibold capitalize">
+                      <div className="min-w-0">
+                        <h3 className="text-sm font-semibold capitalize text-white">
                           {transaction.type}
                         </h3>
-                        <p className="text-gray-500 text-sm">
-                          Transaction
+                        <p className="truncate text-xs text-zinc-600">
+                          {transaction.description}
                         </p>
                       </div>
                     </div>
+                    <div
+                      className={`shrink-0 text-sm font-bold tabular-nums ${getAmountColor(
+                        transaction.type,
+                      )}`}
+                    >
+                      {amountPrefix}${Number(transaction.amount).toFixed(2)}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 border-t border-zinc-800/40 px-4 py-2 md:hidden sm:px-5">
+                    <span
+                      className={`rounded-md px-2 py-0.5 text-[11px] font-medium capitalize ${statusUi}`}
+                    >
+                      {transaction.status}
+                    </span>
+                    <span className="text-[11px] tabular-nums text-zinc-600">
+                      {new Date(transaction.created_at).toLocaleString()}
+                    </span>
+                  </div>
 
-                    <div className="flex items-center">
-                      <div
-                        className={`rounded-xl px-4 py-2 text-sm font-medium capitalize ${statusUi}`}
-                      >
-                        {transaction.status}
+                  <div className="hidden md:grid md:grid-cols-5 md:gap-4 md:px-5 md:py-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-black/40">
+                        {getTransactionIcon(transaction.type)}
                       </div>
+                      <span className="text-sm font-semibold capitalize text-white">
+                        {transaction.type}
+                      </span>
                     </div>
 
-                    <div className="flex items-center text-gray-300">
+                    <div className="flex items-center">
+                      <span
+                        className={`rounded-md px-2 py-0.5 text-[11px] font-medium capitalize ${statusUi}`}
+                      >
+                        {transaction.status}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center text-sm text-zinc-400">
                       {transaction.description}
                     </div>
 
-                    <div className="flex items-center text-gray-500 text-sm">
-                      {new Date(
-                        transaction.created_at,
-                      ).toLocaleString()}
+                    <div className="flex items-center text-xs tabular-nums text-zinc-600">
+                      {new Date(transaction.created_at).toLocaleString()}
                     </div>
 
                     <div
-                      className={`flex items-center justify-end text-2xl font-bold tabular-nums ${getAmountColor(
+                      className={`flex items-center justify-end text-base font-bold tabular-nums ${getAmountColor(
                         transaction.type,
                       )}`}
                     >
@@ -358,8 +327,8 @@ export default function HistoryPage() {
               );
             })
           ) : (
-            <div className="p-16 text-center text-gray-500">
-              No transactions found.
+            <div className="px-4 py-14 text-center text-sm text-zinc-500 sm:px-5">
+              No transactions in this view.
             </div>
           )}
         </motion.div>
