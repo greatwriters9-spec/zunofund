@@ -4,11 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ArrowLeft,
   Eye,
   EyeOff,
-  Lock,
-  Mail,
   Phone,
   ShieldCheck,
   UserRound,
@@ -299,7 +296,7 @@ export default function DashboardProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen text-white flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center text-sm text-zinc-500">
         Loading profile…
       </div>
     );
@@ -307,16 +304,16 @@ export default function DashboardProfilePage() {
 
   if (!investor) {
     return (
-      <div className="min-h-screen text-white flex items-center justify-center p-8">
-        <div className="max-w-md text-center border border-zinc-800 rounded-3xl p-10 bg-zinc-950/70 backdrop-blur-xl">
-          <p className="text-zinc-300 mb-6">
+      <div className="flex min-h-screen items-center justify-center p-5 text-white md:p-7">
+        <div className="w-full max-w-md border border-zinc-800/80 bg-zinc-950/40 p-8 text-center lg:rounded-lg">
+          <p className="text-sm text-zinc-400">
             No investor profile is linked to this login yet.
           </p>
           <Link
             href="/dashboard"
-            className="inline-block text-yellow-500 hover:text-yellow-400 font-medium"
+            className="mt-6 inline-flex text-xs font-semibold text-yellow-500 transition hover:text-yellow-400"
           >
-            ← Back to dashboard
+            ← Dashboard
           </Link>
         </div>
       </div>
@@ -324,96 +321,104 @@ export default function DashboardProfilePage() {
   }
 
   return (
-    <div className="min-h-screen text-white relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-[460px] h-[460px] bg-yellow-500/10 blur-[140px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-[380px] h-[380px] bg-yellow-500/5 blur-[120px] rounded-full pointer-events-none" />
+    <div className="relative min-h-screen overflow-hidden text-white">
+      <div className="relative z-10 mx-auto max-w-7xl p-5 md:p-7">
+        <header className="mb-6 border-b border-zinc-800/80 pb-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+                Account
+              </p>
+              <h1 className="mt-1 text-2xl font-bold text-white sm:text-3xl">
+                Profile &amp; security
+              </h1>
+              <p className="mt-1 text-sm text-zinc-600">
+                Details you can edit, plus password. Tier and status are set by the platform —
+                contact support if something looks wrong.
+              </p>
+            </div>
+            <Link
+              href="/dashboard"
+              className="shrink-0 text-xs font-semibold text-yellow-500 transition hover:text-yellow-400"
+            >
+              ← Dashboard
+            </Link>
+          </div>
+        </header>
 
-      <div className="relative z-10 max-w-3xl mx-auto p-5 md:p-10">
-        <div className="flex items-center justify-between gap-4 mb-10">
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center gap-2 text-zinc-400 hover:text-yellow-500 transition text-sm"
-          >
-            <ArrowLeft size={18} />
-            Back to dashboard
-          </Link>
-        </div>
-
-        <div className="flex items-start gap-5 mb-8">
-          <div className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-2xl border border-yellow-500/30 bg-yellow-500/15">
+        <div className="mb-6 flex items-start gap-4">
+          <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-zinc-700/90 bg-zinc-950">
             {investor.avatar_url && !avatarBroken ? (
               <Image
                 key={`${investor.avatar_url}-${avatarBump}`}
                 src={`${investor.avatar_url}?v=${avatarBump}`}
                 alt=""
                 fill
-                sizes="72px"
+                sizes="56px"
                 className="object-cover"
                 onError={() => setAvatarBroken(true)}
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center">
-                <UserRound className="text-yellow-500" size={34} aria-hidden />
+              <div className="flex h-full w-full items-center justify-center bg-yellow-500/10">
+                <UserRound className="text-yellow-500" size={26} aria-hidden />
               </div>
             )}
           </div>
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-yellow-500">
-              Profile &amp; security
-            </h1>
-            <p className="text-zinc-400 mt-2 max-w-xl">
-              Your account details, investor tier, and password. Tier and account status are
-              managed by the platform; contact support if something looks wrong.
-            </p>
-          </div>
+          <p className="pt-1 text-xs leading-snug text-zinc-600">
+            Photo appears on your dashboard shortcut. Use the section below to upload or remove
+            it.
+          </p>
         </div>
 
-        {/* Summary strip */}
-        <div className="grid sm:grid-cols-2 gap-4 mb-8">
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 backdrop-blur-xl p-5">
-            <p className="text-xs text-zinc-500 uppercase tracking-wide mb-2">Email verification</p>
-            <div className="flex items-center gap-2">
+        <div className="mb-6 grid gap-3 sm:grid-cols-2">
+          <div className="border border-zinc-800/80 bg-zinc-950/40 p-4 lg:rounded-lg">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+              Email verification
+            </p>
+            <div className="mt-2 flex items-center gap-2">
               {verified ? (
                 <>
-                  <BadgeCheck className="text-emerald-400 shrink-0" size={22} />
-                  <span className="text-emerald-300 font-medium">Verified</span>
+                  <BadgeCheck className="shrink-0 text-emerald-400" size={18} aria-hidden />
+                  <span className="text-sm font-medium text-emerald-300">Verified</span>
                 </>
               ) : (
                 <>
-                  <BadgeAlert className="text-amber-400 shrink-0" size={22} />
-                  <span className="text-amber-200 font-medium">Not verified</span>
+                  <BadgeAlert className="shrink-0 text-amber-400" size={18} aria-hidden />
+                  <span className="text-sm font-medium text-amber-200">Not verified</span>
                 </>
               )}
             </div>
             {!verified && (
-              <p className="text-xs text-zinc-500 mt-2">
+              <p className="mt-2 text-xs text-zinc-600">
                 Open the confirmation link from your signup email, then refresh this page.
               </p>
             )}
           </div>
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 backdrop-blur-xl p-5">
-            <p className="text-xs text-zinc-500 uppercase tracking-wide mb-2">Account status</p>
-            <p className="text-lg font-semibold capitalize">{statusLabel}</p>
+          <div className="border border-zinc-800/80 bg-zinc-950/40 p-4 lg:rounded-lg">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+              Account status
+            </p>
+            <p className="mt-2 text-sm font-semibold capitalize text-white">{statusLabel}</p>
           </div>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Profile photo */}
-          <section className="rounded-3xl border border-zinc-800 bg-zinc-950/70 backdrop-blur-xl p-6 md:p-8">
-            <h2 className="text-lg font-bold flex items-center gap-2 mb-2">
-              <Camera className="text-yellow-500" size={20} />
-              Profile photo
-            </h2>
-            <p className="text-sm text-zinc-500 mb-5">
-              JPG, PNG, WebP, or GIF — up to 5 MB. This appears on your dashboard shortcut and
-              profile.
-            </p>
+          <section className="border border-zinc-800/80 bg-zinc-950/40 p-4 sm:p-5 lg:rounded-lg">
+            <div className="mb-4 border-b border-zinc-800/80 pb-3">
+              <h2 className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+                Profile photo
+              </h2>
+              <p className="mt-1 text-xs text-zinc-600">
+                JPG, PNG, WebP, or GIF — up to 5 MB.
+              </p>
+            </div>
             {photoBanner && (
               <div
-                className={`mb-5 px-4 py-3 rounded-2xl text-sm border ${
+                className={`mb-4 border px-3 py-2 text-xs ${
                   photoBanner.type === "ok"
-                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
-                    : "border-red-500/50 bg-red-500/10 text-red-300"
+                    ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-200"
+                    : "border-red-500/40 bg-red-500/10 text-red-300"
                 }`}
                 role="status"
               >
@@ -427,17 +432,17 @@ export default function DashboardProfilePage() {
               className="hidden"
               onChange={handleAvatarFileChange}
             />
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 disabled={photoBusy}
                 onClick={() => fileInputRef.current?.click()}
-                className="inline-flex items-center gap-2 rounded-2xl bg-yellow-500 px-5 py-3 text-sm font-bold text-black hover:bg-yellow-600 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-lg bg-yellow-500 px-4 py-2.5 text-xs font-bold text-black transition hover:bg-yellow-600 disabled:opacity-50"
               >
                 {photoBusy ? (
-                  <Loader2 className="animate-spin" size={18} aria-hidden />
+                  <Loader2 className="animate-spin" size={16} aria-hidden />
                 ) : (
-                  <Camera size={18} aria-hidden />
+                  <Camera size={16} aria-hidden />
                 )}
                 Upload photo
               </button>
@@ -446,7 +451,7 @@ export default function DashboardProfilePage() {
                   type="button"
                   disabled={photoBusy}
                   onClick={() => void removeProfilePhoto()}
-                  className="rounded-2xl border border-zinc-700 px-5 py-3 text-sm text-zinc-300 hover:border-red-500/60 hover:text-red-300 disabled:opacity-50"
+                  className="rounded-lg border border-zinc-700/90 px-4 py-2.5 text-xs font-semibold text-zinc-300 transition hover:border-red-500/50 hover:text-red-300 disabled:opacity-50"
                 >
                   Remove photo
                 </button>
@@ -455,26 +460,28 @@ export default function DashboardProfilePage() {
           </section>
 
           {/* Read-only account */}
-          <section className="rounded-3xl border border-zinc-800 bg-zinc-950/70 backdrop-blur-xl p-6 md:p-8">
-            <h2 className="text-lg font-bold flex items-center gap-2 mb-5">
-              <Mail className="text-yellow-500" size={20} />
-              Account
-            </h2>
-            <dl className="space-y-4 text-sm">
-              <div className="flex flex-col sm:flex-row sm:justify-between gap-1 border-b border-zinc-800/80 pb-4">
-                <dt className="text-zinc-500">Login email</dt>
-                <dd className="text-white font-medium break-all">{authEmail || "—"}</dd>
+          <section className="border border-zinc-800/80 bg-zinc-950/40 p-4 sm:p-5 lg:rounded-lg">
+            <div className="mb-4 border-b border-zinc-800/80 pb-3">
+              <h2 className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+                Account
+              </h2>
+              <p className="mt-1 text-xs text-zinc-600">Login email and tier (read-only).</p>
+            </div>
+            <dl className="divide-y divide-zinc-800/80 text-sm">
+              <div className="flex flex-col gap-0.5 py-3 first:pt-0 sm:flex-row sm:justify-between sm:gap-4">
+                <dt className="text-xs text-zinc-500">Login email</dt>
+                <dd className="break-all font-medium text-white">{authEmail || "—"}</dd>
               </div>
-              <div className="flex flex-col sm:flex-row sm:justify-between gap-1 border-b border-zinc-800/80 pb-4">
-                <dt className="text-zinc-500 flex items-center gap-2">
-                  <ShieldCheck size={14} className="text-zinc-600" />
+              <div className="flex flex-col gap-0.5 py-3 sm:flex-row sm:justify-between sm:gap-4">
+                <dt className="flex items-center gap-2 text-xs text-zinc-500">
+                  <ShieldCheck size={12} className="text-zinc-600" aria-hidden />
                   Investor level
                 </dt>
-                <dd className="text-yellow-500 font-semibold">{planDisplay}</dd>
+                <dd className="font-semibold text-yellow-500">{planDisplay}</dd>
               </div>
-              <div className="flex flex-col sm:flex-row sm:justify-between gap-1 pb-2">
-                <dt className="text-zinc-500 flex items-center gap-2">
-                  <CalendarDays size={14} className="text-zinc-600" />
+              <div className="flex flex-col gap-0.5 py-3 last:pb-0 sm:flex-row sm:justify-between sm:gap-4">
+                <dt className="flex items-center gap-2 text-xs text-zinc-500">
+                  <CalendarDays size={12} className="text-zinc-600" aria-hidden />
                   Member since
                 </dt>
                 <dd className="text-white">{joinedLabel}</dd>
@@ -483,75 +490,77 @@ export default function DashboardProfilePage() {
           </section>
 
           {/* Editable profile */}
-          <section className="rounded-3xl border border-zinc-800 bg-zinc-950/70 backdrop-blur-xl p-6 md:p-8">
-            <h2 className="text-lg font-bold flex items-center gap-2 mb-5">
-              <UserRound className="text-yellow-500" size={20} />
-              Personal details
-            </h2>
+          <section className="border border-zinc-800/80 bg-zinc-950/40 p-4 sm:p-5 lg:rounded-lg">
+            <div className="mb-4 border-b border-zinc-800/80 pb-3">
+              <h2 className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+                Personal details
+              </h2>
+              <p className="mt-1 text-xs text-zinc-600">Save updates to your investor record.</p>
+            </div>
             {profileMsg && (
               <div
-                className={`mb-5 px-4 py-3 rounded-2xl text-sm border ${
+                className={`mb-4 border px-3 py-2 text-xs ${
                   profileMsg.type === "ok"
-                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
-                    : "border-red-500/50 bg-red-500/10 text-red-300"
+                    ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-200"
+                    : "border-red-500/40 bg-red-500/10 text-red-300"
                 }`}
                 role="alert"
               >
                 {profileMsg.text}
               </div>
             )}
-            <form onSubmit={saveProfile} className="space-y-4">
-              <div className="grid md:grid-cols-3 gap-4">
+            <form onSubmit={saveProfile} className="space-y-3">
+              <div className="grid gap-3 md:grid-cols-3">
                 <div>
-                  <label className="block text-xs text-zinc-500 mb-1.5">First name</label>
+                  <label className="mb-1 block text-[11px] text-zinc-500">First name</label>
                   <input
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
-                    className="w-full rounded-2xl bg-black border border-zinc-700 px-4 py-3 outline-none focus:border-yellow-500"
+                    className="w-full rounded-lg border border-zinc-700/90 bg-black/40 px-3 py-2.5 text-sm outline-none transition focus:border-yellow-500/50"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-500 mb-1.5">Middle name</label>
+                  <label className="mb-1 block text-[11px] text-zinc-500">Middle name</label>
                   <input
                     value={middleName}
                     onChange={(e) => setMiddleName(e.target.value)}
-                    className="w-full rounded-2xl bg-black border border-zinc-700 px-4 py-3 outline-none focus:border-yellow-500"
+                    className="w-full rounded-lg border border-zinc-700/90 bg-black/40 px-3 py-2.5 text-sm outline-none transition focus:border-yellow-500/50"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-500 mb-1.5">Surname</label>
+                  <label className="mb-1 block text-[11px] text-zinc-500">Surname</label>
                   <input
                     value={surname}
                     onChange={(e) => setSurname(e.target.value)}
-                    className="w-full rounded-2xl bg-black border border-zinc-700 px-4 py-3 outline-none focus:border-yellow-500"
+                    className="w-full rounded-lg border border-zinc-700/90 bg-black/40 px-3 py-2.5 text-sm outline-none transition focus:border-yellow-500/50"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-xs text-zinc-500 mb-1.5 flex items-center gap-2">
-                  <Phone size={14} />
+                <label className="mb-1 flex items-center gap-2 text-[11px] text-zinc-500">
+                  <Phone size={12} aria-hidden />
                   Phone
                 </label>
                 <input
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full rounded-2xl bg-black border border-zinc-700 px-4 py-3 outline-none focus:border-yellow-500"
+                  className="w-full rounded-lg border border-zinc-700/90 bg-black/40 px-3 py-2.5 text-sm outline-none transition focus:border-yellow-500/50"
                 />
               </div>
               <div>
-                <label className="block text-xs text-zinc-500 mb-1.5">Date of birth</label>
+                <label className="mb-1 block text-[11px] text-zinc-500">Date of birth</label>
                 <input
                   type="date"
                   value={dob}
                   onChange={(e) => setDob(e.target.value)}
-                  className="w-full rounded-2xl bg-black border border-zinc-700 px-4 py-3 outline-none focus:border-yellow-500 [color-scheme:dark]"
+                  className="w-full rounded-lg border border-zinc-700/90 bg-black/40 px-3 py-2.5 text-sm outline-none transition focus:border-yellow-500/50 [color-scheme:dark]"
                 />
               </div>
               <button
                 type="submit"
                 disabled={profileSaving}
-                className="w-full sm:w-auto bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-8 rounded-2xl transition disabled:opacity-50"
+                className="w-full rounded-lg bg-yellow-500 px-4 py-2.5 text-xs font-bold text-black transition hover:bg-yellow-600 disabled:opacity-50 sm:w-auto"
               >
                 {profileSaving ? "Saving…" : "Save changes"}
               </button>
@@ -559,27 +568,28 @@ export default function DashboardProfilePage() {
           </section>
 
           {/* Password */}
-          <section className="rounded-3xl border border-zinc-800 bg-zinc-950/70 backdrop-blur-xl p-6 md:p-8">
-            <h2 className="text-lg font-bold flex items-center gap-2 mb-2">
-              <Lock className="text-yellow-500" size={20} />
-              Security
-            </h2>
-            <p className="text-sm text-zinc-500 mb-5">
-              Set a new password for your login. Use a unique password you do not reuse elsewhere.
-            </p>
+          <section className="border border-zinc-800/80 bg-zinc-950/40 p-4 sm:p-5 lg:rounded-lg">
+            <div className="mb-4 border-b border-zinc-800/80 pb-3">
+              <h2 className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+                Security
+              </h2>
+              <p className="mt-1 text-xs text-zinc-600">
+                New password for this login. Use a unique password you don&apos;t reuse elsewhere.
+              </p>
+            </div>
             {pwMsg && (
               <div
-                className={`mb-5 px-4 py-3 rounded-2xl text-sm border ${
+                className={`mb-4 border px-3 py-2 text-xs ${
                   pwMsg.type === "ok"
-                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
-                    : "border-red-500/50 bg-red-500/10 text-red-300"
+                    ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-200"
+                    : "border-red-500/40 bg-red-500/10 text-red-300"
                 }`}
                 role="alert"
               >
                 {pwMsg.text}
               </div>
             )}
-            <form onSubmit={changePassword} className="space-y-4 max-w-md">
+            <form onSubmit={changePassword} className="max-w-md space-y-3">
               <div className="relative">
                 <input
                   type={showPw1 ? "text" : "password"}
@@ -587,12 +597,12 @@ export default function DashboardProfilePage() {
                   placeholder="New password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full rounded-2xl bg-black border border-zinc-700 pl-4 pr-12 py-3 outline-none focus:border-yellow-500"
+                  className="w-full rounded-lg border border-zinc-700/90 bg-black/40 py-2.5 pl-3 pr-10 text-sm outline-none transition focus:border-yellow-500/50"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPw1(!showPw1)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-yellow-500"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-yellow-500"
                   aria-label={showPw1 ? "Hide password" : "Show password"}
                 >
                   {showPw1 ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -605,12 +615,12 @@ export default function DashboardProfilePage() {
                   placeholder="Confirm new password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full rounded-2xl bg-black border border-zinc-700 pl-4 pr-12 py-3 outline-none focus:border-yellow-500"
+                  className="w-full rounded-lg border border-zinc-700/90 bg-black/40 py-2.5 pl-3 pr-10 text-sm outline-none transition focus:border-yellow-500/50"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPw2(!showPw2)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-yellow-500"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-yellow-500"
                   aria-label={showPw2 ? "Hide password" : "Show password"}
                 >
                   {showPw2 ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -619,7 +629,7 @@ export default function DashboardProfilePage() {
               <button
                 type="submit"
                 disabled={pwSaving}
-                className="bg-zinc-100 hover:bg-white text-black font-bold py-3 px-8 rounded-2xl transition disabled:opacity-50"
+                className="rounded-lg border border-zinc-600 bg-zinc-100 px-4 py-2.5 text-xs font-bold text-black transition hover:bg-white disabled:opacity-50"
               >
                 {pwSaving ? "Updating…" : "Update password"}
               </button>
