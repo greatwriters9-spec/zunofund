@@ -257,7 +257,7 @@ export default function NotificationsPage() {
           </div>
         )}
 
-        <section className="mb-10 rounded-2xl border border-zinc-800 bg-zinc-950 px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <section className="mb-10 rounded-2xl border border-zinc-800 bg-zinc-950/70 backdrop-blur-xl px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <p className="text-sm text-zinc-500 mb-1">Unread</p>
             <p className="text-2xl font-semibold text-white">
@@ -310,8 +310,8 @@ export default function NotificationsPage() {
               const cardClassName = [
                 "block w-full text-left rounded-2xl border p-6 transition",
                 unread
-                  ? "border-yellow-500/25 bg-zinc-950 hover:border-yellow-500/50 cursor-pointer"
-                  : "border-zinc-800 bg-zinc-950/60 cursor-default",
+                  ? "border-yellow-500/25 bg-zinc-950/70 backdrop-blur-xl hover:border-yellow-500/50 cursor-pointer"
+                  : "border-zinc-800 bg-zinc-950/50 backdrop-blur-xl cursor-default",
               ].join(" ");
               const body = (
                 <>
@@ -367,7 +367,7 @@ export default function NotificationsPage() {
               );
             })
           ) : (
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-950 px-8 py-16 text-center">
+            <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 backdrop-blur-xl px-8 py-16 text-center">
               <Bell className="mx-auto text-zinc-600 mb-5" size={48} strokeWidth={1.25} />
               <h2 className="text-xl font-semibold text-white mb-2">
                 {filter === "unread"

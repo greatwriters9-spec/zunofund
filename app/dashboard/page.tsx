@@ -368,7 +368,7 @@ export default function DashboardPage() {
           <div className="flex items-center gap-3">
             <Link
               href="/dashboard/profile"
-              className="bg-zinc-950 border border-zinc-800 hover:border-yellow-500 transition p-3 rounded-2xl"
+              className="bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 hover:border-yellow-500 transition p-3 rounded-2xl"
               aria-label="Profile and security"
             >
               <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl border border-yellow-500/25 bg-yellow-500/10">
@@ -395,7 +395,7 @@ export default function DashboardPage() {
               onClick={() =>
                 setShowNotifications(!showNotifications)
               }
-              className="bg-zinc-950 border border-zinc-800 hover:border-yellow-500 transition p-4 rounded-2xl relative"
+              className="bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 hover:border-yellow-500 transition p-4 rounded-2xl relative"
             >
               <Bell className="text-yellow-500" size={24} />
 
@@ -407,7 +407,7 @@ export default function DashboardPage() {
             </button>
 
             {showNotifications && (
-              <div className="absolute right-0 mt-4 w-[360px] bg-zinc-950 border border-zinc-800 rounded-3xl shadow-2xl z-50 overflow-hidden">
+              <div className="absolute right-0 mt-4 w-[360px] bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 rounded-3xl shadow-2xl z-50 overflow-hidden">
 
                 <div className="p-5 border-b border-zinc-800">
                   <h2 className="text-xl font-bold">
@@ -565,7 +565,7 @@ export default function DashboardPage() {
 
 
     {/* WALLET CARD */}
-<div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-5 hover:border-yellow-500/40 transition duration-300 h-full flex flex-col">
+<div className="bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 rounded-3xl p-5 hover:border-yellow-500/40 transition duration-300 h-full flex flex-col">
 
   <div className="flex items-center justify-between mb-4">
     <div>
@@ -612,7 +612,7 @@ export default function DashboardPage() {
 
 
 {/* PROFIT CARD */}
-<div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-5 hover:border-zinc-700 transition duration-300 h-full flex flex-col">
+<div className="bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 rounded-3xl p-5 hover:border-zinc-700 transition duration-300 h-full flex flex-col">
 
   <div className="flex items-center justify-between mb-4">
     <div>
@@ -653,7 +653,7 @@ export default function DashboardPage() {
 
 
   {/* Investment Plan Card */}
-<div className="relative overflow-hidden rounded-3xl border border-yellow-500/20 bg-zinc-950/90 backdrop-blur-xl p-6 h-full flex flex-col">
+<div className="relative overflow-hidden rounded-3xl border border-yellow-500/20 bg-zinc-950/70 backdrop-blur-xl p-6 h-full flex flex-col">
 
   {/* Ambient Glow */}
   <div className="absolute inset-0 bg-gradient-to-b from-yellow-500/10 to-transparent opacity-60 pointer-events-none" />
@@ -727,7 +727,7 @@ export default function DashboardPage() {
 
 
 {/* SUPPORT CARD */}
-<div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-5 hover:border-blue-500/40 transition duration-300">
+<div className="bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 rounded-3xl p-5 hover:border-blue-500/40 transition duration-300">
 
   <div className="flex items-center justify-between mb-4">
     <div>
@@ -791,21 +791,21 @@ export default function DashboardPage() {
 
           <Link
             href="/withdraw"
-            className="bg-zinc-950 border border-zinc-800 hover:border-yellow-500 transition rounded-3xl p-4 text-center font-semibold"
+            className="bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 hover:border-yellow-500 transition rounded-3xl p-4 text-center font-semibold"
           >
             Withdraw Funds
           </Link>
 
           <Link
             href="/investment-plans"
-            className="bg-zinc-950 border border-zinc-800 hover:border-yellow-500 transition rounded-3xl p-4 text-center font-semibold"
+            className="bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 hover:border-yellow-500 transition rounded-3xl p-4 text-center font-semibold"
           >
             Upgrade Plan
           </Link>
 
           <Link
             href="/support"
-            className="bg-zinc-950 border border-zinc-800 hover:border-yellow-500 transition rounded-3xl p-4 text-center font-semibold"
+            className="bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 hover:border-yellow-500 transition rounded-3xl p-4 text-center font-semibold"
           >
             Support Center
           </Link>
@@ -813,7 +813,7 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 mb-7">
 
-          <div className="xl:col-span-2 bg-zinc-950 border border-zinc-800 rounded-3xl p-5">
+          <div className="xl:col-span-2 bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 rounded-3xl p-5">
 
             <h2 className="text-2xl font-bold mb-1">
               Portfolio Growth
@@ -886,7 +886,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-5 flex flex-col max-h-[min(420px,55vh)]">
+          <div className="bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 rounded-3xl p-5 flex flex-col max-h-[min(420px,55vh)]">
 
             <div className="flex items-center justify-between mb-4 shrink-0">
               <h2 className="text-2xl font-bold">
@@ -931,7 +931,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="bg-zinc-950 border border-zinc-800 rounded-3xl overflow-hidden">
+        <div className="bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 rounded-3xl overflow-hidden">
 
           <div className="p-5 border-b border-zinc-800 flex items-center justify-between">
 
@@ -992,7 +992,7 @@ export default function DashboardPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="wallet-modal-title"
-            className="relative w-full max-w-md rounded-3xl border border-zinc-800 bg-zinc-950 p-6 shadow-2xl shadow-black/50"
+            className="relative w-full max-w-md rounded-3xl border border-zinc-800 bg-zinc-950/70 backdrop-blur-xl p-6 shadow-2xl shadow-black/50"
             onClick={(e) => e.stopPropagation()}
           >
             <button

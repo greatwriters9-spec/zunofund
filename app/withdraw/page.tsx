@@ -115,7 +115,7 @@ export default function WithdrawPage() {
       <motion.div
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-lg bg-zinc-950 border border-zinc-800 rounded-3xl p-8"
+        className="w-full max-w-lg bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 rounded-3xl p-8"
       >
         <h1 className="text-4xl font-bold text-yellow-500 mb-2">
           Withdraw Funds

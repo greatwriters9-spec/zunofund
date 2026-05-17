@@ -308,7 +308,7 @@ export default function DashboardProfilePage() {
   if (!investor) {
     return (
       <div className="min-h-screen text-white flex items-center justify-center p-8">
-        <div className="max-w-md text-center border border-zinc-800 rounded-3xl p-10 bg-zinc-950">
+        <div className="max-w-md text-center border border-zinc-800 rounded-3xl p-10 bg-zinc-950/70 backdrop-blur-xl">
           <p className="text-zinc-300 mb-6">
             No investor profile is linked to this login yet.
           </p>
@@ -370,7 +370,7 @@ export default function DashboardProfilePage() {
 
         {/* Summary strip */}
         <div className="grid sm:grid-cols-2 gap-4 mb-8">
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-950/80 p-5">
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 backdrop-blur-xl p-5">
             <p className="text-xs text-zinc-500 uppercase tracking-wide mb-2">Email verification</p>
             <div className="flex items-center gap-2">
               {verified ? (
@@ -391,7 +391,7 @@ export default function DashboardProfilePage() {
               </p>
             )}
           </div>
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-950/80 p-5">
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 backdrop-blur-xl p-5">
             <p className="text-xs text-zinc-500 uppercase tracking-wide mb-2">Account status</p>
             <p className="text-lg font-semibold capitalize">{statusLabel}</p>
           </div>
@@ -399,7 +399,7 @@ export default function DashboardProfilePage() {
 
         <div className="space-y-6">
           {/* Profile photo */}
-          <section className="rounded-3xl border border-zinc-800 bg-zinc-950/90 p-6 md:p-8">
+          <section className="rounded-3xl border border-zinc-800 bg-zinc-950/70 backdrop-blur-xl p-6 md:p-8">
             <h2 className="text-lg font-bold flex items-center gap-2 mb-2">
               <Camera className="text-yellow-500" size={20} />
               Profile photo
@@ -455,7 +455,7 @@ export default function DashboardProfilePage() {
           </section>
 
           {/* Read-only account */}
-          <section className="rounded-3xl border border-zinc-800 bg-zinc-950/90 p-6 md:p-8">
+          <section className="rounded-3xl border border-zinc-800 bg-zinc-950/70 backdrop-blur-xl p-6 md:p-8">
             <h2 className="text-lg font-bold flex items-center gap-2 mb-5">
               <Mail className="text-yellow-500" size={20} />
               Account
@@ -483,7 +483,7 @@ export default function DashboardProfilePage() {
           </section>
 
           {/* Editable profile */}
-          <section className="rounded-3xl border border-zinc-800 bg-zinc-950/90 p-6 md:p-8">
+          <section className="rounded-3xl border border-zinc-800 bg-zinc-950/70 backdrop-blur-xl p-6 md:p-8">
             <h2 className="text-lg font-bold flex items-center gap-2 mb-5">
               <UserRound className="text-yellow-500" size={20} />
               Personal details
@@ -559,7 +559,7 @@ export default function DashboardProfilePage() {
           </section>
 
           {/* Password */}
-          <section className="rounded-3xl border border-zinc-800 bg-zinc-950/90 p-6 md:p-8">
+          <section className="rounded-3xl border border-zinc-800 bg-zinc-950/70 backdrop-blur-xl p-6 md:p-8">
             <h2 className="text-lg font-bold flex items-center gap-2 mb-2">
               <Lock className="text-yellow-500" size={20} />
               Security

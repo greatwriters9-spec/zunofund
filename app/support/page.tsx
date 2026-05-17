@@ -244,7 +244,7 @@ export default function SupportPage() {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
 
           {/* CREATE TICKET */}
-          <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-6 h-fit">
+          <div className="bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 rounded-3xl p-6 h-fit">
             <div className="flex items-center gap-3 mb-6">
               <div className="bg-yellow-500/10 p-3 rounded-2xl">
                 <MessageCircle className="text-yellow-500" />
@@ -328,7 +328,7 @@ export default function SupportPage() {
           </div>
 
           {/* SUPPORT LAYOUT */}
-          <div className="xl:col-span-2 grid grid-cols-1 lg:grid-cols-[340px_1fr] bg-zinc-950 border border-zinc-800 rounded-3xl overflow-hidden min-h-[760px]">
+          <div className="xl:col-span-2 grid grid-cols-1 lg:grid-cols-[340px_1fr] bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 rounded-3xl overflow-hidden min-h-[760px]">
 
             {/* SIDEBAR */}
             <div className="border-r border-zinc-800 overflow-y-auto">

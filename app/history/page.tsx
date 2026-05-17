@@ -193,7 +193,7 @@ export default function HistoryPage() {
 
           <Link
             href="/dashboard"
-            className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 hover:border-yellow-500 transition px-5 py-3 rounded-2xl"
+            className="flex items-center gap-2 bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 hover:border-yellow-500 transition px-5 py-3 rounded-2xl"
           >
             <ArrowLeft size={18} />
             Dashboard
@@ -223,7 +223,7 @@ export default function HistoryPage() {
               className={`px-5 py-3 rounded-2xl border transition capitalize font-medium ${
                 activeFilter === filter
                   ? "bg-yellow-500 text-black border-yellow-500"
-                  : "bg-zinc-950 border-zinc-800 hover:border-yellow-500"
+                  : "bg-zinc-950/70 backdrop-blur-xl border-zinc-800 hover:border-yellow-500"
               }`}
             >
               {filter}
@@ -235,7 +235,7 @@ export default function HistoryPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-zinc-950 border border-zinc-800 rounded-3xl overflow-hidden"
+          className="bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 rounded-3xl overflow-hidden"
         >
 
           {/* Table Header */}

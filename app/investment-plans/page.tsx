@@ -199,7 +199,7 @@ async function loadSessionAndPlan() {
           {isLoggedIn ? (
   <Link
     href="/dashboard"
-    className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 hover:border-yellow-500 transition px-5 py-3 rounded-2xl"
+    className="flex items-center gap-2 bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 hover:border-yellow-500 transition px-5 py-3 rounded-2xl"
   >
     <ArrowLeft size={18} />
     Dashboard
@@ -207,7 +207,7 @@ async function loadSessionAndPlan() {
 ) : (
   <Link
     href="/"
-    className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 hover:border-yellow-500 transition px-5 py-3 rounded-2xl"
+    className="flex items-center gap-2 bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 hover:border-yellow-500 transition px-5 py-3 rounded-2xl"
   >
     <ArrowLeft size={18} />
     Back Home
@@ -239,7 +239,7 @@ async function loadSessionAndPlan() {
           {plans.map((plan, index) => (
             <div
               key={plan.slug}
-              className={`relative overflow-hidden rounded-3xl border ${plan.border} bg-zinc-950/90 backdrop-blur-xl p-7 flex flex-col justify-between transition duration-500 hover:-translate-y-1 hover:border-yellow-500/70`}
+              className={`relative overflow-hidden rounded-3xl border ${plan.border} bg-zinc-950/70 backdrop-blur-xl p-7 flex flex-col justify-between transition duration-500 hover:-translate-y-1 hover:border-yellow-500/70`}
             >
               {/* Ambient Glow */}
               <div
