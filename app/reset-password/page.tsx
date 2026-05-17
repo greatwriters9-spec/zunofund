@@ -39,7 +39,7 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <main className="min-h-screen bg-black flex items-center justify-center px-6 relative overflow-hidden">
+    <main className="min-h-screen flex items-center justify-center px-6 relative overflow-hidden">
 
       {/* Glow */}
       <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-yellow-500/10 blur-[150px] rounded-full" />

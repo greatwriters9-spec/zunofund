@@ -208,7 +208,7 @@ export default function SupportPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white p-6 lg:p-10">
+    <div className="min-h-screen text-white p-6 lg:p-10">
       <div className="max-w-7xl mx-auto">
 
         {/* HEADER */}

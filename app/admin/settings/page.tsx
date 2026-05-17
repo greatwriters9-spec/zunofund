@@ -21,7 +21,7 @@ export default function AdminSettingsPage() {
   }, [supabase.auth]);
 
   return (
-    <div className="p-10 text-white bg-black min-h-screen max-w-4xl">
+    <div className="p-10 text-white min-h-screen max-w-4xl">
       <h1 className="text-3xl font-bold text-yellow-500 mb-2">Settings</h1>
       <p className="text-zinc-400 mb-10">
         Reference for how the platform is configured today and what admins can

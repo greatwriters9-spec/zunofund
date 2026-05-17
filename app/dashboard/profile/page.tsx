@@ -299,7 +299,7 @@ export default function DashboardProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+      <div className="min-h-screen text-white flex items-center justify-center">
         Loading profile…
       </div>
     );
@@ -307,7 +307,7 @@ export default function DashboardProfilePage() {
 
   if (!investor) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center p-8">
+      <div className="min-h-screen text-white flex items-center justify-center p-8">
         <div className="max-w-md text-center border border-zinc-800 rounded-3xl p-10 bg-zinc-950">
           <p className="text-zinc-300 mb-6">
             No investor profile is linked to this login yet.
@@ -324,7 +324,7 @@ export default function DashboardProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white relative overflow-hidden">
+    <div className="min-h-screen text-white relative overflow-hidden">
       <div className="absolute top-0 left-0 w-[460px] h-[460px] bg-yellow-500/10 blur-[140px] rounded-full pointer-events-none" />
       <div className="absolute bottom-0 right-0 w-[380px] h-[380px] bg-yellow-500/5 blur-[120px] rounded-full pointer-events-none" />
 

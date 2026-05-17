@@ -164,7 +164,7 @@ return;
   // SUCCESS SCREEN
 
   return (
-    <main className="min-h-screen bg-black text-white flex items-center justify-center relative overflow-hidden">
+    <main className="min-h-screen text-white flex items-center justify-center relative overflow-hidden">
 
       {/* Ambient Background */}
       <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-yellow-500/10 blur-[140px] rounded-full pointer-events-none" />

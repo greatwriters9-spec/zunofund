@@ -111,7 +111,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white flex">
+    <div className="min-h-screen text-white flex">
 
       {/* Sidebar */}
       <aside className="w-72 bg-zinc-950 border-r border-zinc-800 p-6 flex flex-col justify-between">

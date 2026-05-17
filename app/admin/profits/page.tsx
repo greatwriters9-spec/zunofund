@@ -119,7 +119,7 @@ export default function AdminProfitsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white p-10">
+    <div className="min-h-screen text-white p-10">
       {/* Header */}
       <div className="flex items-center justify-between mb-10">
         <div>

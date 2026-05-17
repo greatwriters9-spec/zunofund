@@ -55,7 +55,7 @@ export default function AdminDepositsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white p-6">
+    <div className="min-h-screen text-white p-6">
       <h1 className="text-4xl font-bold text-yellow-500 mb-8">
         Deposit Requests
       </h1>

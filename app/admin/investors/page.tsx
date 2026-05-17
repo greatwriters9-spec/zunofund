@@ -90,7 +90,7 @@ export default function InvestorsPage() {
   }
 
   return (
-    <div className="p-10 text-white bg-black min-h-screen">
+    <div className="p-10 text-white min-h-screen">
       <h1 className="text-3xl mb-6 font-bold text-yellow-500">
         All Investors
       </h1>

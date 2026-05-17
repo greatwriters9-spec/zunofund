@@ -1,6 +1,6 @@
 export default function TermsPage() {
   return (
-    <main className="min-h-screen bg-black text-white px-6 py-20 relative overflow-hidden">
+    <main className="min-h-screen text-white px-6 py-20 relative overflow-hidden">
 
       {/* Ambient Glow */}
       <div className="absolute top-0 left-0 w-[600px] h-[600px] bg-yellow-500/10 blur-[160px] rounded-full pointer-events-none" />

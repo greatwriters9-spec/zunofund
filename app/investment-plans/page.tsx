@@ -181,12 +181,7 @@ async function loadSessionAndPlan() {
 }
   const router = useRouter()
   return (
-    <div className="min-h-screen bg-black text-white relative overflow-hidden">
-      {/* Ambient Background */}
-      <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-yellow-500/10 blur-[140px] rounded-full pointer-events-none" />
-
-      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-yellow-500/5 blur-[120px] rounded-full pointer-events-none" />
-
+    <div className="min-h-screen text-white relative overflow-hidden">
       <div className="relative z-10 max-w-7xl mx-auto px-5 py-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-14">

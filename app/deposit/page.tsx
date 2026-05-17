@@ -123,7 +123,7 @@ async function copyWallet() {
   // SUCCESS SCREEN
   if (submitted) {
     return (
-      <main className="min-h-screen bg-black flex items-center justify-center p-6">
+      <main className="min-h-screen flex items-center justify-center p-6">
         <div className="max-w-xl w-full bg-zinc-900 border border-zinc-800 rounded-3xl p-10 text-center">
 
           <div className="w-20 h-20 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -151,7 +151,7 @@ async function copyWallet() {
   }
 
   return (
-    <main className="min-h-screen bg-black text-white flex items-center justify-center p-6">
+    <main className="min-h-screen text-white flex items-center justify-center p-6">
       <div className="w-full max-w-2xl bg-zinc-900 border border-zinc-800 rounded-3xl p-8">
 
         <h1 className="text-4xl font-bold text-yellow-500 mb-2">
