@@ -76,12 +76,32 @@ export default function HomePage() {
   ];
 
   return (
-    <main className="relative min-h-screen bg-black text-white overflow-hidden">
+    <main className="relative min-h-screen text-white overflow-hidden bg-[#05080F]">
 
-      {/* Ambient Background — matches /investment-plans */}
-      <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-[#D4AF37]/10 blur-[140px] rounded-full pointer-events-none" />
+      {/* Layer 1 — diagonal navy-to-slate base for subtle depth */}
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,#05080F_0%,#0B1320_45%,#141B2D_75%,#1E293B_100%)]" />
 
-      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-[#D4AF37]/5 blur-[120px] rounded-full pointer-events-none" />
+      {/* Layer 2 — gold radial spotlight (top right, warmer + more present) */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_82%_18%,rgba(212,175,55,0.22),transparent_50%)]" />
+
+      {/* Layer 3 — large soft gold ambient orb top-right */}
+      <div className="pointer-events-none absolute -top-40 -right-32 w-[720px] h-[720px] rounded-full bg-[#D4AF37]/20 blur-[170px]" />
+
+      {/* Layer 4 — secondary champagne ambient mid-left for balance */}
+      <div className="pointer-events-none absolute top-[40%] -left-32 w-[520px] h-[520px] rounded-full bg-[#F5E6B3]/8 blur-[180px]" />
+
+      {/* Layer 5 — cool slate ambient bottom for grounding */}
+      <div className="pointer-events-none absolute -bottom-48 left-[20%] w-[640px] h-[640px] rounded-full bg-[#1E293B]/60 blur-[200px]" />
+
+      {/* Layer 6 — faint grid texture for subtle structure */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.025]"
+        style={{
+          backgroundImage:
+            "linear-gradient(to right, rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.08) 1px, transparent 1px)",
+          backgroundSize: "80px 80px",
+        }}
+      />
 
       <MarketingNavbar />
 
