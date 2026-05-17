@@ -2,14 +2,13 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
+
+import { MarketingNavbar } from "@/components/navbar";
 import {
   ArrowRight,
   ShieldCheck,
-  Headset,
   ChevronRight,
-  TrendingUp,
   Wallet,
-  BarChart3,
   CheckCircle2,
   LineChart,
   Landmark,
@@ -77,104 +76,19 @@ export default function HomePage() {
   ];
 
   return (
-    <main className="min-h-screen bg-black text-white overflow-hidden">
+    <main className="relative min-h-screen bg-black text-white overflow-hidden">
 
-      {/* GLOBAL BACKGROUND */}
-      <div className="fixed inset-0 pointer-events-none">
+      {/* Ambient Background — matches /investment-plans */}
+      <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-[#D4AF37]/10 blur-[140px] rounded-full pointer-events-none" />
 
-        <div className="absolute top-[-200px] right-[-100px] w-[600px] h-[600px] bg-yellow-500/10 blur-[180px]" />
+      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-[#D4AF37]/5 blur-[120px] rounded-full pointer-events-none" />
 
-        <div className="absolute bottom-[-250px] left-[-120px] w-[700px] h-[700px] bg-zinc-700/20 blur-[180px]" />
-
-        <div
-          className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage:
-              "linear-gradient(to right, rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.08) 1px, transparent 1px)",
-            backgroundSize: "80px 80px",
-          }}
-        />
-      </div>
-
-      {/* NAVBAR */}
-      <header className="fixed top-0 left-0 w-full z-50 px-6 lg:px-10 pt-6">
-
-        <div className="max-w-7xl mx-auto">
-
-          <div className="backdrop-blur-2xl bg-white/[0.03] border border-white/10 rounded-3xl px-6 lg:px-8 py-5 flex items-center justify-between">
-
-            <div className="flex items-center gap-3">
-
-              <div className="w-11 h-11 rounded-2xl bg-yellow-500 flex items-center justify-center text-black font-black text-lg">
-                A
-              </div>
-
-              <div>
-                <h1 className="font-semibold tracking-wide text-lg">
-                  ASKPAULFX
-                </h1>
-
-                <p className="text-xs text-gray-500">
-                  Investment Management
-                </p>
-              </div>
-            </div>
-
-            <nav className="hidden lg:flex items-center gap-10 text-sm text-gray-300">
-
-              <a href="#home" className="hover:text-yellow-500 transition">
-                Home
-              </a>
-
-              <a href="#plans" className="hover:text-yellow-500 transition">
-                Investment Plans
-              </a>
-
-              <a href="#how-it-works" className="hover:text-yellow-500 transition">
-                How It Works
-              </a>
-
-              <Link
-                href="/contact"
-                className="hover:text-yellow-500 transition"
-              >
-                Support
-              </Link>
-            </nav>
-
-            <div className="flex items-center gap-3">
-
-              <Link
-                href="/contact"
-                className="hidden md:flex items-center gap-2 px-5 py-3 rounded-2xl border border-zinc-700 bg-zinc-900 hover:bg-zinc-800 transition text-sm text-gray-300"
-              >
-                <Headset size={17} />
-                Investor Support
-              </Link>
-
-              <Link
-                href="/auth"
-                className="hidden md:flex items-center gap-2 px-5 py-3 rounded-2xl border border-zinc-700 bg-zinc-900 hover:bg-zinc-800 transition text-sm"
-              >
-                Login
-              </Link>
-
-              <Link
-                href="/investment-plans"
-                className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-yellow-500 hover:bg-yellow-400 transition text-black font-semibold text-sm"
-              >
-                Start Investing
-                <ArrowRight size={17} />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+      <MarketingNavbar />
 
       {/* HERO */}
       <section
         id="home"
-        className="relative pt-44 lg:pt-52 pb-32 px-6 lg:px-10"
+        className="relative pt-20 lg:pt-28 pb-28 px-6 lg:px-12"
       >
 
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-20 items-center">
@@ -186,15 +100,15 @@ export default function HomePage() {
             className="relative z-10"
           >
 
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-yellow-500/20 bg-yellow-500/10 text-yellow-500 text-sm mb-8">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#D4AF37]/20 bg-[#D4AF37]/10 text-[#D4AF37] text-sm mb-8">
               <ShieldCheck size={16} />
               Institutional Grade Investment Platform
             </div>
 
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-black leading-[1.05] tracking-tight max-w-3xl">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black leading-[1.05] tracking-tight max-w-3xl">
 
               Strategic Capital
-              <span className="text-yellow-500"> Growth </span>
+              <span className="text-[#D4AF37]"> Growth </span>
               Built For Modern Investors
 
             </h1>
@@ -209,7 +123,7 @@ export default function HomePage() {
 
               <Link
                 href="/investment-plans"
-                className="group flex items-center gap-3 bg-yellow-500 hover:bg-yellow-400 transition px-8 py-5 rounded-2xl text-black font-semibold text-lg"
+                className="group flex items-center gap-3 bg-gradient-to-r from-[#D4AF37] to-[#F5E6B3] transition px-8 py-5 rounded-2xl text-black font-semibold text-lg"
               >
                 Explore Investment Plans
 
@@ -231,7 +145,7 @@ export default function HomePage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mt-20">
 
               <div>
-                <h3 className="text-3xl font-bold text-yellow-500">
+                <h3 className="text-3xl font-bold text-[#D4AF37]">
                   24/7
                 </h3>
 
@@ -241,7 +155,7 @@ export default function HomePage() {
               </div>
 
               <div>
-                <h3 className="text-3xl font-bold text-yellow-500">
+                <h3 className="text-3xl font-bold text-[#D4AF37]">
                   99%
                 </h3>
 
@@ -251,7 +165,7 @@ export default function HomePage() {
               </div>
 
               <div>
-                <h3 className="text-3xl font-bold text-yellow-500">
+                <h3 className="text-3xl font-bold text-[#D4AF37]">
                   Secure
                 </h3>
 
@@ -261,7 +175,7 @@ export default function HomePage() {
               </div>
 
               <div>
-                <h3 className="text-3xl font-bold text-yellow-500">
+                <h3 className="text-3xl font-bold text-[#D4AF37]">
                   Elite
                 </h3>
 
@@ -272,7 +186,7 @@ export default function HomePage() {
             </div>
           </motion.div>
 
-          {/* RIGHT HERO CARD */}
+          {/* RIGHT HERO CARD - integrated 2-column dashboard panel */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -280,197 +194,126 @@ export default function HomePage() {
             className="relative"
           >
 
-            <div className="absolute inset-0 bg-yellow-500/10 blur-[120px]" />
+<div className="absolute inset-0 bg-[#D4AF37]/15 blur-[140px]" />
 
-            <div className="relative backdrop-blur-2xl bg-white/[0.03] border border-white/10 rounded-[40px] p-8 overflow-hidden">
+            <div className="relative backdrop-blur-2xl bg-white/[0.04] border border-white/10 rounded-[40px] p-5 sm:p-6 overflow-hidden">
 
-              <div className="flex items-center justify-between mb-10">
+              <div className="grid grid-cols-1 md:grid-cols-[0.75fr_1fr] gap-4 sm:gap-5">
 
-                <div>
-                  <p className="text-gray-500 text-sm mb-2">
-                    Portfolio Performance
-                  </p>
+                {/* LEFT: Portfolio Performance + Chart */}
+                <div className="flex flex-col gap-5">
 
-                  <h2 className="text-5xl font-black text-yellow-500">
-                    +15%
-                  </h2>
-                </div>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-gray-500 text-sm mb-2">
+                        Portfolio Performance
+                      </p>
+                      <h2 className="text-5xl font-black text-[#D4AF37]">
+                        +15%
+                      </h2>
+                    </div>
+                  </div>
 
-                <div className="w-16 h-16 rounded-3xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center">
-                  <TrendingUp className="text-yellow-500 w-8 h-8" />
-                </div>
-              </div>
+                  <div className="relative flex-1 min-h-[260px] rounded-3xl bg-zinc-950 border border-zinc-800 overflow-hidden">
 
-              {/* CHART */}
-              <div className="relative h-[260px] rounded-3xl bg-zinc-950 border border-zinc-800 overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-b from-[#D4AF37]/10 to-transparent" />
 
-                <div className="absolute inset-0 bg-gradient-to-b from-yellow-500/5 to-transparent" />
+                    <div
+                      className="absolute inset-0 opacity-[0.05]"
+                      style={{
+                        backgroundImage:
+                          "linear-gradient(to right, rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.1) 1px, transparent 1px)",
+                        backgroundSize: "50px 50px",
+                      }}
+                    />
 
-                <div
-                  className="absolute inset-0 opacity-[0.05]"
-                  style={{
-                    backgroundImage:
-                      "linear-gradient(to right, rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.1) 1px, transparent 1px)",
-                    backgroundSize: "50px 50px",
-                  }}
-                />
-
-                <svg
-                  viewBox="0 0 600 260"
-                  className="absolute inset-0 w-full h-full"
-                  fill="none"
-                >
-                  <path
-                    d="M0 220 C80 190 120 200 180 170 C240 140 280 150 340 110 C400 70 470 90 600 20"
-                    stroke="url(#goldLine)"
-                    strokeWidth="5"
-                    strokeLinecap="round"
-                  />
-
-                  <defs>
-                    <linearGradient
-                      id="goldLine"
-                      x1="0"
-                      y1="0"
-                      x2="600"
-                      y2="0"
+                    <svg
+                      viewBox="0 0 600 260"
+                      preserveAspectRatio="none"
+                      className="absolute inset-0 w-full h-full"
+                      fill="none"
                     >
-                      <stop offset="0%" stopColor="#facc15" />
-                      <stop offset="100%" stopColor="#eab308" />
-                    </linearGradient>
-                  </defs>
-                </svg>
+                      <path
+                        d="M0 220 C80 190 120 200 180 170 C240 140 280 150 340 110 C400 70 470 90 600 20"
+                        stroke="url(#goldLine)"
+                        strokeWidth="5"
+                        strokeLinecap="round"
+                      />
+
+                      <defs>
+                        <linearGradient
+                          id="goldLine"
+                          x1="0"
+                          y1="0"
+                          x2="600"
+                          y2="0"
+                        >
+                          <stop offset="0%" stopColor="#F5E6B3" />
+                          <stop offset="100%" stopColor="#D4AF37" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                  </div>
+                </div>
+
+                {/* RIGHT: Dashboard panel */}
+                <div className="relative rounded-3xl bg-black/60 border border-white/10 p-4 sm:p-5 flex flex-col overflow-hidden">
+
+                  <div className="absolute inset-0 bg-gradient-to-b from-[#D4AF37]/5 via-transparent to-transparent pointer-events-none" />
+
+                  <div className="relative z-10 flex items-center justify-between">
+                    <p className="text-zinc-400 text-xs">
+                      Live Investment Dashboard
+                    </p>
+                    <span className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.7)] animate-pulse" />
+                  </div>
+
+                  <div className="relative z-10 mt-8 text-center">
+                    <p className="text-zinc-500 text-xs sm:text-sm mb-2">
+                      Trading Account Balance
+                    </p>
+                    <h3 className="text-3xl sm:text-4xl xl:text-5xl font-black text-white tracking-tight whitespace-nowrap">
+                      $207,500
+                    </h3>
+                    <p className="text-green-400 text-xs sm:text-sm mt-3">
+                      +$7,500 profit added today
+                    </p>
+                  </div>
+
+                  <div className="relative z-10 mt-6 flex justify-center">
+                    <button
+                      type="button"
+                      className="px-7 py-3 rounded-full bg-white text-black font-semibold hover:scale-[1.02] transition duration-300"
+                    >
+                      Withdraw Profits
+                    </button>
+                  </div>
+
+                  <div className="relative z-10 mt-auto pt-6">
+                    <div className="rounded-2xl bg-zinc-100 text-black px-3 py-3 shadow-2xl">
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-black flex items-center justify-center shrink-0">
+                          <CheckCircle2 className="w-4 h-4 text-white" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="font-semibold text-[13px] truncate">
+                              Reward Received
+                            </p>
+                            <span className="text-[10px] text-zinc-500 shrink-0">
+                              Now
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-zinc-600 mt-1 leading-snug">
+                            Congratulations! We&apos;ve sent you $7,500
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
               </div>
-
-              {/* PHONE MOCKUP */}
-<div className="absolute right-0 -top-20 hidden xl:block z-40">
-
-  {/* GOLD AMBIENT */}
-  <div className="absolute inset-0 bg-yellow-500/10 blur-[120px] scale-150 pointer-events-none" />
-
-  {/* PHONE FRAME */}
-  <div className="relative w-[290px] h-[590px] rounded-[3.5rem] border border-zinc-800 bg-black shadow-[0_0_80px_rgba(234,179,8,0.15)] overflow-visible">
-
-    {/* TOP GLOW */}
-    <div className="absolute inset-0 bg-gradient-to-b from-yellow-500/10 via-transparent to-transparent pointer-events-none" />
-
-    {/* NOTCH */}
-    <div className="absolute top-3 left-1/2 -translate-x-1/2 w-32 h-7 bg-zinc-950 rounded-full border border-zinc-800 z-20" />
-
-    {/* CONTENT */}
-    <div className="relative z-10 flex flex-col h-full px-6 pt-16 pb-6">
-
-      {/* HEADER */}
-      <div className="flex items-center justify-between">
-
-        <div>
-          <p className="text-yellow-500 text-sm font-medium">
-            ASKPAULFX
-          </p>
-
-          <p className="text-zinc-500 text-xs mt-1">
-            Live Investment Dashboard
-          </p>
-        </div>
-
-        <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
-
-      </div>
-
-      {/* BALANCE */}
-      <div className="mt-14 text-center">
-
-        <p className="text-zinc-500 text-sm mb-3">
-          Trading Account Balance
-        </p>
-
-        <h1 className="text-5xl font-black text-white tracking-tight">
-          $207,500
-        </h1>
-
-        <p className="text-green-400 text-sm mt-3">
-          +$7,500 profit added today
-        </p>
-
-      </div>
-
-      {/* BUTTON */}
-      <div className="mt-10 flex justify-center">
-
-        <button className="px-8 py-4 rounded-full bg-white text-black font-bold hover:scale-105 transition duration-300">
-          Withdraw Profits
-        </button>
-
-      </div>
-
-      {/* NOTIFICATIONS */}
-      <div className="mt-auto space-y-4">
-
-        {/* NOTIFICATION 1 */}
-        <div className="rounded-3xl bg-zinc-100 text-black px-5 py-4 shadow-2xl">
-
-          <div className="flex items-start justify-between gap-4">
-
-            <div className="flex gap-4">
-
-              <div className="w-11 h-11 rounded-2xl bg-black flex items-center justify-center text-yellow-500 font-black text-lg">
-                ✓
-              </div>
-
-              <div>
-
-                <p className="font-semibold text-sm">
-                  Reward Received
-                </p>
-
-                <p className="text-sm text-zinc-600 mt-1">
-                  Congratulations! We've sent you $7,500
-                </p>
-
-              </div>
-
-            </div>
-
-            <span className="text-xs text-zinc-500">
-              Now
-            </span>
-
-          </div>
-
-        </div>
-
-        {/* NOTIFICATION 2 */}
-        <div className="rounded-3xl bg-zinc-900 border border-zinc-800 px-5 py-4">
-
-          <div className="flex items-center justify-between">
-
-            <div>
-
-              <p className="text-sm text-gray-300">
-                Withdrawal Approved
-              </p>
-
-              <p className="text-xs text-gray-500 mt-1">
-                Funds sent successfully
-              </p>
-
-            </div>
-
-            <p className="text-green-400 font-semibold">
-              +$2,500
-            </p>
-
-          </div>
-
-        </div>
-
-      </div>
-
-    </div>
-
-  </div>
-
-</div>
             </div>
           </motion.div>
         </div>
@@ -486,13 +329,13 @@ export default function HomePage() {
 
           <div className="text-center max-w-3xl mx-auto mb-20">
 
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-yellow-500/20 bg-yellow-500/10 text-yellow-500 text-sm mb-8">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#D4AF37]/20 bg-[#D4AF37]/10 text-[#D4AF37] text-sm mb-8">
               Investment Plans
             </div>
 
             <h2 className="text-5xl lg:text-6xl font-black leading-tight">
               Structured Plans For
-              <span className="text-yellow-500"> Every Investor</span>
+              <span className="text-[#D4AF37]"> Every Investor</span>
             </h2>
 
             <p className="text-gray-400 text-lg leading-relaxed mt-8">
@@ -510,10 +353,10 @@ export default function HomePage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
                 viewport={{ once: true }}
-                className="group relative rounded-[36px] border border-zinc-800 bg-zinc-950/80 backdrop-blur-xl p-8 hover:border-yellow-500/30 transition duration-500 flex flex-col"
+                className="group relative rounded-[36px] border border-zinc-800 bg-zinc-950/80 backdrop-blur-xl p-8 hover:border-[#D4AF37]/30 transition duration-500 flex flex-col"
               >
 
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-500 bg-gradient-to-b from-yellow-500/5 to-transparent rounded-[36px]" />
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-500 bg-gradient-to-b from-[#D4AF37]/5 to-transparent rounded-[36px]" />
 
                 <div className="relative z-10 flex flex-col h-full">
 
@@ -526,7 +369,7 @@ export default function HomePage() {
                       {plan.name}
                     </h3>
 
-                    <p className="text-yellow-500 font-semibold text-lg mb-6">
+                    <p className="text-[#D4AF37] font-semibold text-lg mb-6">
                       {plan.roi}
                     </p>
 
@@ -541,7 +384,7 @@ export default function HomePage() {
                         key={i}
                         className="flex items-center gap-3 text-sm text-gray-300"
                       >
-                        <CheckCircle2 className="w-4 h-4 text-yellow-500 shrink-0" />
+                        <CheckCircle2 className="w-4 h-4 text-[#D4AF37] shrink-0" />
                         {benefit}
                       </div>
                     ))}
@@ -549,7 +392,7 @@ export default function HomePage() {
 
                   <Link
                     href="/auth"
-                    className="mt-10 flex items-center justify-center gap-3 bg-zinc-900 border border-zinc-700 hover:border-yellow-500 hover:bg-zinc-800 transition py-4 rounded-2xl font-semibold"
+                    className="mt-10 flex items-center justify-center gap-3 bg-zinc-900 border border-zinc-700 hover:border-[#D4AF37] hover:bg-zinc-800 transition py-4 rounded-2xl font-semibold"
                   >
                     {plan.button}
                     <ArrowRight size={18} />
@@ -571,13 +414,13 @@ export default function HomePage() {
 
           <div className="text-center max-w-3xl mx-auto mb-24">
 
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-yellow-500/20 bg-yellow-500/10 text-yellow-500 text-sm mb-8">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#D4AF37]/20 bg-[#D4AF37]/10 text-[#D4AF37] text-sm mb-8">
               How It Works
             </div>
 
             <h2 className="text-5xl lg:text-6xl font-black leading-tight">
               A Structured
-              <span className="text-yellow-500"> Investment Process</span>
+              <span className="text-[#D4AF37]"> Investment Process</span>
             </h2>
 
             <p className="text-gray-400 text-lg leading-relaxed mt-8">
@@ -590,8 +433,8 @@ export default function HomePage() {
           <div className="grid lg:grid-cols-4 gap-8">
 
             <div className="rounded-[36px] border border-zinc-800 bg-zinc-950 p-8">
-              <div className="w-16 h-16 rounded-3xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center mb-8">
-                <Wallet className="text-yellow-500 w-7 h-7" />
+              <div className="w-16 h-16 rounded-3xl bg-[#D4AF37]/10 border border-[#D4AF37]/20 flex items-center justify-center mb-8">
+                <Wallet className="text-[#D4AF37] w-7 h-7" />
               </div>
 
               <h3 className="text-2xl font-bold mb-4">
@@ -604,8 +447,8 @@ export default function HomePage() {
             </div>
 
             <div className="rounded-[36px] border border-zinc-800 bg-zinc-950 p-8">
-              <div className="w-16 h-16 rounded-3xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center mb-8">
-                <BadgeDollarSign className="text-yellow-500 w-7 h-7" />
+              <div className="w-16 h-16 rounded-3xl bg-[#D4AF37]/10 border border-[#D4AF37]/20 flex items-center justify-center mb-8">
+                <BadgeDollarSign className="text-[#D4AF37] w-7 h-7" />
               </div>
 
               <h3 className="text-2xl font-bold mb-4">
@@ -618,8 +461,8 @@ export default function HomePage() {
             </div>
 
             <div className="rounded-[36px] border border-zinc-800 bg-zinc-950 p-8">
-              <div className="w-16 h-16 rounded-3xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center mb-8">
-                <LineChart className="text-yellow-500 w-7 h-7" />
+              <div className="w-16 h-16 rounded-3xl bg-[#D4AF37]/10 border border-[#D4AF37]/20 flex items-center justify-center mb-8">
+                <LineChart className="text-[#D4AF37] w-7 h-7" />
               </div>
 
               <h3 className="text-2xl font-bold mb-4">
@@ -632,8 +475,8 @@ export default function HomePage() {
             </div>
 
             <div className="rounded-[36px] border border-zinc-800 bg-zinc-950 p-8">
-              <div className="w-16 h-16 rounded-3xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center mb-8">
-                <Landmark className="text-yellow-500 w-7 h-7" />
+              <div className="w-16 h-16 rounded-3xl bg-[#D4AF37]/10 border border-[#D4AF37]/20 flex items-center justify-center mb-8">
+                <Landmark className="text-[#D4AF37] w-7 h-7" />
               </div>
 
               <h3 className="text-2xl font-bold mb-4">
@@ -658,11 +501,11 @@ export default function HomePage() {
             <div>
               <h2 className="text-4xl font-black leading-tight max-w-2xl">
                 Built For Investors Seeking
-                <span className="text-yellow-500"> Structured Growth</span>
+                <span className="text-[#D4AF37]"> Structured Growth</span>
               </h2>
 
               <p className="text-gray-400 leading-relaxed mt-6 max-w-2xl">
-                ASKPAULFX provides disciplined investment management,
+                Zuno provides disciplined investment management,
                 professional market execution, and scalable portfolio growth
                 solutions for modern investors.
               </p>
@@ -679,7 +522,7 @@ export default function HomePage() {
 
               <Link
                 href="/auth"
-                className="flex items-center gap-3 bg-yellow-500 hover:bg-yellow-400 transition px-8 py-5 rounded-2xl text-black font-semibold text-lg"
+                className="flex items-center gap-3 bg-[#D4AF37] hover:bg-[#E5BD45] transition px-8 py-5 rounded-2xl text-black font-semibold text-lg"
               >
                 Create Account
                 <ArrowRight size={20} />
@@ -699,7 +542,7 @@ export default function HomePage() {
             </div>
 
             <div className="text-sm text-gray-600">
-              © 2026 ASKPAULFX. All Rights Reserved.
+              © 2026 Zuno. All Rights Reserved.
             </div>
           </div>
         </div>
