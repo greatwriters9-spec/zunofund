@@ -15,7 +15,6 @@ import {
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 
 import {
-  ArrowLeft,
   Check,
   ChevronDown,
   Crown,
@@ -23,6 +22,25 @@ import {
   Rocket,
   Shield,
 } from "lucide-react";
+
+/** Visual ladder: basic utilitarian → premium gold (layout stays minimal). */
+type PlanTheme = {
+  cardBorder: string;
+  cardHover: string;
+  divider: string;
+  iconWrap: string;
+  iconClass: string;
+  rangeClass: string;
+  yieldLabelClass: string;
+  rateClass: string;
+  expandClass: string;
+  checkClass: string;
+  benefitTextClass: string;
+  descriptionClass: string;
+  secondaryCta: string;
+  currentBadge: string;
+  focusRingClass: string;
+};
 
 const plans = [
   {
@@ -49,9 +67,25 @@ const plans = [
 
     button: "Start Investing",
 
-    glow: "from-yellow-500/10 to-transparent",
-
-    border: "border-yellow-500/20",
+    theme: {
+      cardBorder: "border-zinc-700/90",
+      cardHover: "hover:border-zinc-500/50",
+      divider: "border-t border-zinc-800/80",
+      iconWrap: "border-zinc-600/70 bg-zinc-900/70",
+      iconClass: "text-zinc-400",
+      rangeClass: "text-zinc-400",
+      yieldLabelClass: "text-zinc-500",
+      rateClass: "text-zinc-200",
+      expandClass: "text-zinc-500",
+      checkClass: "text-zinc-500",
+      benefitTextClass: "text-zinc-500",
+      descriptionClass: "text-zinc-500",
+      secondaryCta:
+        "border-zinc-600/90 bg-zinc-900 text-zinc-100 hover:border-zinc-400/55",
+      currentBadge:
+        "border-zinc-500/35 bg-zinc-800/55 text-zinc-300",
+      focusRingClass: "focus-visible:ring-zinc-500/45",
+    },
   },
 
   {
@@ -77,9 +111,25 @@ const plans = [
 
     button: "Upgrade to Growth",
 
-    glow: "from-yellow-500/20 to-transparent",
-
-    border: "border-yellow-500/30",
+    theme: {
+      cardBorder: "border-emerald-950/70",
+      cardHover: "hover:border-emerald-600/45",
+      divider: "border-t border-emerald-950/35",
+      iconWrap: "border-emerald-800/35 bg-emerald-950/40",
+      iconClass: "text-emerald-500",
+      rangeClass: "text-emerald-400/95",
+      yieldLabelClass: "text-emerald-600/85",
+      rateClass: "text-emerald-300",
+      expandClass: "text-emerald-500/90",
+      checkClass: "text-emerald-600",
+      benefitTextClass: "text-emerald-100/75",
+      descriptionClass: "text-emerald-200/45",
+      secondaryCta:
+        "border-emerald-800/55 bg-emerald-950/35 text-emerald-50 hover:border-emerald-500/50",
+      currentBadge:
+        "border-emerald-500/35 bg-emerald-500/10 text-emerald-300",
+      focusRingClass: "focus-visible:ring-emerald-500/45",
+    },
   },
 
   {
@@ -105,9 +155,25 @@ const plans = [
 
     button: "Go Pro",
 
-    glow: "from-yellow-500/30 to-transparent",
-
-    border: "border-yellow-500/40",
+    theme: {
+      cardBorder: "border-amber-950/55",
+      cardHover: "hover:border-amber-600/50",
+      divider: "border-t border-amber-950/30",
+      iconWrap: "border-amber-800/40 bg-amber-950/35",
+      iconClass: "text-amber-400",
+      rangeClass: "text-amber-400",
+      yieldLabelClass: "text-amber-600/80",
+      rateClass: "text-amber-300",
+      expandClass: "text-amber-500",
+      checkClass: "text-amber-500",
+      benefitTextClass: "text-amber-100/78",
+      descriptionClass: "text-amber-200/48",
+      secondaryCta:
+        "border-amber-800/50 bg-amber-950/28 text-amber-50 hover:border-amber-500/55",
+      currentBadge:
+        "border-amber-500/38 bg-amber-500/12 text-amber-300",
+      focusRingClass: "focus-visible:ring-amber-500/45",
+    },
   },
 
   {
@@ -133,9 +199,24 @@ const plans = [
 
     button: "Join Elite",
 
-    glow: "from-yellow-400/40 to-transparent",
-
-    border: "border-yellow-400/60",
+    theme: {
+      cardBorder: "border-yellow-500/45",
+      cardHover: "hover:border-yellow-400/70",
+      divider: "border-t border-yellow-900/30",
+      iconWrap: "border-yellow-500/35 bg-yellow-500/14",
+      iconClass: "text-yellow-400",
+      rangeClass: "text-yellow-400",
+      yieldLabelClass: "text-yellow-600/75",
+      rateClass: "text-yellow-300",
+      expandClass: "text-yellow-500",
+      checkClass: "text-yellow-500",
+      benefitTextClass: "text-yellow-100/88",
+      descriptionClass: "text-yellow-100/48",
+      secondaryCta: "",
+      currentBadge:
+        "border-yellow-500/45 bg-yellow-500/15 text-yellow-300",
+      focusRingClass: "focus-visible:ring-yellow-500/55",
+    },
 
     elite: true,
   },
@@ -166,91 +247,93 @@ export default function InvestmentPlansPage() {
     });
   };
 
-useEffect(() => {
-  async function loadSessionAndPlan() {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+  const router = useRouter();
 
-    setIsLoggedIn(!!user);
-    setPlanActionError(null);
+  useEffect(() => {
+    async function loadSessionAndPlan() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-    if (!user?.id) {
-      setCurrentPlanSlug(null);
-      return;
+      setIsLoggedIn(!!user);
+      setPlanActionError(null);
+
+      if (!user?.id) {
+        setCurrentPlanSlug(null);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("investors")
+        .select("investment_plan")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (error) {
+        setPlanActionError(formatSupabaseError(error));
+        return;
+      }
+
+      const raw =
+        typeof data?.investment_plan === "string" ? data.investment_plan : null;
+      const normalized = normalizeInvestmentPlan(raw);
+      setCurrentPlanSlug(normalized);
+
+      // Auto-expand the investor's current plan so the CTA + status is in view
+      // without forcing them to tap first.
+      if (normalized) {
+        setExpandedSlugs((prev) => {
+          if (prev.has(normalized)) return prev;
+          const next = new Set(prev);
+          next.add(normalized);
+          return next;
+        });
+      }
     }
 
-    const { data, error } = await supabase
-      .from("investors")
-      .select("investment_plan")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    loadSessionAndPlan();
+  }, [supabase]);
 
-    if (error) {
-      setPlanActionError(formatSupabaseError(error));
-      return;
-    }
-
-    const raw =
-      typeof data?.investment_plan === "string" ? data.investment_plan : null;
-    const normalized = normalizeInvestmentPlan(raw);
-    setCurrentPlanSlug(normalized);
-
-    // Auto-expand the investor's current plan so the CTA + status is in view
-    // without forcing them to tap first.
-    if (normalized) {
-      setExpandedSlugs((prev) => {
-        if (prev.has(normalized)) return prev;
-        const next = new Set(prev);
-        next.add(normalized);
-        return next;
-      });
-    }
-  }
-
-  loadSessionAndPlan();
-}, [supabase]);
-  const router = useRouter()
   return (
-    <div className="min-h-screen text-white relative overflow-hidden">
-      <div className="relative z-10 max-w-7xl mx-auto px-5 py-10">
-        {/* Header */}
-        <div className="mb-14 flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
-          <div className="min-w-0">
-            <h1 className="text-3xl font-bold text-yellow-500 mb-3 sm:text-4xl md:text-5xl md:mb-4">
-              Investment Plans
-            </h1>
+    <div className="relative min-h-screen overflow-hidden text-white">
+      <div className="relative z-10 mx-auto max-w-7xl p-5 md:p-7">
+        <header className="mb-5 border-b border-zinc-800/80 pb-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+                Investments
+              </p>
+              <h1 className="mt-1 text-2xl font-bold text-white sm:text-3xl">
+                Investment plans
+              </h1>
+              <p className="mt-1 max-w-2xl text-sm leading-relaxed text-zinc-600">
+                Choose the tier that fits your capital bracket and daily compound target.
+              </p>
+            </div>
 
-            <p className="text-gray-400 max-w-2xl text-base leading-relaxed sm:text-lg">
-              Choose the investment level that matches your
-              financial goals and portfolio growth strategy.
-            </p>
+            <div className="flex shrink-0 flex-wrap gap-2">
+              {isLoggedIn ? (
+                <Link
+                  href="/dashboard"
+                  className="text-xs font-semibold text-yellow-500 transition hover:text-yellow-400"
+                >
+                  ← Dashboard
+                </Link>
+              ) : (
+                <Link
+                  href="/"
+                  className="text-xs font-semibold text-yellow-500 transition hover:text-yellow-400"
+                >
+                  ← Home
+                </Link>
+              )}
+            </div>
           </div>
-
-          <div className="flex shrink-0 md:pt-2">
-          {isLoggedIn ? (
-  <Link
-    href="/dashboard"
-    className="flex items-center gap-2 bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 hover:border-yellow-500 transition px-5 py-3 rounded-2xl"
-  >
-    <ArrowLeft size={18} />
-    Dashboard
-  </Link>
-) : (
-  <Link
-    href="/"
-    className="flex items-center gap-2 bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 hover:border-yellow-500 transition px-5 py-3 rounded-2xl"
-  >
-    <ArrowLeft size={18} />
-    Back Home
-  </Link>
-)}
-          </div>
-        </div>
+        </header>
 
         {planActionError ? (
           <div
-            className="mb-10 rounded-2xl border border-red-500/50 bg-red-500/10 px-5 py-4 text-red-200 text-sm"
+            className="mb-4 border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300"
             role="alert"
           >
             {planActionError}
@@ -258,17 +341,23 @@ useEffect(() => {
         ) : null}
 
         {isLoggedIn && currentPlanSlug ? (
-          <p className="mb-10 text-yellow-500/90 text-sm">
-            Current plan:&nbsp;
-            <span className="font-semibold text-yellow-400">
-              {displayPlanName(currentPlanSlug)}
-            </span>
-            . Choosing a tier sets your bracket for automated daily compound.
-          </p>
+          <div className="mb-5 border border-zinc-800/80 bg-zinc-950/40 px-4 py-3 lg:rounded-lg">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+              Current plan
+            </p>
+            <p className="mt-1 text-sm text-zinc-300">
+              <span className="font-semibold text-yellow-500">
+                {displayPlanName(currentPlanSlug)}
+              </span>
+              <span className="text-zinc-600">
+                {" "}
+                — selecting a tier sets your bracket for automated daily compound.
+              </span>
+            </p>
+          </div>
         ) : null}
 
-        {/* Helper row for power users */}
-        <div className="mb-5 flex items-center justify-end">
+        <div className="mb-4 flex items-center justify-end">
           <button
             type="button"
             onClick={() =>
@@ -277,16 +366,14 @@ useEffect(() => {
                 return new Set(plans.map((p) => p.slug));
               })
             }
-            className="text-sm font-medium text-yellow-500 hover:text-yellow-400 transition"
+            className="text-xs font-semibold text-yellow-500 transition hover:text-yellow-400"
           >
-            {expandedSlugs.size === plans.length
-              ? "Collapse all"
-              : "Expand all"}
+            {expandedSlugs.size === plans.length ? "Collapse all" : "Expand all"}
           </button>
         </div>
 
         {/* Plans Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-start">
+        <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-2 xl:grid-cols-4 xl:gap-4">
           {plans.map((plan, index) => {
             const Icon = PLAN_ICONS[index] ?? Shield;
             const isExpanded = expandedSlugs.has(plan.slug);
@@ -298,69 +385,68 @@ useEffect(() => {
             return (
               <div
                 key={plan.slug}
-                className={`relative overflow-hidden rounded-3xl border ${plan.border} bg-zinc-950/70 backdrop-blur-xl flex flex-col transition duration-500 hover:border-yellow-500/70`}
+                className={`relative flex flex-col overflow-hidden border bg-zinc-950/40 transition lg:rounded-lg ${plan.theme.cardBorder} ${plan.theme.cardHover}`}
               >
-                {/* Ambient Glow */}
-                <div
-                  className={`absolute inset-0 bg-gradient-to-b ${plan.glow} opacity-60 pointer-events-none`}
-                />
-
-                {/* Compact summary — always visible, click to expand */}
                 <button
                   type="button"
                   id={summaryId}
                   aria-expanded={isExpanded}
                   aria-controls={detailsId}
                   onClick={() => togglePlanExpansion(plan.slug)}
-                  className="relative z-10 w-full text-left p-6 sm:p-7 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+                  className={`relative z-10 w-full p-4 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 sm:p-5 ${plan.theme.focusRingClass}`}
                 >
-                  {/* Top badges row */}
-                  <div className="mb-5 flex items-start justify-between gap-3">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-yellow-500/20 bg-yellow-500/10">
-                      <Icon size={22} className="text-yellow-500" aria-hidden />
+                  <div className="mb-3 flex items-start justify-between gap-2">
+                    <div
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border ${plan.theme.iconWrap}`}
+                    >
+                      <Icon size={18} className={plan.theme.iconClass} aria-hidden />
                     </div>
 
-                    <div className="flex flex-wrap items-center justify-end gap-2">
+                    <div className="flex flex-wrap items-center justify-end gap-1.5">
                       {isCurrentPlan ? (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-yellow-500/40 bg-yellow-500/20 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-yellow-300">
+                        <span
+                          className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${plan.theme.currentBadge}`}
+                        >
                           Your plan
                         </span>
                       ) : null}
 
                       {plan.elite ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-yellow-500 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-black">
-                          <Crown size={11} aria-hidden />
+                        <span className="inline-flex items-center gap-0.5 rounded-md bg-yellow-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-black">
+                          <Crown size={10} aria-hidden />
                           VIP
                         </span>
                       ) : null}
                     </div>
                   </div>
 
-                  {/* Name */}
-                  <h2 className="mb-1 text-xl font-bold sm:text-2xl">
+                  <h2 className="mb-0.5 text-base font-bold text-white sm:text-lg">
                     {plan.name}
                   </h2>
 
-                  {/* Range */}
-                  <p className="mb-4 text-base font-semibold text-yellow-500 sm:text-lg">
+                  <p className={`mb-3 text-sm font-semibold ${plan.theme.rangeClass}`}>
                     {plan.range}
                   </p>
 
-                  {/* Daily yield */}
-                  <div className="mb-4">
-                    <p className="text-xs uppercase tracking-wide text-gray-500">
+                  <div className="mb-1">
+                    <p
+                      className={`text-[11px] uppercase tracking-wide ${plan.theme.yieldLabelClass}`}
+                    >
                       {plan.yield}
                     </p>
-                    <p className="text-2xl font-bold sm:text-3xl">
+                    <p
+                      className={`text-xl font-bold tabular-nums sm:text-2xl ${plan.theme.rateClass}`}
+                    >
                       {plan.rate}
                     </p>
                   </div>
 
-                  {/* Expand affordance */}
-                  <div className="mt-4 flex items-center justify-between border-t border-white/5 pt-4 text-sm font-medium text-yellow-500/90">
+                  <div
+                    className={`mt-3 flex items-center justify-between pt-3 text-xs font-semibold ${plan.theme.divider} ${plan.theme.expandClass}`}
+                  >
                     <span>{isExpanded ? "Hide details" : "View details"}</span>
                     <ChevronDown
-                      size={18}
+                      size={16}
                       aria-hidden
                       className={`transition-transform duration-300 ${
                         isExpanded ? "rotate-180" : "rotate-0"
@@ -369,7 +455,6 @@ useEffect(() => {
                   </div>
                 </button>
 
-                {/* Expandable details */}
                 <AnimatePresence initial={false}>
                   {isExpanded ? (
                     <motion.div
@@ -386,32 +471,35 @@ useEffect(() => {
                       }}
                       className="relative z-10 overflow-hidden"
                     >
-                      <div className="border-t border-white/5 px-6 pb-6 pt-5 sm:px-7 sm:pb-7">
-                        {/* Description */}
-                        <p className="mb-6 text-sm leading-relaxed text-gray-400">
+                      <div
+                        className={`px-4 pb-4 pt-3 sm:px-5 sm:pb-5 ${plan.theme.divider}`}
+                      >
+                        <p
+                          className={`mb-4 text-xs leading-relaxed ${plan.theme.descriptionClass}`}
+                        >
                           {plan.description}
                         </p>
 
-                        {/* Benefits */}
-                        <ul className="mb-7 space-y-3">
+                        <ul className="mb-4 space-y-2">
                           {plan.benefits.map((benefit) => (
                             <li
                               key={benefit}
-                              className="flex items-start gap-3"
+                              className="flex items-start gap-2"
                             >
                               <Check
-                                size={16}
-                                className="mt-0.5 shrink-0 text-yellow-500"
+                                size={14}
+                                className={`mt-0.5 shrink-0 ${plan.theme.checkClass}`}
                                 aria-hidden
                               />
-                              <span className="text-sm text-gray-300">
+                              <span
+                                className={`text-xs ${plan.theme.benefitTextClass}`}
+                              >
                                 {benefit}
                               </span>
                             </li>
                           ))}
                         </ul>
 
-                        {/* CTA BUTTON */}
                         <button
                           type="button"
                           disabled={planBusySlug === plan.slug}
@@ -460,10 +548,10 @@ useEffect(() => {
                             );
                             router.push("/deposit");
                           }}
-                          className={`flex w-full items-center justify-center rounded-2xl py-4 font-bold transition disabled:opacity-50 ${
+                          className={`flex w-full items-center justify-center rounded-lg border py-2.5 text-xs font-bold transition disabled:opacity-50 ${
                             plan.elite
-                              ? "bg-yellow-500 text-black hover:bg-yellow-400"
-                              : "bg-zinc-900 border border-zinc-800 hover:border-yellow-500 text-white"
+                              ? "border-transparent bg-yellow-500 text-black hover:bg-yellow-600"
+                              : plan.theme.secondaryCta
                           }`}
                         >
                           {planBusySlug === plan.slug
@@ -479,14 +567,10 @@ useEffect(() => {
           })}
         </div>
 
-        {/* Bottom Disclaimer */}
-        <div className="mt-14 text-center">
-          <p className="text-gray-500 text-sm max-w-3xl mx-auto leading-relaxed">
-            Investment performance varies based on market
-            conditions and portfolio activity. Withdrawal
-            conditions and investment durations may apply
-            depending on selected investment level and
-            portfolio allocation strategy.
+        <div className="mt-10 border-t border-zinc-800/80 pt-6">
+          <p className="mx-auto max-w-3xl text-center text-xs leading-relaxed text-zinc-600">
+            Investment performance varies with market conditions and portfolio activity.
+            Withdrawal rules and holding periods may apply by tier and allocation.
           </p>
         </div>
       </div>
