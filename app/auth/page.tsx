@@ -179,8 +179,8 @@ return;
 
           <p className="text-zinc-500 text-lg leading-relaxed">
             {isLogin
-              ? "Secure access to your ASKPAULFX investment dashboard"
-              : "Begin your premium investment journey with ASKPAULFX"}
+              ? "Secure access to your ZUNO investment dashboard"
+              : "Begin your premium investment journey with ZUNO"}
           </p>
         </div>
 
@@ -422,7 +422,7 @@ return;
       <div>
 
         <p className="text-zinc-300 leading-relaxed">
-          I agree to the ASKPAULFX Terms & Conditions,
+          I agree to the ZUNO Terms & Conditions,
           Privacy Policy, and understand that investment
           performance may vary depending on market conditions.
         </p>

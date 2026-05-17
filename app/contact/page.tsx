@@ -24,12 +24,12 @@ export default function SupportPage() {
           <div className="flex items-center gap-3">
 
             <div className="w-11 h-11 rounded-2xl bg-black text-yellow-500 flex items-center justify-center font-black text-lg">
-              A
+              Z
             </div>
 
             <div>
               <h1 className="font-bold text-lg">
-                ASKPAULFX
+                ZUNO
               </h1>
 
               <p className="text-sm text-zinc-500">
@@ -99,7 +99,7 @@ export default function SupportPage() {
                   </p>
 
                   <h3 className="font-bold text-lg">
-                    support@askpaulfx.com
+                    support@zuno.com
                   </h3>
                 </div>
 
@@ -135,7 +135,7 @@ export default function SupportPage() {
                   </p>
 
                   <h3 className="font-bold text-lg">
-                    @ASKPAULFX_SUPPORT
+                    @ZUNO_SUPPORT
                   </h3>
                 </div>
 

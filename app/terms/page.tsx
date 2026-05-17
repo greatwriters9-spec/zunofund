@@ -12,7 +12,7 @@ export default function TermsPage() {
         <div className="mb-20">
 
           <div className="inline-flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-full px-6 py-3 text-yellow-500 text-sm font-semibold mb-8">
-            ASKPAULFX LEGAL AGREEMENT
+            ZUNO LEGAL AGREEMENT
           </div>
 
           <h1 className="text-5xl md:text-7xl font-black leading-tight mb-8">
@@ -21,9 +21,9 @@ export default function TermsPage() {
 
           <p className="text-zinc-400 text-xl leading-relaxed max-w-4xl">
             These Terms & Conditions govern your access to and use of
-            ASKPAULFX investment management services, platform tools,
+            ZUNO investment management services, platform tools,
             investor dashboard, financial systems, and all related
-            digital infrastructure operated by ASKPAULFX.
+            digital infrastructure operated by ZUNO.
           </p>
 
         </div>
@@ -40,9 +40,9 @@ export default function TermsPage() {
               </h2>
 
               <p>
-                By registering for an ASKPAULFX account, accessing the
+                By registering for an ZUNO account, accessing the
                 investor dashboard, depositing funds, or interacting
-                with any ASKPAULFX service, you acknowledge that you
+                with any ZUNO service, you acknowledge that you
                 have read, understood, and agreed to be legally bound
                 by these Terms & Conditions.
               </p>
@@ -62,7 +62,7 @@ export default function TermsPage() {
 
               <p>
                 Investment activities involve financial risk and market
-                uncertainty. ASKPAULFX does not guarantee fixed,
+                uncertainty. ZUNO does not guarantee fixed,
                 risk-free, or guaranteed profits under any
                 circumstances.
               </p>
@@ -102,7 +102,7 @@ export default function TermsPage() {
               </p>
 
               <p className="mt-5">
-                ASKPAULFX reserves the right to modify investment
+                ZUNO reserves the right to modify investment
                 structures, portfolio strategies, or target allocation
                 models without prior notice where necessary.
               </p>
@@ -121,7 +121,7 @@ export default function TermsPage() {
               </p>
 
               <p className="mt-5">
-                ASKPAULFX reserves the right to reject, suspend, or
+                ZUNO reserves the right to reject, suspend, or
                 terminate accounts that:
               </p>
 
@@ -142,14 +142,14 @@ export default function TermsPage() {
               </h2>
 
               <p>
-                Deposits submitted through ASKPAULFX may undergo
+                Deposits submitted through ZUNO may undergo
                 internal review, blockchain confirmation checks,
                 compliance screening, and administrative verification
                 before being approved into investor balances.
               </p>
 
               <p className="mt-5">
-                ASKPAULFX reserves the right to reject or delay deposit
+                ZUNO reserves the right to reject or delay deposit
                 approvals where suspicious, incomplete, or unverifiable
                 transaction activity is detected.
               </p>
@@ -200,7 +200,7 @@ export default function TermsPage() {
               </ul>
 
               <p className="mt-5">
-                ASKPAULFX shall not be held liable for unauthorized
+                ZUNO shall not be held liable for unauthorized
                 account access resulting from user negligence, phishing
                 attacks, compromised devices, or credential sharing.
               </p>
@@ -213,7 +213,7 @@ export default function TermsPage() {
               </h2>
 
               <p>
-                ASKPAULFX maintains the right to investigate any
+                ZUNO maintains the right to investigate any
                 activity suspected of:
               </p>
 
@@ -239,7 +239,7 @@ export default function TermsPage() {
               </h2>
 
               <p>
-                ASKPAULFX strives to maintain continuous operational
+                ZUNO strives to maintain continuous operational
                 availability but does not guarantee uninterrupted
                 platform access due to:
               </p>
@@ -260,7 +260,7 @@ export default function TermsPage() {
               </h2>
 
               <p>
-                ASKPAULFX shall not be liable for direct, indirect,
+                ZUNO shall not be liable for direct, indirect,
                 incidental, or consequential financial losses arising
                 from:
               </p>
@@ -282,7 +282,7 @@ export default function TermsPage() {
               </h2>
 
               <p>
-                ASKPAULFX may collect operational information necessary
+                ZUNO may collect operational information necessary
                 for:
               </p>
 
@@ -308,7 +308,7 @@ export default function TermsPage() {
               </h2>
 
               <p>
-                ASKPAULFX reserves the right to modify, revise, or
+                ZUNO reserves the right to modify, revise, or
                 update these Terms & Conditions at any time without
                 prior notice.
               </p>
@@ -327,7 +327,7 @@ export default function TermsPage() {
         <div className="mt-16 text-center border-t border-zinc-800 pt-10">
 
           <p className="text-zinc-500 text-sm">
-            © 2026 ASKPAULFX Investment Management. All Rights Reserved.
+            © 2026 ZUNO Investment Management. All Rights Reserved.
           </p>
 
         </div>
