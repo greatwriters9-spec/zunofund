@@ -184,18 +184,19 @@ async function loadSessionAndPlan() {
     <div className="min-h-screen text-white relative overflow-hidden">
       <div className="relative z-10 max-w-7xl mx-auto px-5 py-10">
         {/* Header */}
-        <div className="flex items-center justify-between mb-14">
-          <div>
-            <h1 className="text-5xl font-bold text-yellow-500 mb-4">
+        <div className="mb-14 flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-3xl font-bold text-yellow-500 mb-3 sm:text-4xl md:text-5xl md:mb-4">
               Investment Plans
             </h1>
 
-            <p className="text-gray-400 max-w-2xl text-lg leading-relaxed">
+            <p className="text-gray-400 max-w-2xl text-base leading-relaxed sm:text-lg">
               Choose the investment level that matches your
               financial goals and portfolio growth strategy.
             </p>
           </div>
 
+          <div className="flex shrink-0 md:pt-2">
           {isLoggedIn ? (
   <Link
     href="/dashboard"
@@ -213,6 +214,7 @@ async function loadSessionAndPlan() {
     Back Home
   </Link>
 )}
+          </div>
         </div>
 
         {planActionError ? (

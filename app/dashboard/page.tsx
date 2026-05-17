@@ -4,8 +4,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { X, Bitcoin } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { X, Bitcoin, Menu } from "lucide-react"
+import { usePathname, useRouter } from "next/navigation"
 
 import {
   Bell,
@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 
 import {
+  ResponsiveContainer,
   AreaChart,
   Area,
   Tooltip,
@@ -107,6 +108,11 @@ export default function DashboardPage() {
   const planKey = normalizeInvestmentPlan(investor?.investment_plan);
 
   const router = useRouter();
+  const pathname = usePathname();
+
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  useEffect(() => setMobileNavOpen(false), [pathname]);
 
   const syncInvestorAlerts = useCallback(async () => {
     const {
@@ -353,10 +359,10 @@ export default function DashboardPage() {
     <div className="min-h-screen text-white relative overflow-hidden">
       <div className="relative z-10 max-w-7xl mx-auto p-5 md:p-7">
 
-        <div className="flex items-center justify-between mb-7">
+        <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-yellow-500 mb-2">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-yellow-500 mb-2">
               {getGreeting()}, {investorGreetingName(investor)}
             </h1>
 
@@ -365,7 +371,21 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <button
+              type="button"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-950/70 backdrop-blur-xl transition hover:border-yellow-500 md:hidden"
+              aria-expanded={mobileNavOpen}
+              aria-label={mobileNavOpen ? "Close navigation menu" : "Open navigation menu"}
+              onClick={() => setMobileNavOpen((o) => !o)}
+            >
+              {mobileNavOpen ? (
+                <X size={22} className="text-yellow-500" aria-hidden />
+              ) : (
+                <Menu size={22} className="text-yellow-500" aria-hidden />
+              )}
+            </button>
+
             <Link
               href="/dashboard/profile"
               className="bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 hover:border-yellow-500 transition p-3 rounded-2xl"
@@ -407,7 +427,7 @@ export default function DashboardPage() {
             </button>
 
             {showNotifications && (
-              <div className="absolute right-0 mt-4 w-[360px] bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 rounded-3xl shadow-2xl z-50 overflow-hidden">
+              <div className="absolute right-0 mt-4 z-50 w-[min(360px,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 rounded-3xl shadow-2xl overflow-hidden">
 
                 <div className="p-5 border-b border-zinc-800">
                   <h2 className="text-xl font-bold">
@@ -517,7 +537,7 @@ export default function DashboardPage() {
               Total Balance
             </p>
 
-            <h2 className="text-5xl font-bold text-white mb-5">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tabular-nums text-white mb-5 break-all sm:break-normal">
               {showBalance
                 ? `$${Number(investor?.balance || 0).toFixed(2)}`
                 : "••••••"}
@@ -813,7 +833,7 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 mb-7">
 
-          <div className="xl:col-span-2 bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 rounded-3xl p-5">
+          <div id="portfolio-growth" className="xl:col-span-2 bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 rounded-3xl p-5">
 
             <h2 className="text-2xl font-bold mb-1">
               Portfolio Growth
@@ -823,15 +843,9 @@ export default function DashboardPage() {
               Real growth based on actual profits.
             </p>
 
-            <div
-              className="w-full overflow-x-auto"
-              style={{ minHeight: 320 }}
-            >
-              <AreaChart
-                width={700}
-                height={320}
-                data={chartData}
-              >
+            <div className="w-full min-h-[260px] sm:min-h-[300px] md:min-h-[320px]" style={{ height: 320 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
                 <defs>
                   <linearGradient
                     id="profit"
@@ -883,6 +897,7 @@ export default function DashboardPage() {
                   strokeWidth={4}
                 />
               </AreaChart>
+              </ResponsiveContainer>
             </div>
           </div>
 
@@ -1062,6 +1077,78 @@ export default function DashboardPage() {
               </Link>
             </div>
           </div>
+        </div>
+      ) : null}
+
+      {mobileNavOpen ? (
+        <div
+          className="fixed inset-0 z-[210] flex flex-col bg-[#05080F]/97 backdrop-blur-xl pt-[env(safe-area-inset-top)] pb-[max(1.5rem,env(safe-area-inset-bottom))] px-6 md:hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Dashboard navigation"
+        >
+          <div className="flex h-14 shrink-0 items-center justify-between border-b border-white/10">
+            <span className="text-lg font-semibold tracking-tight text-white">Menu</span>
+            <button
+              type="button"
+              className="flex h-11 w-11 items-center justify-center rounded-lg text-[#E5E7EB] hover:bg-white/5"
+              aria-label="Close menu"
+              onClick={() => setMobileNavOpen(false)}
+            >
+              <X size={22} aria-hidden />
+            </button>
+          </div>
+          <nav className="mt-8 flex flex-col gap-1 text-[15px] font-medium">
+            <Link
+              href="/dashboard"
+              className="rounded-xl px-4 py-4 text-[#E5E7EB]/90 transition hover:bg-white/5 hover:text-[#D4AF37]"
+              onClick={() => setMobileNavOpen(false)}
+            >
+              Dashboard
+            </Link>
+            <Link
+              href="/investment-plans"
+              className="rounded-xl px-4 py-4 text-[#E5E7EB]/90 transition hover:bg-white/5 hover:text-[#D4AF37]"
+              onClick={() => setMobileNavOpen(false)}
+            >
+              Investments
+            </Link>
+            <Link
+              href="/history"
+              className="rounded-xl px-4 py-4 text-[#E5E7EB]/90 transition hover:bg-white/5 hover:text-[#D4AF37]"
+              onClick={() => setMobileNavOpen(false)}
+            >
+              Transactions
+            </Link>
+            <Link
+              href="/dashboard#portfolio-growth"
+              className="rounded-xl px-4 py-4 text-[#E5E7EB]/90 transition hover:bg-white/5 hover:text-[#D4AF37]"
+              onClick={() => setMobileNavOpen(false)}
+            >
+              Analytics
+            </Link>
+            <Link
+              href="/dashboard/profile"
+              className="rounded-xl px-4 py-4 text-[#E5E7EB]/90 transition hover:bg-white/5 hover:text-[#D4AF37]"
+              onClick={() => setMobileNavOpen(false)}
+            >
+              Profile & security
+            </Link>
+            <Link
+              href="/deposit"
+              className="rounded-xl px-4 py-4 text-[#E5E7EB]/90 transition hover:bg-white/5 hover:text-[#D4AF37]"
+              onClick={() => setMobileNavOpen(false)}
+            >
+              Deposit
+            </Link>
+            <Link
+              href="/support"
+              className="rounded-xl px-4 py-4 text-[#E5E7EB]/90 transition hover:bg-white/5 hover:text-[#D4AF37]"
+              onClick={() => setMobileNavOpen(false)}
+            >
+              Support
+            </Link>
+          </nav>
         </div>
       ) : null}
     </div>

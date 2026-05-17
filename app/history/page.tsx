@@ -179,10 +179,10 @@ export default function HistoryPage() {
       <div className="relative z-10 max-w-7xl mx-auto p-5 md:p-7">
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 
-          <div>
-            <h1 className="text-4xl font-bold text-yellow-500 mb-2">
+          <div className="min-w-0">
+            <h1 className="text-3xl font-bold text-yellow-500 mb-2 sm:text-4xl">
               Transaction History
             </h1>
 
@@ -193,7 +193,7 @@ export default function HistoryPage() {
 
           <Link
             href="/dashboard"
-            className="flex items-center gap-2 bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 hover:border-yellow-500 transition px-5 py-3 rounded-2xl"
+            className="flex w-fit shrink-0 items-center gap-2 bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 hover:border-yellow-500 transition px-5 py-3 rounded-2xl"
           >
             <ArrowLeft size={18} />
             Dashboard
@@ -255,77 +255,108 @@ export default function HistoryPage() {
               Loading transactions...
             </div>
           ) : filteredTransactions.length > 0 ? (
-            filteredTransactions.map((transaction) => (
-              <div
-                key={transaction.id}
-                className="grid grid-cols-1 md:grid-cols-5 gap-4 p-5 border-b border-zinc-800 hover:bg-zinc-900/40 transition"
-              >
+            filteredTransactions.map((transaction) => {
+              const statusUi =
+                transaction.status === "approved"
+                  ? "bg-green-500/10 text-green-500"
+                  : transaction.status === "pending"
+                    ? "bg-yellow-500/10 text-yellow-500"
+                    : "bg-zinc-800 text-gray-300";
 
-                {/* Type */}
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-2xl bg-black border border-zinc-800 flex items-center justify-center">
-                    {getTransactionIcon(
-                      transaction.type
-                    )}
-                  </div>
+              const amountPrefix =
+                transaction.type === "withdrawal" ? "-" : "+";
 
-                  <div>
-                    <h3 className="font-semibold capitalize">
-                      {transaction.type}
-                    </h3>
-
-                    <p className="text-gray-500 text-sm">
-                      Transaction
+              return (
+                <div
+                  key={transaction.id}
+                  className="border-b border-zinc-800 last:border-b-0 transition md:hover:bg-zinc-900/40"
+                >
+                  <div className="space-y-4 p-5 md:hidden">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-zinc-800 bg-black">
+                          {getTransactionIcon(transaction.type)}
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="font-semibold capitalize">
+                            {transaction.type}
+                          </h3>
+                          <p className="text-gray-500 text-sm">
+                            Transaction
+                          </p>
+                        </div>
+                      </div>
+                      <div
+                        className={`shrink-0 text-lg font-bold tabular-nums sm:text-xl ${getAmountColor(
+                          transaction.type,
+                        )}`}
+                      >
+                        {amountPrefix}$
+                        {Number(transaction.amount).toFixed(2)}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span
+                        className={`rounded-xl px-4 py-2 text-sm font-medium capitalize ${statusUi}`}
+                      >
+                        {transaction.status}
+                      </span>
+                      <span className="text-gray-500 text-xs sm:text-sm">
+                        {new Date(
+                          transaction.created_at,
+                        ).toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-sm leading-snug text-gray-300">
+                      {transaction.description}
                     </p>
                   </div>
-                </div>
 
-                {/* Status */}
-                <div className="flex items-center">
-                  <div
-                    className={`px-4 py-2 rounded-xl text-sm font-medium ${
-                      transaction.status ===
-                      "approved"
-                        ? "bg-green-500/10 text-green-500"
-                        : transaction.status ===
-                          "pending"
-                        ? "bg-yellow-500/10 text-yellow-500"
-                        : "bg-zinc-800 text-gray-300"
-                    }`}
-                  >
-                    {transaction.status}
+                  <div className="hidden md:grid md:grid-cols-5 md:gap-4 md:p-5">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-zinc-800 bg-black">
+                        {getTransactionIcon(transaction.type)}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold capitalize">
+                          {transaction.type}
+                        </h3>
+                        <p className="text-gray-500 text-sm">
+                          Transaction
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center">
+                      <div
+                        className={`rounded-xl px-4 py-2 text-sm font-medium capitalize ${statusUi}`}
+                      >
+                        {transaction.status}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center text-gray-300">
+                      {transaction.description}
+                    </div>
+
+                    <div className="flex items-center text-gray-500 text-sm">
+                      {new Date(
+                        transaction.created_at,
+                      ).toLocaleString()}
+                    </div>
+
+                    <div
+                      className={`flex items-center justify-end text-2xl font-bold tabular-nums ${getAmountColor(
+                        transaction.type,
+                      )}`}
+                    >
+                      {amountPrefix}$
+                      {Number(transaction.amount).toFixed(2)}
+                    </div>
                   </div>
                 </div>
-
-                {/* Description */}
-                <div className="flex items-center text-gray-300">
-                  {transaction.description}
-                </div>
-
-                {/* Date */}
-                <div className="flex items-center text-gray-500 text-sm">
-                  {new Date(
-                    transaction.created_at
-                  ).toLocaleString()}
-                </div>
-
-                {/* Amount */}
-                <div
-                  className={`flex items-center justify-start md:justify-end text-2xl font-bold ${getAmountColor(
-                    transaction.type
-                  )}`}
-                >
-                  {transaction.type ===
-                  "withdrawal"
-                    ? "-"
-                    : "+"}
-                  $
-                  {Number(
-                    transaction.amount
-                  ).toFixed(2)}
-                </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div className="p-16 text-center text-gray-500">
               No transactions found.
