@@ -58,7 +58,7 @@ export async function fetchInvestorNotificationSnapshot(
       .select("id, title, message, is_read, created_at")
       .or(ownerFilter)
       .order("created_at", { ascending: false })
-      .limit(24),
+      .limit(200),
   ]);
 
   let unreadTotal = 0;
@@ -80,10 +80,10 @@ export async function fetchInvestorNotificationSnapshot(
   const previewRows =
     (previewRes.data as InvestorNotificationPreview[] | null) ?? [];
 
-  const unreadOrdered = previewRows.filter((row) => row.is_read !== true);
-  const preview = (
-    unreadOrdered.length > 0 ? unreadOrdered : previewRows
-  ).slice(0, 4);
+  /** Dashboard surfaces only unread; no fallback to read messages. */
+  const preview = previewRows
+    .filter((row) => row.is_read !== true)
+    .slice(0, 4);
 
   return {
     preview,

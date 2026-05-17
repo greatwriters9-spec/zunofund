@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { X, Bitcoin, Menu } from "lucide-react"
+import { X, Menu } from "lucide-react"
 import { usePathname, useRouter } from "next/navigation"
 
 import {
@@ -109,6 +109,10 @@ export default function DashboardPage() {
 
   const [loading, setLoading] = useState(true);
   const [profileAvatarBroken, setProfileAvatarBroken] = useState(false);
+  /** Global crypto market cap (USD), CoinGecko — informational only. */
+  const [globalMarketCapUsd, setGlobalMarketCapUsd] = useState<number | null>(
+    null,
+  );
   const balance = Number(investor?.balance || 0);
   const withdrawable = Number(investor?.withdrawable_balance ?? balance);
   const lockedPrincipal = Number(investor?.locked_principal_balance ?? 0);
@@ -138,6 +142,27 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchDashboardData();
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const ac = new AbortController();
+    fetch("https://api.coingecko.com/api/v3/global", {
+      signal: ac.signal,
+      cache: "no-store",
+    })
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((payload: { data?: { total_market_cap?: { usd?: number } } }) => {
+        const v = payload?.data?.total_market_cap?.usd;
+        if (!cancelled && typeof v === "number") setGlobalMarketCapUsd(v);
+      })
+      .catch(() => {
+        if (!cancelled) setGlobalMarketCapUsd(null);
+      });
+    return () => {
+      cancelled = true;
+      ac.abort();
+    };
   }, []);
 
   async function fetchDashboardData() {
@@ -340,6 +365,33 @@ export default function DashboardPage() {
     })}`;
   }
 
+  function formatBalanceUsdt(value: number): string {
+    if (!showBalance) return "••••••";
+    const maxFrac = value > 0 && value < 1 ? 6 : 2;
+    return `${value.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: maxFrac,
+    })} USDT`;
+  }
+
+  function formatBalanceUsdLine(value: number): string {
+    if (!showBalance) return "••••••";
+    return `≈ ${value.toLocaleString("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  }
+
+  function formatMarketCapUsd(value: number): string {
+    if (value >= 1e12)
+      return `$${(value / 1e12).toFixed(2)}T`;
+    if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
+    if (value >= 1e6) return `$${(value / 1e6).toFixed(2)}M`;
+    return `$${value.toLocaleString()}`;
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-white text-xl">
@@ -421,6 +473,13 @@ export default function DashboardPage() {
           </div>
 
           <div className="hidden shrink-0 items-center gap-3 md:flex">
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-2.5 text-sm font-medium text-zinc-400 transition hover:border-red-500/50 hover:text-red-400"
+            >
+              Logout
+            </button>
             <Link
               href="/dashboard/profile"
               className="bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 hover:border-yellow-500 transition p-3 rounded-2xl"
@@ -476,27 +535,18 @@ export default function DashboardPage() {
                     notifications.map((notification) => (
                       <button
                         key={notification.id}
+                        type="button"
                         onClick={() =>
-                          notification.is_read === true
-                            ? undefined
-                            : markNotificationAsRead(notification.id)
+                          markNotificationAsRead(notification.id)
                         }
-                        disabled={notification.is_read === true}
-                        className={`w-full text-left p-5 border-b border-zinc-800 hover:bg-zinc-900 transition ${
-                          notification.is_read === true
-                            ? "opacity-60 cursor-default hover:bg-transparent"
-                            : ""
-                        }`}
+                        className="w-full text-left p-5 border-b border-zinc-800 transition hover:bg-zinc-900"
                       >
                         <h3 className="font-semibold text-white mb-2 flex items-center gap-2">
                           {notification.title}
-                          {notification.is_read !== true ? (
-                            <span className="h-2 w-2 shrink-0 rounded-full bg-yellow-500" aria-hidden />
-                          ) : (
-                            <span className="text-xs font-normal text-zinc-500">
-                              Read
-                            </span>
-                          )}
+                          <span
+                            className="h-2 w-2 shrink-0 rounded-full bg-yellow-500"
+                            aria-hidden
+                          />
                         </h3>
 
                         <p className="text-gray-400 text-sm mb-2">
@@ -510,7 +560,7 @@ export default function DashboardPage() {
                     ))
                   ) : (
                     <div className="p-10 text-center text-gray-500">
-                      No notifications in recent activity.
+                      No notifications.
                     </div>
                   )}
                 </div>
@@ -518,8 +568,8 @@ export default function DashboardPage() {
                 <div className="border-t border-zinc-800 p-4 flex justify-between items-center gap-3">
                   <p className="text-xs text-zinc-500">
                     {unreadNotificationCount > 0
-                      ? `${unreadNotificationCount} unread total`
-                      : "You're up to date"}
+                      ? `${unreadNotificationCount} unread`
+                      : "No notifications."}
                   </p>
                   <Link
                     href="/notifications"
@@ -535,334 +585,221 @@ export default function DashboardPage() {
         </div>
 
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden bg-gradient-to-br from-yellow-500/15 to-yellow-500/5 border border-yellow-500/20 rounded-[28px] p-6 mb-7"
+          className="mb-8 border-b border-zinc-800/90 pb-8"
         >
-          <div className="relative z-10">
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-  <svg
-    viewBox="0 0 1200 400"
-    className="absolute right-[-100px] top-[-40px] w-[900px] h-[400px] opacity-10"
-    fill="none"
-  >
-    <path
-      d="M0 320 C150 260 250 300 380 220 C500 150 620 190 760 120 C900 60 1040 100 1200 20"
-      stroke="url(#goldGradient)"
-      strokeWidth="6"
-      strokeLinecap="round"
-    />
+          <p className="text-sm font-medium text-zinc-500">Total balance</p>
 
-    <defs>
-      <linearGradient
-        id="goldGradient"
-        x1="0"
-        y1="0"
-        x2="1200"
-        y2="0"
-      >
-        <stop offset="0%" stopColor="#facc15" />
-        <stop offset="100%" stopColor="#eab308" />
-      </linearGradient>
-    </defs>
-  </svg>
-</div>
-
-            <p className="text-gray-300 text-lg mb-3">
-              Total Balance
-            </p>
-
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tabular-nums text-white mb-5 break-all sm:break-normal">
-              {showBalance
-                ? `$${Number(investor?.balance || 0).toFixed(2)}`
-                : "••••••"}
-            </h2>
-
-            <div className="flex items-center gap-4 flex-wrap">
-                <button
-    onClick={handleLogout}
-    className="flex items-center gap-2 bg-black/40 border border-zinc-700 hover:border-red-500 transition px-5 py-3 rounded-2xl text-sm text-gray-300 hover:text-red-400"
-  >
-    Logout
-  </button>
-
-              <button
-                onClick={() =>
-                  setShowBalance(!showBalance)
-                }
-                className="flex items-center gap-2 bg-black/40 border border-zinc-700 hover:border-yellow-500 transition px-5 py-3 rounded-2xl text-sm"
-              >
-                {showBalance ? (
-                  <EyeOff size={18} />
-                ) : (
-                  <Eye size={18} />
-                )}
-
-                {showBalance
-                  ? "Hide Balance"
-                  : "Show Balance"}
-              </button>
-
+          <div className="mt-2 flex items-start justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <p className="text-4xl font-bold tabular-nums tracking-tight text-white sm:text-5xl md:text-[3.25rem]">
+                {formatBalanceUsdt(balance)}
+              </p>
+              <p className="mt-2 text-base tabular-nums text-zinc-500">
+                {formatBalanceUsdLine(balance)}
+              </p>
+              <p className="mt-4 text-xs text-zinc-600">
+                Global crypto market cap{" "}
+                <span className="font-medium text-zinc-400">
+                  {globalMarketCapUsd != null
+                    ? formatMarketCapUsd(globalMarketCapUsd)
+                    : "—"}
+                </span>
+                <span className="text-zinc-600"> · CoinGecko</span>
+              </p>
               <div
-                className={`px-5 py-3 rounded-2xl text-sm font-medium border ${
+                className={`mt-4 inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium ${
                   (investor?.status ?? "").toLowerCase() === "active"
-                    ? "bg-green-500/10 text-green-400 border-green-500/20"
-                    : "bg-amber-500/10 text-amber-300 border-amber-500/25"
+                    ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-400"
+                    : "border-amber-500/25 bg-amber-500/10 text-amber-300"
                 }`}
               >
                 Account {(investor?.status ?? "unknown").toUpperCase()}
               </div>
             </div>
+
+            <button
+              type="button"
+              onClick={() => setShowBalance(!showBalance)}
+              className="flex shrink-0 items-center gap-2 rounded-lg border border-zinc-700/80 bg-transparent px-3 py-2 text-sm text-zinc-300 transition hover:border-yellow-500/50 hover:text-white sm:mt-1"
+              aria-pressed={showBalance}
+              aria-label={showBalance ? "Hide balance" : "Show balance"}
+            >
+              {showBalance ? (
+                <EyeOff size={18} aria-hidden />
+              ) : (
+                <Eye size={18} aria-hidden />
+              )}
+              <span className="hidden min-[380px]:inline">
+                {showBalance ? "Hide" : "Show"}
+              </span>
+            </button>
           </div>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mb-7 items-stretch">
+        <div className="mb-6 grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4 lg:gap-4 items-stretch">
 
 
-    {/* WALLET CARD */}
-<div className="bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 rounded-3xl p-5 hover:border-yellow-500/40 transition duration-300 h-full flex flex-col">
+    {/* WALLET — minimal */}
+<div className="flex flex-col border border-zinc-800/80 bg-zinc-950/40 p-4 sm:p-5 lg:rounded-xl">
 
-  <div className="flex items-center justify-between mb-4">
-    <div>
-      <p className="text-gray-500 text-sm">Portfolio value</p>
-
-      <h2 className="text-3xl font-bold mt-1">
-        ${balance.toLocaleString()}
-      </h2>
-      <p className="text-xs text-green-400 mt-2">
-        Withdrawable now: ${withdrawable.toFixed(2)}
-      </p>
-      <p className="text-xs text-yellow-500/90 mt-1">
-        Locked principal: ${lockedPrincipal.toFixed(2)}
-      </p>
-    </div>
-
-    <div className="w-14 h-14 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center">
-      <Wallet className="text-yellow-500 w-6 h-6" />
-    </div>
+  <div className="mb-3 flex items-start justify-between gap-2">
+    <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+      Portfolio
+    </p>
+    <Wallet className="h-4 w-4 shrink-0 text-yellow-500/80" aria-hidden />
   </div>
-<div className="flex flex-col justify-between flex-1 py-4">
 
-  <p className="text-sm text-gray-400 leading-relaxed">
-    Total portfolio reflects deposits plus compounded daily gains. Withdrawals use
-    withdrawable funds only (principal from each deposit unlocks after 30 days).
+  <p className="text-lg font-bold tabular-nums text-white sm:text-xl">
+    {showBalance ? `$${balance.toLocaleString()}` : "••••"}
+  </p>
+  <p className="mt-1 text-[11px] leading-snug text-emerald-400/90">
+    Withdrawable {showBalance ? `$${withdrawable.toFixed(2)}` : "••••"}
+  </p>
+  <p className="text-[11px] leading-snug text-zinc-500">
+    Locked {showBalance ? `$${lockedPrincipal.toFixed(2)}` : "••••"}
   </p>
 
-  <div className="pt-6">
-    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 text-green-400 text-xs border border-green-500/20">
-      ● Wallet Active
-    </div>
-  </div>
-
-</div>
+  <p className="mt-3 line-clamp-2 text-[11px] leading-snug text-zinc-600">
+    Deposits plus compounded gains. Withdrawals use withdrawable funds;
+    principal unlocks after 30 days.
+  </p>
 
   <button
-  onClick={() => setShowWalletModal(true)}
-  className="mt-auto flex items-center justify-center gap-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 transition font-semibold py-3 rounded-2xl"
->
-  View Wallet
-  <ArrowRight size={18} />
-</button>
+    type="button"
+    onClick={() => setShowWalletModal(true)}
+    className="mt-auto flex items-center justify-center gap-1.5 border border-zinc-700/90 py-2.5 text-xs font-semibold text-zinc-200 transition hover:border-yellow-500/40 hover:text-white lg:rounded-lg"
+  >
+    Wallet
+    <ArrowRight size={14} aria-hidden />
+  </button>
 </div>
 
 
-{/* PROFIT CARD */}
-<div className="bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 rounded-3xl p-5 hover:border-zinc-700 transition duration-300 h-full flex flex-col">
+{/* PROFIT — minimal */}
+<div className="flex flex-col border border-zinc-800/80 bg-zinc-950/40 p-4 sm:p-5 lg:rounded-xl">
 
-  <div className="flex items-center justify-between mb-4">
-    <div>
-      <p className="text-gray-500 text-sm">Total Profit</p>
-
-      <h2 className="text-3xl font-bold text-green-400 mt-1">
-        ${Number(investor?.total_profit || 0).toFixed(2)}
-      </h2>
-    </div>
-
-    <div className="w-14 h-14 rounded-2xl bg-zinc-800 border border-zinc-700 flex items-center justify-center">
-      <BarChart3 className="text-green-400 w-6 h-6" />
-    </div>
+  <div className="mb-3 flex items-start justify-between gap-2">
+    <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+      Profits
+    </p>
+    <BarChart3 className="h-4 w-4 shrink-0 text-emerald-400/80" aria-hidden />
   </div>
 
-  <div className="flex flex-col justify-between flex-1 py-4">
-
-  <p className="text-sm text-gray-400 leading-relaxed">
-    Track your accumulated earnings and portfolio growth.
+  <p className="text-lg font-bold tabular-nums text-emerald-400 sm:text-xl">
+    ${Number(investor?.total_profit || 0).toFixed(2)}
   </p>
-
-  <div className="pt-6">
-    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-800 text-gray-300 text-xs border border-zinc-700">
-      Daily ROI Distribution Active
-    </div>
-  </div>
-
-</div>
+  <p className="mt-2 text-[11px] leading-snug text-zinc-600">
+    Cumulative earnings from daily ROI.
+  </p>
 
   <Link
     href="/history"
-    className="mt-auto flex items-center justify-center gap-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 transition font-semibold py-3 rounded-2xl"
+    className="mt-auto flex items-center justify-center gap-1.5 border border-zinc-700/90 py-2.5 text-xs font-semibold text-zinc-200 transition hover:border-yellow-500/40 hover:text-white lg:rounded-lg"
   >
-    View Profits
-    <ArrowRight size={18} />
+    History
+    <ArrowRight size={14} aria-hidden />
   </Link>
 </div>
 
 
-  {/* Investment Plan Card */}
-<div className="relative overflow-hidden rounded-3xl border border-yellow-500/20 bg-zinc-950/70 backdrop-blur-xl p-6 h-full flex flex-col">
+  {/* PLAN — minimal */}
+<div className="flex flex-col border border-yellow-500/15 bg-yellow-500/[0.03] p-4 sm:p-5 lg:rounded-xl">
 
-  {/* Ambient Glow */}
-  <div className="absolute inset-0 bg-gradient-to-b from-yellow-500/10 to-transparent opacity-60 pointer-events-none" />
-
-  <div className="relative z-10 flex flex-col h-full">
-
-    {/* HEADER */}
-    <div className="flex items-center justify-between mb-5">
-
-      <div>
-        <p className="text-gray-500 text-sm mb-2">
-          Current Investment Plan
-        </p>
-
-        <h2 className="text-3xl font-bold text-yellow-500 leading-tight">
-          {investor ? displayPlanName(planKey) : "No Active Plan"}
-        </h2>
-      </div>
-
-      <div className="w-14 h-14 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center shrink-0">
-        ⭐
-      </div>
-    </div>
-
-    {/* CONTENT */}
-    <div className="flex flex-col justify-between flex-1 py-4">
-
-      <div className="space-y-4">
-
-        <div className="flex items-center justify-between">
-          <p className="text-gray-400">
-            Active Capital
-          </p>
-
-          <p className="font-semibold text-white">
-            ${balance.toLocaleString()}
-          </p>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <p className="text-gray-400">
-            Daily Yield Target
-          </p>
-
-          <p className="font-semibold text-yellow-500 text-right">
-            {investor ? dailyCompoundLabel(planKey) : "—"}
-          </p>
-        </div>
-
-      </div>
-
-      {/* STATUS BADGE */}
-      <div className="pt-6">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-800 text-gray-300 text-xs border border-zinc-700">
-          Active Investment Tier
-        </div>
-      </div>
-
-    </div>
-
-    {/* BUTTON */}
-    <Link
-      href="/investment-plans"
-      className="mt-auto flex items-center justify-center gap-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 transition font-semibold py-3 rounded-2xl"
-    >
-      View Investment Plans
-    </Link>
-
-  </div>
-</div>
-
-
-{/* SUPPORT CARD */}
-<div className="bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 rounded-3xl p-5 hover:border-blue-500/40 transition duration-300">
-
-  <div className="flex items-center justify-between mb-4">
-    <div>
-      <p className="text-gray-500 text-sm">Priority Support</p>
-
-      <h2 className="text-2xl font-bold mt-1">
-        24/7 Assistance
-      </h2>
-    </div>
-
-    <div className="w-14 h-14 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
-      <Headset className="text-blue-400 w-6 h-6" />
-    </div>
-  </div>
-
-  <div className="flex flex-col justify-between flex-1 py-4">
-
-  <div className="space-y-4">
-    <p className="text-sm text-gray-400 leading-relaxed">
-      Get direct assistance from our investment support team anytime you need help.
+  <div className="mb-3 flex items-start justify-between gap-2">
+    <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+      Plan
     </p>
+    <span className="text-sm leading-none text-yellow-500/90" aria-hidden>
+      ★
+    </span>
+  </div>
 
-    <div className="space-y-2 text-sm">
-      <p className="text-gray-300">
-        support@zunofund.com
-      </p>
+  <p className="line-clamp-2 text-base font-bold leading-tight text-yellow-500">
+    {investor ? displayPlanName(planKey) : "No active plan"}
+  </p>
 
-      <p className="text-gray-300">
-        +254 797 674 560
-      </p>
+  <div className="mt-3 space-y-1.5 text-[11px]">
+    <div className="flex justify-between gap-2 text-zinc-500">
+      <span>Capital</span>
+      <span className="tabular-nums text-zinc-300">
+        {showBalance ? `$${balance.toLocaleString()}` : "••••"}
+      </span>
+    </div>
+    <div className="flex justify-between gap-2 text-zinc-500">
+      <span>Daily target</span>
+      <span className="text-right font-medium text-yellow-500/95">
+        {investor ? dailyCompoundLabel(planKey) : "—"}
+      </span>
     </div>
   </div>
 
-  <div className="pt-6">
-    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-800 text-gray-300 text-xs border border-zinc-700">
-      Investor Support Online
-    </div>
-  </div>
-
+  <Link
+    href="/investment-plans"
+    className="mt-auto flex items-center justify-center gap-1.5 border border-zinc-700/90 py-2.5 text-xs font-semibold text-zinc-200 transition hover:border-yellow-500/40 hover:text-white lg:rounded-lg"
+  >
+    Plans
+    <ArrowRight size={14} aria-hidden />
+  </Link>
 </div>
+
+
+{/* SUPPORT — minimal */}
+<div className="flex flex-col border border-zinc-800/80 bg-zinc-950/40 p-4 sm:p-5 lg:rounded-xl">
+
+  <div className="mb-3 flex items-start justify-between gap-2">
+    <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+      Support
+    </p>
+    <Headset className="h-4 w-4 shrink-0 text-zinc-400" aria-hidden />
+  </div>
+
+  <p className="text-base font-bold text-white">24/7</p>
+  <div className="mt-2 space-y-0.5 text-[11px] text-zinc-500">
+    <p className="truncate">support@zunofund.com</p>
+    <p>+254 797 674 560</p>
+  </div>
 
 <Link
   href="/support"
-  className="mt-auto flex items-center justify-center gap-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 transition font-semibold py-3 rounded-2xl"
+  className="mt-auto flex items-center justify-center gap-1.5 border border-zinc-700/90 py-2.5 text-xs font-semibold text-zinc-200 transition hover:border-yellow-500/40 hover:text-white lg:rounded-lg"
 >
-  Contact Support
-  <ArrowRight size={18} />
+  Contact
+  <ArrowRight size={14} aria-hidden />
 </Link>
 </div>
           
         </div>
 
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-7">
+        <div className="mb-7 flex snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:snap-none md:grid-cols-2 md:gap-3 xl:grid-cols-4 xl:gap-4 md:overflow-visible md:pb-0">
 
           <Link
             href="/deposit"
-            className="bg-yellow-500 hover:bg-yellow-600 transition text-black font-bold rounded-3xl p-4 text-center"
+            className="min-w-[calc(50%-4px)] shrink-0 snap-start rounded-xl bg-yellow-500 px-4 py-3 text-center text-sm font-bold text-black transition hover:bg-yellow-600 md:min-w-0"
           >
-            Deposit Funds
+            Deposit
           </Link>
 
           <Link
             href="/withdraw"
-            className="bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 hover:border-yellow-500 transition rounded-3xl p-4 text-center font-semibold"
+            className="min-w-[calc(50%-4px)] shrink-0 snap-start rounded-xl border border-zinc-800 bg-zinc-950/50 px-4 py-3 text-center text-sm font-semibold text-white transition hover:border-yellow-500/50 md:min-w-0"
           >
-            Withdraw Funds
+            Withdraw
           </Link>
 
           <Link
             href="/investment-plans"
-            className="bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 hover:border-yellow-500 transition rounded-3xl p-4 text-center font-semibold"
+            className="min-w-[calc(50%-4px)] shrink-0 snap-start rounded-xl border border-zinc-800 bg-zinc-950/50 px-4 py-3 text-center text-sm font-semibold text-white transition hover:border-yellow-500/50 md:min-w-0"
           >
-            Upgrade Plan
+            Plans
           </Link>
 
           <Link
             href="/support"
-            className="bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 hover:border-yellow-500 transition rounded-3xl p-4 text-center font-semibold"
+            className="min-w-[calc(50%-4px)] shrink-0 snap-start rounded-xl border border-zinc-800 bg-zinc-950/50 px-4 py-3 text-center text-sm font-semibold text-white transition hover:border-yellow-500/50 md:min-w-0"
           >
-            Support Center
+            Support
           </Link>
         </div>
 
@@ -958,9 +895,11 @@ export default function DashboardPage() {
 
               {notifications.length > 0 ? (
                 notifications.map((notification) => (
-                  <div
+                  <button
                     key={notification.id}
-                    className="bg-black/40 border border-zinc-800 rounded-2xl p-3.5 shrink-0"
+                    type="button"
+                    className="w-full shrink-0 rounded-2xl border border-zinc-800 bg-black/40 p-3.5 text-left transition hover:border-yellow-500/30"
+                    onClick={() => markNotificationAsRead(notification.id)}
                   >
                     <h3 className="font-semibold text-sm mb-1 text-white line-clamp-1">
                       {notification.title}
@@ -969,11 +908,11 @@ export default function DashboardPage() {
                     <p className="text-gray-400 text-xs leading-snug line-clamp-2">
                       {notification.message}
                     </p>
-                  </div>
+                  </button>
                 ))
               ) : (
                 <div className="text-gray-500 text-center py-8 text-sm shrink-0">
-                  No notifications yet.
+                  No notifications.
                 </div>
               )}
             </div>
