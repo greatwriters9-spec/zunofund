@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSupabase, formatSupabaseError } from "@/lib/supabase";
-import { ArrowLeft, Send, MessageCircle } from "lucide-react";
+import { Send, MessageCircle } from "lucide-react";
 
 interface Ticket {
   id: string;
@@ -208,62 +208,54 @@ export default function SupportPage() {
   }
 
   return (
-    <div className="min-h-screen text-white p-6 lg:p-10">
-      <div className="max-w-7xl mx-auto">
-
-        {/* HEADER */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-5xl font-bold text-yellow-500 mb-2">
-              Support Center
-            </h1>
-
-            <p className="text-gray-500">
-              Contact support and manage your tickets.
-            </p>
+    <div className="relative min-h-screen overflow-hidden text-white">
+      <div className="relative z-10 mx-auto max-w-7xl p-5 md:p-7">
+        <header className="mb-5 border-b border-zinc-800/80 pb-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+                Help
+              </p>
+              <h1 className="mt-1 text-2xl font-bold text-white sm:text-3xl">
+                Support center
+              </h1>
+              <p className="mt-1 text-sm text-zinc-600">
+                Open tickets and message the team — same layout as your dashboard inbox.
+              </p>
+            </div>
+            <Link
+              href="/dashboard"
+              className="shrink-0 text-xs font-semibold text-yellow-500 transition hover:text-yellow-400"
+            >
+              ← Dashboard
+            </Link>
           </div>
-
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-2 border border-zinc-800 hover:border-yellow-500 transition px-5 py-3 rounded-2xl"
-          >
-            <ArrowLeft size={18} />
-            Dashboard
-          </Link>
-        </div>
+        </header>
 
         {ticketError ? (
           <div
-            className="mb-6 rounded-xl border border-red-500/60 bg-red-500/10 px-5 py-4 text-red-300 text-sm"
+            className="mb-4 border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300"
             role="alert"
           >
             {ticketError}
           </div>
         ) : null}
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3 xl:gap-4">
           {/* CREATE TICKET */}
-          <div className="bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 rounded-3xl p-6 h-fit">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="bg-yellow-500/10 p-3 rounded-2xl">
-                <MessageCircle className="text-yellow-500" />
-              </div>
-
-              <div>
-                <h2 className="text-2xl font-bold">
-                  New Ticket
-                </h2>
-
-                <p className="text-gray-500 text-sm">
-                  Submit a support request
-                </p>
-              </div>
+          <div className="h-fit border border-zinc-800/80 bg-zinc-950/40 p-4 sm:p-5 lg:rounded-lg">
+            <div className="mb-4 border-b border-zinc-800/80 pb-3">
+              <h2 className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+                New ticket
+              </h2>
+              <p className="mt-1 text-xs text-zinc-600">
+                Choose a topic and describe your issue.
+              </p>
             </div>
 
-            <div className="space-y-5">
+            <div className="space-y-3">
               <div>
-                <label className="text-sm text-gray-400 mb-2 block">
+                <label className="mb-1 block text-[11px] text-zinc-500">
                   Subject
                 </label>
 
@@ -276,7 +268,7 @@ export default function SupportPage() {
                       setOtherSubjectDetail("");
                     }
                   }}
-                  className="w-full bg-black border border-zinc-800 rounded-2xl px-4 py-4 outline-none focus:border-yellow-500 transition text-white"
+                  className="w-full rounded-lg border border-zinc-700/90 bg-black/40 px-3 py-2.5 text-sm text-white outline-none transition focus:border-yellow-500/50"
                 >
                   {SUBJECT_OPTIONS.map((opt) => (
                     <option key={opt} value={opt} className="bg-zinc-950">
@@ -288,7 +280,7 @@ export default function SupportPage() {
 
               {subjectCategory === OTHER_SUBJECT ? (
                 <div>
-                  <label className="text-sm text-gray-400 mb-2 block">
+                  <label className="mb-1 block text-[11px] text-zinc-500">
                     Subject detail
                   </label>
 
@@ -297,205 +289,179 @@ export default function SupportPage() {
                     onChange={(e) => setOtherSubjectDetail(e.target.value)}
                     placeholder="Briefly describe your topic…"
                     maxLength={OTHER_DETAIL_MAX_LEN}
-                    className="w-full bg-black border border-zinc-800 rounded-2xl px-4 py-4 outline-none focus:border-yellow-500 transition"
+                    className="w-full rounded-lg border border-zinc-700/90 bg-black/40 px-3 py-2.5 text-sm outline-none transition focus:border-yellow-500/50"
                   />
                 </div>
               ) : null}
 
               <div>
-                <label className="text-sm text-gray-400 mb-2 block">
+                <label className="mb-1 block text-[11px] text-zinc-500">
                   Message
                 </label>
 
                 <textarea
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Describe your issue..."
+                  placeholder="Describe your issue…"
                   rows={6}
-                  className="w-full bg-black border border-zinc-800 rounded-2xl px-4 py-4 outline-none focus:border-yellow-500 transition resize-none"
+                  className="w-full resize-none rounded-lg border border-zinc-700/90 bg-black/40 px-3 py-2.5 text-sm outline-none transition focus:border-yellow-500/50"
                 />
               </div>
 
               <button
+                type="button"
                 onClick={createTicket}
                 disabled={loading}
-                className="w-full bg-yellow-500 hover:bg-yellow-600 transition text-black font-bold py-4 rounded-2xl flex items-center justify-center gap-2"
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-yellow-500 px-4 py-2.5 text-xs font-bold text-black transition hover:bg-yellow-600 disabled:opacity-50"
               >
-                <Send size={18} />
-                {loading ? "Submitting..." : "Submit Ticket"}
+                <Send size={16} aria-hidden />
+                {loading ? "Submitting…" : "Submit ticket"}
               </button>
             </div>
           </div>
 
-          {/* SUPPORT LAYOUT */}
-          <div className="xl:col-span-2 grid grid-cols-1 lg:grid-cols-[340px_1fr] bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 rounded-3xl overflow-hidden min-h-[760px]">
-
+          {/* TICKETS + THREAD */}
+          <div className="grid min-h-[min(720px,85vh)] grid-cols-1 overflow-hidden border border-zinc-800/80 bg-zinc-950/40 lg:min-h-[760px] xl:col-span-2 lg:rounded-lg lg:grid-cols-[minmax(260px,320px)_1fr]">
             {/* SIDEBAR */}
-            <div className="border-r border-zinc-800 overflow-y-auto">
-              <div className="p-5 border-b border-zinc-800">
-                <h2 className="text-2xl font-bold">
-                  Your Tickets
+            <div className="max-h-[280px] overflow-y-auto border-b border-zinc-800/80 lg:max-h-none lg:border-b-0 lg:border-r">
+              <div className="border-b border-zinc-800/80 px-4 py-3 sm:px-5">
+                <h2 className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+                  Your tickets
                 </h2>
-
-                <p className="text-gray-500 text-sm mt-1">
-                  Select a conversation
-                </p>
+                <p className="mt-0.5 text-xs text-zinc-600">Select a thread</p>
               </div>
 
               {tickets.length > 0 ? (
-                tickets.map((ticket) => (
-                  <button
-                    key={ticket.id}
-                    onClick={() => {
-                      setSelectedTicket(ticket);
-                      fetchReplies(ticket.id);
-                    }}
-                    className={`w-full text-left p-5 border-b border-zinc-800 transition ${
-                      selectedTicket?.id === ticket.id
-                        ? "bg-yellow-500/10"
-                        : "hover:bg-zinc-900"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3 mb-3">
-                      <div>
-                        <h3 className="font-semibold text-lg mb-1">
+                <div className="divide-y divide-zinc-800/80">
+                  {tickets.map((ticket) => (
+                    <button
+                      key={ticket.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedTicket(ticket);
+                        fetchReplies(ticket.id);
+                      }}
+                      className={`w-full px-4 py-3 text-left transition hover:bg-zinc-900/40 sm:px-5 ${
+                        selectedTicket?.id === ticket.id ? "bg-yellow-500/5" : ""
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="text-sm font-semibold leading-snug text-white line-clamp-2">
                           {ticket.subject}
                         </h3>
-
-                        <p className="text-gray-500 text-xs">
-                          {new Date(ticket.created_at).toLocaleString()}
-                        </p>
+                        <span
+                          className={`shrink-0 rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                            ticket.status === "open"
+                              ? "bg-yellow-500/15 text-yellow-500"
+                              : "bg-emerald-500/15 text-emerald-400"
+                          }`}
+                        >
+                          {ticket.status}
+                        </span>
                       </div>
-
-                      <div
-                        className={`px-3 py-1 rounded-xl text-xs font-semibold ${
-                          ticket.status === "open"
-                            ? "bg-yellow-500/10 text-yellow-500"
-                            : "bg-green-500/10 text-green-500"
-                        }`}
-                      >
-                        {ticket.status}
-                      </div>
-                    </div>
-
-                    <p className="text-sm text-gray-400 line-clamp-2">
-                      {ticket.message}
-                    </p>
-                  </button>
-                ))
+                      <p className="mt-1 text-[11px] tabular-nums text-zinc-600">
+                        {new Date(ticket.created_at).toLocaleString()}
+                      </p>
+                      <p className="mt-2 line-clamp-2 text-xs text-zinc-500">
+                        {ticket.message}
+                      </p>
+                    </button>
+                  ))}
+                </div>
               ) : (
-                <div className="p-10 text-center text-gray-500">
+                <div className="px-4 py-10 text-center text-sm text-zinc-500 sm:px-5">
                   No support tickets yet.
                 </div>
               )}
             </div>
 
-            {/* CHAT AREA */}
-            <div className="flex flex-col h-full">
-
+            {/* THREAD */}
+            <div className="flex min-h-[320px] flex-col lg:min-h-0">
               {selectedTicket ? (
                 <>
-                  {/* CHAT HEADER */}
-                  <div className="p-5 border-b border-zinc-800 flex items-center justify-between">
-                    <div>
-                      <h2 className="text-2xl font-bold">
+                  <div className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-800/80 px-4 py-3 sm:px-5">
+                    <div className="min-w-0">
+                      <h2 className="text-sm font-semibold text-white sm:text-base">
                         {selectedTicket.subject}
                       </h2>
-
-                      <p className="text-gray-500 text-sm mt-1">
+                      <p className="mt-0.5 text-xs text-zinc-600">
                         Ticket conversation
                       </p>
                     </div>
 
-                    <div
-                      className={`px-4 py-2 rounded-xl text-sm font-semibold ${
+                    <span
+                      className={`shrink-0 rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
                         selectedTicket.status === "open"
-                          ? "bg-yellow-500/10 text-yellow-500"
-                          : "bg-green-500/10 text-green-500"
+                          ? "bg-yellow-500/15 text-yellow-500"
+                          : "bg-emerald-500/15 text-emerald-400"
                       }`}
                     >
                       {selectedTicket.status}
-                    </div>
+                    </span>
                   </div>
 
-                  {/* MESSAGES */}
-                  <div className="flex-1 overflow-y-auto p-6 space-y-5">
-
-                    {/* ORIGINAL MESSAGE */}
+                  <div className="flex-1 space-y-3 overflow-y-auto p-4 sm:p-5">
                     <div className="flex justify-end">
-                      <div className="max-w-[75%] bg-zinc-900 border border-zinc-800 rounded-3xl px-5 py-4">
-                        <div className="flex items-center justify-between mb-2 gap-5">
-                          <p className="font-semibold">
-                            You
-                          </p>
-
-                          <p className="text-xs text-gray-500">
+                      <div className="max-w-[85%] rounded-lg border border-zinc-800/80 bg-zinc-900/60 px-3 py-2.5 sm:max-w-[75%]">
+                        <div className="mb-1 flex items-center justify-between gap-3">
+                          <p className="text-xs font-semibold text-white">You</p>
+                          <p className="text-[11px] tabular-nums text-zinc-500">
                             {new Date(selectedTicket.created_at).toLocaleString()}
                           </p>
                         </div>
-
-                        <p className="text-gray-300">
+                        <p className="text-sm leading-relaxed text-zinc-300">
                           {selectedTicket.message}
                         </p>
                       </div>
                     </div>
 
-                    {/* REPLIES */}
                     {replies.map((reply) => (
                       <div
                         key={reply.id}
                         className={`flex ${
-                          reply.sender === "admin"
-                            ? "justify-start"
-                            : "justify-end"
+                          reply.sender === "admin" ? "justify-start" : "justify-end"
                         }`}
                       >
                         <div
-                          className={`max-w-[75%] rounded-3xl px-5 py-4 ${
+                          className={`max-w-[85%] rounded-lg px-3 py-2.5 sm:max-w-[75%] ${
                             reply.sender === "admin"
-                              ? "bg-yellow-500 text-black"
-                              : "bg-zinc-900 border border-zinc-800"
+                              ? "border border-yellow-500/30 bg-yellow-500 text-black"
+                              : "border border-zinc-800/80 bg-zinc-900/60 text-zinc-200"
                           }`}
                         >
-                          <div className="flex items-center justify-between gap-5 mb-2">
-                            <p className="font-semibold">
-                              {reply.sender === "admin"
-                                ? "Support Team"
-                                : "You"}
+                          <div className="mb-1 flex items-center justify-between gap-3">
+                            <p className="text-xs font-semibold">
+                              {reply.sender === "admin" ? "Support" : "You"}
                             </p>
-
                             <p
-                              className={`text-xs ${
+                              className={`text-[11px] tabular-nums ${
                                 reply.sender === "admin"
-                                  ? "text-black/70"
-                                  : "text-gray-500"
+                                  ? "text-black/60"
+                                  : "text-zinc-500"
                               }`}
                             >
                               {new Date(reply.created_at).toLocaleString()}
                             </p>
                           </div>
-
-                          <p>
-                            {reply.message}
-                          </p>
+                          <p className="text-sm leading-relaxed">{reply.message}</p>
                         </div>
                       </div>
                     ))}
                   </div>
 
-                  {/* REPLY BOX */}
                   {selectedTicket.status === "open" && (
-                    <div className="p-5 border-t border-zinc-800 flex gap-4">
+                    <div className="flex gap-2 border-t border-zinc-800/80 p-3 sm:p-4">
                       <input
                         value={replyMessage}
                         onChange={(e) => setReplyMessage(e.target.value)}
-                        placeholder="Type your message..."
-                        className="flex-1 bg-black border border-zinc-800 rounded-2xl px-5 py-4 outline-none focus:border-yellow-500 transition"
+                        placeholder="Type a message…"
+                        className="min-w-0 flex-1 rounded-lg border border-zinc-700/90 bg-black/40 px-3 py-2.5 text-sm outline-none transition focus:border-yellow-500/50"
                       />
 
                       <button
+                        type="button"
                         onClick={sendReply}
-                        className="bg-yellow-500 hover:bg-yellow-600 transition text-black font-bold px-7 rounded-2xl"
+                        className="shrink-0 rounded-lg bg-yellow-500 px-4 py-2.5 text-xs font-bold text-black transition hover:bg-yellow-600"
                       >
                         Send
                       </button>
@@ -503,8 +469,11 @@ export default function SupportPage() {
                   )}
                 </>
               ) : (
-                <div className="flex-1 flex items-center justify-center text-gray-500">
-                  Select a ticket to open conversation.
+                <div className="flex flex-1 items-center justify-center px-4 py-16 text-center text-sm text-zinc-500">
+                  <span className="inline-flex items-center gap-2">
+                    <MessageCircle size={18} className="text-zinc-600" aria-hidden />
+                    Select a ticket to view the conversation.
+                  </span>
                 </div>
               )}
             </div>
