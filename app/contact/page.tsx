@@ -99,7 +99,7 @@ export default function SupportPage() {
                   </p>
 
                   <h3 className="font-bold text-lg">
-                    support@zuno.com
+                    support@zunofund.com
                   </h3>
                 </div>
 

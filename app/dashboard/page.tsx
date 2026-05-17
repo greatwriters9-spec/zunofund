@@ -757,7 +757,7 @@ export default function DashboardPage() {
 
     <div className="space-y-2 text-sm">
       <p className="text-gray-300">
-        support@zuno.com
+        support@zunofund.com
       </p>
 
       <p className="text-gray-300">
