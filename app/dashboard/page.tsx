@@ -29,9 +29,6 @@ import {
 import { fetchInvestorNotificationSnapshot } from "@/lib/dashboardInvestorAlerts";
 import { notificationsOwnerOrFilter } from "@/lib/notificationQuery";
 
-const INVESTOR_DASHBOARD_COLUMNS =
-  "id, full_name, first_name, email, avatar_url, balance, total_profit, investment_plan, status, withdrawable_balance, withdrawable_profit, withdrawable_principal, locked_principal_balance";
-
 const PROFIT_FEED_COLUMNS =
   "id, amount, status, created_at, profit_origin, investment_plan_snapshot";
 
@@ -193,7 +190,7 @@ export default function DashboardPage() {
       ] = await Promise.all([
         supabase
           .from("investors")
-          .select(INVESTOR_DASHBOARD_COLUMNS)
+          .select("*")
           .eq("user_id", user.id)
           .single(),
         fetchInvestorNotificationSnapshot(
@@ -215,6 +212,13 @@ export default function DashboardPage() {
           .or(profitOwner)
           .order("created_at", { ascending: true }),
       ]);
+
+      if (investorRes.error) {
+        console.error(
+          "[dashboard] investors row:",
+          formatSupabaseError(investorRes.error),
+        );
+      }
 
       setInvestor(investorRes.data as Investor | null);
 
