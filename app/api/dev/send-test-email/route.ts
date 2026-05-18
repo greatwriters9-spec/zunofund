@@ -9,7 +9,10 @@ export const runtime = "nodejs";
  * POST /api/dev/send-test-email
  * Header: x-webhook-secret: NOTIFICATION_WEBHOOK_SECRET
  * Body: { "email": "...", "subject": "...", "message": "..." }
+ *
+ * Disabled in production (`404`) so the endpoint is not discoverable on prod deployments.
  */
+
 function unauthorized() {
   return new Response(JSON.stringify({ ok: false, error: "unauthorized" }), {
     status: 401,
@@ -28,6 +31,10 @@ function safeEqual(a: string, b: string): boolean {
 }
 
 export async function POST(request: Request) {
+  if (process.env.NODE_ENV === "production") {
+    return new Response(null, { status: 404 });
+  }
+
   const expected = process.env.NOTIFICATION_WEBHOOK_SECRET ?? "";
   if (expected.length < 16) {
     return unauthorized();

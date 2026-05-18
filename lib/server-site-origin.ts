@@ -1,8 +1,26 @@
+function normalizeSiteOrigin(url: string): string {
+  return url.trim().replace(/\/+$/, "");
+}
+
 /**
- * Origin derived from the incoming request (Vercel: `x-forwarded-host` / `x-forwarded-proto`).
- * Use for `redirectTo` / `emailRedirectTo` so confirmation links match the domain the user signed up on.
+ * In production, when `NEXT_PUBLIC_SITE_URL` is set, auth redirect helpers must not trust `Host`
+ * (open redirect / cache poisoning). Callers still attach **path-only** `next` via `sanitizeNextParam`.
+ */
+export function getProductionCanonicalSiteOrigin(): string | null {
+  if (process.env.NODE_ENV !== "production") return null;
+  const envUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (!envUrl || !/^https?:\/\//i.test(envUrl)) return null;
+  return normalizeSiteOrigin(envUrl);
+}
+
+/**
+ * Origin derived from the incoming request (Vercel: `x-forwarded-host` / `x-forwarded-proto`),
+ * except in production with `NEXT_PUBLIC_SITE_URL` set — then that canonical origin wins.
  */
 export function getRequestSiteOrigin(request: Request): string {
+  const canonical = getProductionCanonicalSiteOrigin();
+  if (canonical) return canonical;
+
   const forwardedHost = request.headers.get("x-forwarded-host");
   const hostHeader = request.headers.get("host");
   const protoHeader =
@@ -31,7 +49,7 @@ export function getRequestSiteOrigin(request: Request): string {
 export function getServerSiteOrigin(): string {
   const envUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
   if (envUrl && /^https?:\/\//i.test(envUrl)) {
-    return envUrl.replace(/\/+$/, "");
+    return normalizeSiteOrigin(envUrl);
   }
   const v = process.env.VERCEL_URL?.trim();
   if (v) {
