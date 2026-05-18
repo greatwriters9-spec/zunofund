@@ -54,6 +54,14 @@ export function formatSupabaseError(error: unknown): string {
     ) {
       return m;
     }
+    /** Auth mail / redirect misconfig — hiding this makes reset look like a random failure. */
+    if (
+      /redirect|not allowed|invalid\s+.*url|oauth|email\s+.*send|smtp|mail\s+delivery|recover/i.test(
+        m,
+      )
+    ) {
+      return m;
+    }
     return "Something went wrong. Please try again.";
   }
 

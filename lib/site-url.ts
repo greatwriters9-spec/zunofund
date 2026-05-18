@@ -33,3 +33,19 @@ export function authRedirectToUrl(
   }
   return u.toString();
 }
+
+/**
+ * Password-reset links must use the **origin the user is actually on** when possible.
+ * If `NEXT_PUBLIC_SITE_URL` is stale (www vs apex, preview vs production), Supabase rejects
+ * `redirectTo` as not allowed and recover fails.
+ */
+export function browserAuthRedirectToUrl(pathWithLeadingSlash: string): string {
+  if (typeof window !== "undefined") {
+    const origin = window.location.origin.replace(/\/+$/, "");
+    const path = pathWithLeadingSlash.startsWith("/")
+      ? pathWithLeadingSlash
+      : `/${pathWithLeadingSlash}`;
+    return new URL(path, `${origin}/`).toString();
+  }
+  return authRedirectToUrl(pathWithLeadingSlash);
+}

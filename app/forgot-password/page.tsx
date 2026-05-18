@@ -3,7 +3,7 @@
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-import { authRedirectToUrl } from "@/lib/site-url";
+import { browserAuthRedirectToUrl } from "@/lib/site-url";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 
 function ForgotPasswordInner() {
@@ -32,7 +32,8 @@ function ForgotPasswordInner() {
      * is then opened on another device (mail app) with no code_verifier → exchange fails and users
      * never reach `/reset-password`. Signup already uses the browser client for the same reason.
      */
-    let redirectTo = authRedirectToUrl("/reset-password");
+    /** Prefer live browser origin so `redirectTo` matches Supabase allow-list for this host. */
+    let redirectTo = browserAuthRedirectToUrl("/reset-password");
     try {
       const r = await fetch("/api/auth/password-reset-redirect", {
         cache: "no-store",
