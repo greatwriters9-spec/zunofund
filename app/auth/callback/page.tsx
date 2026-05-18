@@ -10,6 +10,15 @@ import {
 import { sanitizeNextParam } from "@/lib/authLinks";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 
+function parseBrowserAuthUrl(): URL | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return new URL(window.location.href);
+  } catch {
+    return null;
+  }
+}
+
 function AuthCallbackInner() {
   const supabase = useSupabase();
   const router = useRouter();
@@ -20,21 +29,57 @@ function AuthCallbackInner() {
     let cancelled = false;
 
     async function run() {
-      const nextPath =
-        sanitizeNextParam(searchParams.get("next")) ?? "/dashboard";
+      /** Let @supabase/ssr parse hash/query into cookies on first tick (race with React). */
+      await new Promise((r) => setTimeout(r, 0));
 
-      const code = searchParams.get("code");
-      const tokenHash = searchParams.get("token_hash");
-      const type = searchParams.get("type") ?? "";
-      const hash =
-        typeof window !== "undefined" ? window.location.hash.slice(1) : "";
+      const browserUrl = parseBrowserAuthUrl();
+      const spNext = sanitizeNextParam(searchParams.get("next"));
+      const windowNext = browserUrl
+        ? sanitizeNextParam(browserUrl.searchParams.get("next"))
+        : null;
+      const nextPath = windowNext ?? spNext ?? "/dashboard";
+
+      const u = browserUrl ?? new URL("http://localhost/");
+
+      const oauthErr =
+        u.searchParams.get("error") ?? u.searchParams.get("error_code");
+      const oauthDesc = u.searchParams.get("error_description");
+      if (oauthErr) {
+        const readable =
+          oauthDesc?.replace(/\+/g, " ") ??
+          "Sign-in was cancelled or failed. Try again.";
+        router.replace(
+          `/auth?error=${encodeURIComponent(readable)}`,
+        );
+        return;
+      }
+
+      const code =
+        u.searchParams.get("code") ?? searchParams.get("code");
+      const tokenHash =
+        u.searchParams.get("token_hash") ??
+        searchParams.get("token_hash");
+      const type =
+        u.searchParams.get("type") ??
+        searchParams.get("type") ??
+        "";
+      const hash = u.hash.slice(1);
+
       const hasFragmentTokens = supabaseAuthHashLooksLikeSession(hash);
       const hadInboundParams =
         Boolean(code) ||
         Boolean(tokenHash && SUPABASE_EMAIL_LINK_OTP_TYPES.has(type)) ||
         hasFragmentTokens;
 
+      let {
+        data: { session },
+      } = await supabase.auth.getSession();
+
       if (!hadInboundParams) {
+        if (session?.user) {
+          window.location.assign(nextPath);
+          return;
+        }
         router.replace("/auth?error=missing_code");
         return;
       }
@@ -44,38 +89,69 @@ function AuthCallbackInner() {
           const { error: exErr } = await supabase.auth.exchangeCodeForSession(
             code,
           );
-          if (exErr) {
-            if (!cancelled) setError(formatSupabaseError(exErr));
+          if (exErr && !cancelled) {
+            ({
+              data: { session },
+            } = await supabase.auth.getSession());
+            if (session?.user) {
+              window.location.assign(nextPath);
+              return;
+            }
+            const msg = formatSupabaseError(exErr).toLowerCase();
+            const looksConsumed =
+              msg.includes("code") &&
+              (msg.includes("invalid") ||
+                msg.includes("expired") ||
+                msg.includes("already") ||
+                msg.includes("exchange"));
+            setError(
+              looksConsumed
+                ? "This link was already used or expired. Your email may already be verified — try signing in below."
+                : formatSupabaseError(exErr),
+            );
             return;
           }
         } else if (tokenHash && SUPABASE_EMAIL_LINK_OTP_TYPES.has(type)) {
           const { error: vErr } = await supabase.auth.verifyOtp({
             token_hash: tokenHash,
-            type: type as "recovery" | "email" | "signup" | "email_change",
+            type: type as
+              | "recovery"
+              | "email"
+              | "signup"
+              | "email_change"
+              | "magiclink"
+              | "invite",
           });
-          if (vErr) {
-            if (!cancelled) setError(formatSupabaseError(vErr));
+          if (vErr && !cancelled) {
+            ({
+              data: { session },
+            } = await supabase.auth.getSession());
+            if (session?.user) {
+              window.location.assign(nextPath);
+              return;
+            }
+            setError(formatSupabaseError(vErr));
             return;
           }
         } else if (hasFragmentTokens) {
-          await new Promise((r) => setTimeout(r, 150));
+          await new Promise((r) => setTimeout(r, 200));
         }
 
-        let {
+        ({
           data: { session },
-        } = await supabase.auth.getSession();
+        } = await supabase.auth.getSession());
 
         if (!session && hasFragmentTokens) {
-          await new Promise((r) => setTimeout(r, 400));
+          await new Promise((r) => setTimeout(r, 500));
           ({
             data: { session },
           } = await supabase.auth.getSession());
         }
 
-        if (!session) {
+        if (!session?.user) {
           if (!cancelled) {
             setError(
-              "This link is invalid or has expired. Try signing in again or request a new confirmation email.",
+              "This link is invalid or has expired. Try signing in, or request a new confirmation email.",
             );
           }
           return;

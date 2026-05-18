@@ -8,6 +8,9 @@ export const SUPABASE_EMAIL_LINK_OTP_TYPES = new Set([
   "email",
   "signup",
   "email_change",
+  /** Legacy magic-link confirmations still seen in some Auth templates. */
+  "magiclink",
+  "invite",
 ]);
 
 export function supabaseAuthHashLooksLikeSession(fragmentWithoutLeadingHash: string): boolean {
@@ -18,7 +21,8 @@ export function supabaseAuthHashLooksLikeSession(fragmentWithoutLeadingHash: str
     h.includes("refresh_token") ||
     /\btype=recovery\b/.test(h) ||
     /\btype=signup\b/.test(h) ||
-    /\btype=email\b/.test(h)
+    /\btype=email\b/.test(h) ||
+    /\btype=magiclink\b/.test(h)
   );
 }
 
