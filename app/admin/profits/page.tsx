@@ -45,10 +45,20 @@ export default function AdminProfitsPage() {
     fetchProfits();
   }, []);
 
+  useEffect(() => {
+    if (
+      selectedInvestor &&
+      !investors.some((investor) => investor.email === selectedInvestor)
+    ) {
+      setSelectedInvestor("");
+    }
+  }, [investors, selectedInvestor]);
+
   async function fetchInvestors() {
     const { data } = await supabase
       .from("investors")
       .select("id, email, full_name, user_id")
+      .eq("profit_auto_accrue", false)
       .order("created_at", { ascending: false });
 
     setInvestors(data || []);
@@ -129,7 +139,7 @@ export default function AdminProfitsPage() {
           </h1>
 
           <p className="text-gray-400 text-lg">
-            Add and manage investor profits.
+            Manual profit credits for investors who are off automatic accrual.
           </p>
         </div>
 
@@ -171,15 +181,33 @@ export default function AdminProfitsPage() {
             {/* Investor */}
             <div>
               <label className="block mb-2 text-gray-400">
-                Select Investor
+                Select investor (manual accrual only)
               </label>
+
+              <p className="text-xs text-gray-500 mb-2 leading-relaxed">
+                Only investors with{" "}
+                <span className="text-gray-400">automatic profit</span> turned
+                off in{" "}
+                <Link
+                  href="/admin/investors"
+                  className="text-yellow-500/90 hover:text-yellow-400 underline underline-offset-2"
+                >
+                  Investors
+                </Link>{" "}
+                appear here.
+              </p>
 
               <select
                 value={selectedInvestor}
                 onChange={(e) => setSelectedInvestor(e.target.value)}
-                className="w-full bg-black border border-zinc-700 rounded-2xl px-4 py-3 outline-none focus:border-yellow-500"
+                disabled={investors.length === 0}
+                className="w-full bg-black border border-zinc-700 rounded-2xl px-4 py-3 outline-none focus:border-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <option value="">Choose Investor</option>
+                <option value="">
+                  {investors.length === 0
+                    ? "No manual-accrual investors"
+                    : "Choose investor"}
+                </option>
 
                 {investors.map((investor) => (
                   <option
@@ -232,7 +260,7 @@ export default function AdminProfitsPage() {
             {/* Submit */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || investors.length === 0}
               className="w-full bg-yellow-500 hover:bg-yellow-600 transition text-black font-bold py-4 rounded-2xl disabled:opacity-50"
             >
               {loading ? "Adding Profit..." : "Add Profit"}
