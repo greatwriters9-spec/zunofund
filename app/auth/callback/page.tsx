@@ -165,8 +165,10 @@ function AuthCallbackInner() {
         window.location.assign(nextPath);
       } catch (e) {
         if (!cancelled) {
-          const { data: sess } = await supabase.auth.getSession();
-          if (sess?.user) {
+          const {
+            data: { session: recovered },
+          } = await supabase.auth.getSession();
+          if (recovered?.user) {
             window.location.assign(nextPath);
             return;
           }
