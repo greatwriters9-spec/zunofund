@@ -46,8 +46,8 @@ export default function AdminSettingsPage() {
         </h2>
         <ul className="list-disc list-inside text-zinc-300 text-sm space-y-2">
           <li>
-            Investor <strong>tier / plan</strong> (controls daily compound rate +
-            deposit min/max){' '}
+            Investor <strong>tier / plan</strong> (daily compound + bracket;
+            saving locks auto-tier until “Use auto tier”){" "}
             <Link href="/admin/investors" className="text-yellow-500 underline">
               on the Investors page
             </Link>
@@ -65,18 +65,18 @@ export default function AdminSettingsPage() {
           Investment tiers (code + DB)
         </h2>
         <p className="text-zinc-400 text-sm leading-relaxed">
-          Daily percentages and USD deposit bands are enforced in Postgres on
-          new deposits and mirrored in{' '}
-          <code className="text-yellow-400/90">lib/investmentPlans.ts</code> for
-          the UI. Changing rates or ranges requires a migration or deploy, not
-          this page alone.
+          Daily percentages and USD principal brackets drive automatic tier and
+          mirror{" "}
+          <code className="text-yellow-400/90">lib/investmentPlans.ts</code>.
+          Deposits enforce a global minimum ($200) only. Changing rates or
+          brackets requires a migration or deploy.
         </p>
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left border border-zinc-800 rounded-xl overflow-hidden">
             <thead className="bg-zinc-900 text-zinc-400">
               <tr>
                 <th className="px-4 py-3 font-medium">Tier</th>
-                <th className="px-4 py-3 font-medium">Deposit window (USD)</th>
+                <th className="px-4 py-3 font-medium">Principal bracket (USD)</th>
                 <th className="px-4 py-3 font-medium">Daily compound</th>
               </tr>
             </thead>
@@ -108,14 +108,15 @@ export default function AdminSettingsPage() {
         </h2>
         <ul className="list-disc list-inside text-zinc-300 text-sm space-y-2">
           <li>
-            Each <strong>approved deposit</strong> adds principal that stays{' '}
-            <strong>locked for 30 days</strong>; after that slice matures it
-            moves to withdrawable balance.
+            Each <strong>approved deposit</strong> adds principal that stays{" "}
+            <strong>locked for 30 days</strong>; after maturity it moves to{" "}
+            <strong>withdrawable principal</strong> (profits sit in{" "}
+            <strong>withdrawable profit</strong>). Withdrawals take profit
+            first, then principal—principal withdrawals can lower tier.
           </li>
           <li>
-            <strong>Daily profit</strong> compounds per tier; withdrawals use
-            the split between locked principal and withdrawable balance shown on
-            the investor dashboard.
+            <strong>Daily profit</strong> compounds per current tier; totals on
+            the investor dashboard reflect locked vs withdrawable buckets.
           </li>
         </ul>
       </section>

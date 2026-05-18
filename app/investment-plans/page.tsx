@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   normalizeInvestmentPlan,
@@ -10,7 +9,6 @@ import {
   dailyCompoundLabel,
   formatDepositRangeDescription,
   type CanonicalInvestmentPlan,
-  isTierDowngrade,
 } from "@/lib/investmentPlans";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 
@@ -229,8 +227,11 @@ export default function InvestmentPlansPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentPlanSlug, setCurrentPlanSlug] =
     useState<CanonicalInvestmentPlan | null>(null);
-  const [planActionError, setPlanActionError] = useState<string | null>(null);
-  const [planBusySlug, setPlanBusySlug] = useState<string | null>(null);
+  const [qualifyingPrincipal, setQualifyingPrincipal] = useState<number | null>(
+    null,
+  );
+  const [tierManualOverride, setTierManualOverride] = useState(false);
+  const [planLoadError, setPlanLoadError] = useState<string | null>(null);
   const [expandedSlugs, setExpandedSlugs] = useState<Set<string>>(
     () => new Set(),
   );
@@ -247,8 +248,6 @@ export default function InvestmentPlansPage() {
     });
   };
 
-  const router = useRouter();
-
   useEffect(() => {
     async function loadSessionAndPlan() {
       const {
@@ -256,21 +255,25 @@ export default function InvestmentPlansPage() {
       } = await supabase.auth.getUser();
 
       setIsLoggedIn(!!user);
-      setPlanActionError(null);
+      setPlanLoadError(null);
 
       if (!user?.id) {
         setCurrentPlanSlug(null);
+        setQualifyingPrincipal(null);
+        setTierManualOverride(false);
         return;
       }
 
       const { data, error } = await supabase
         .from("investors")
-        .select("investment_plan")
+        .select(
+          "investment_plan, tier_qualifying_principal, tier_manual_override",
+        )
         .eq("user_id", user.id)
         .maybeSingle();
 
       if (error) {
-        setPlanActionError(formatSupabaseError(error));
+        setPlanLoadError(formatSupabaseError(error));
         return;
       }
 
@@ -278,6 +281,17 @@ export default function InvestmentPlansPage() {
         typeof data?.investment_plan === "string" ? data.investment_plan : null;
       const normalized = normalizeInvestmentPlan(raw);
       setCurrentPlanSlug(normalized);
+
+      const tqp = (data as { tier_qualifying_principal?: unknown })
+        ?.tier_qualifying_principal;
+      setQualifyingPrincipal(
+        tqp !== null && tqp !== undefined && Number.isFinite(Number(tqp))
+          ? Number(tqp)
+          : null,
+      );
+      setTierManualOverride(
+        Boolean((data as { tier_manual_override?: unknown })?.tier_manual_override),
+      );
 
       // Auto-expand the investor's current plan so the CTA + status is in view
       // without forcing them to tap first.
@@ -307,7 +321,7 @@ export default function InvestmentPlansPage() {
                 Investment plans
               </h1>
               <p className="mt-1 max-w-2xl text-sm leading-relaxed text-zinc-600">
-                Choose the tier that fits your capital bracket and daily compound target.
+                Tiers show yield brackets for qualifying principal. Your active tier is assigned automatically from deposits (principal only)—you cannot pick a lower yield to bypass funding rules.
               </p>
             </div>
 
@@ -331,12 +345,12 @@ export default function InvestmentPlansPage() {
           </div>
         </header>
 
-        {planActionError ? (
+        {planLoadError ? (
           <div
             className="mb-4 border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300"
             role="alert"
           >
-            {planActionError}
+            {planLoadError}
           </div>
         ) : null}
 
@@ -351,7 +365,31 @@ export default function InvestmentPlansPage() {
               </span>
               <span className="text-zinc-600">
                 {" "}
-                — selecting a tier sets your bracket for automated daily compound.
+                — assigned from approved principal (not from profits).
+                {qualifyingPrincipal !== null ? (
+                  <>
+                    {" "}
+                    Qualifying principal ≈ $
+                    {qualifyingPrincipal.toLocaleString(undefined, {
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 2,
+                    })}
+                    .
+                  </>
+                ) : null}{" "}
+                {tierManualOverride ? (
+                  <span className="text-amber-400">
+                    Support has locked manual tier override on your account.
+                  </span>
+                ) : (
+                  <Link
+                    href="/deposit"
+                    className="font-medium text-yellow-500 hover:text-yellow-400"
+                  >
+                    Deposit or top up
+                  </Link>
+                )}{" "}
+                to move brackets; withdrawing principal can move you down.
               </span>
             </p>
           </div>
@@ -500,64 +538,17 @@ export default function InvestmentPlansPage() {
                           ))}
                         </ul>
 
-                        <button
-                          type="button"
-                          disabled={planBusySlug === plan.slug}
-                          onClick={async (event) => {
-                            event.stopPropagation();
-
-                            const {
-                              data: { user },
-                            } = await supabase.auth.getUser();
-
-                            if (!user) {
-                              router.push("/auth");
-                              return;
-                            }
-
-                            if (
-                              typeof currentPlanSlug === "string" &&
-                              isTierDowngrade(
-                                currentPlanSlug,
-                                plan.slug as CanonicalInvestmentPlan,
-                              )
-                            ) {
-                              const proceed = confirm(
-                                "This tier is lower than your current bracket. Proceed and use the lower daily compound rate?",
-                              );
-                              if (!proceed) return;
-                            }
-
-                            setPlanActionError(null);
-                            setPlanBusySlug(plan.slug);
-
-                            const { error } = await supabase
-                              .from("investors")
-                              .update({ investment_plan: plan.slug })
-                              .eq("user_id", user.id);
-
-                            setPlanBusySlug(null);
-
-                            if (error) {
-                              setPlanActionError(formatSupabaseError(error));
-                              return;
-                            }
-
-                            setCurrentPlanSlug(
-                              plan.slug as CanonicalInvestmentPlan,
-                            );
-                            router.push("/deposit");
-                          }}
-                          className={`flex w-full items-center justify-center rounded-lg border py-2.5 text-xs font-bold transition disabled:opacity-50 ${
+                        <Link
+                          href={isLoggedIn ? "/deposit" : "/auth"}
+                          className={`flex w-full items-center justify-center rounded-lg border py-2.5 text-xs font-bold transition ${
                             plan.elite
                               ? "border-transparent bg-yellow-500 text-black hover:bg-yellow-600"
-                              : plan.theme.secondaryCta
+                              : plan.theme.secondaryCta ||
+                                "border-zinc-600 bg-zinc-900 text-zinc-100 hover:border-zinc-400"
                           }`}
                         >
-                          {planBusySlug === plan.slug
-                            ? "Updating…"
-                            : plan.button}
-                        </button>
+                          {isLoggedIn ? "Go to deposit" : plan.button}
+                        </Link>
                       </div>
                     </motion.div>
                   ) : null}

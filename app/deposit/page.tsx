@@ -5,7 +5,7 @@ import {
   displayPlanName,
   formatDepositRangeDescription,
   normalizeInvestmentPlan,
-  validateDepositAmountForPlan,
+  validateMinimumDeposit,
   type CanonicalInvestmentPlan,
 } from "@/lib/investmentPlans";
 import { useSupabase, formatSupabaseError } from "@/lib/supabase";
@@ -30,6 +30,9 @@ const selectedNetwork =
   const [formError, setFormError] = useState<string | null>(null);
   const [planSlug, setPlanSlug] =
     useState<CanonicalInvestmentPlan>("Starter");
+  const [qualifyingPrincipal, setQualifyingPrincipal] = useState<number | null>(
+    null,
+  );
   const [planLoadError, setPlanLoadError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -41,13 +44,14 @@ const selectedNetwork =
       if (!user?.id) {
         if (!cancelled) {
           setPlanSlug("Starter");
+          setQualifyingPrincipal(null);
           setPlanLoadError(null);
         }
         return;
       }
       const { data, error } = await supabase
         .from("investors")
-        .select("investment_plan")
+        .select("investment_plan, tier_qualifying_principal")
         .eq("user_id", user.id)
         .maybeSingle();
       if (cancelled) return;
@@ -57,6 +61,13 @@ const selectedNetwork =
       }
       setPlanLoadError(null);
       setPlanSlug(normalizeInvestmentPlan(data?.investment_plan));
+      const tqp = (data as { tier_qualifying_principal?: unknown })
+        ?.tier_qualifying_principal;
+      setQualifyingPrincipal(
+        tqp !== null && tqp !== undefined && Number.isFinite(Number(tqp))
+          ? Number(tqp)
+          : null,
+      );
     }
     loadPlan();
     return () => {
@@ -89,7 +100,7 @@ async function copyWallet() {
     }
 
     const numAmount = Number(amount);
-    const planMsg = validateDepositAmountForPlan(numAmount, planSlug);
+    const planMsg = validateMinimumDeposit(numAmount);
     if (planMsg) {
       setFormError(planMsg);
       setLoading(false);
@@ -181,23 +192,39 @@ async function copyWallet() {
         ) : null}
 
         <div className="mb-6 rounded-2xl border border-yellow-500/20 bg-yellow-500/10 p-4">
-  <p className="text-yellow-400 font-semibold">
-    Your tier: {displayPlanName(planSlug)}
-  </p>
+          <p className="text-yellow-400 font-semibold">
+            Current tier: {displayPlanName(planSlug)}
+          </p>
 
-  <p className="text-sm text-zinc-400 mt-1">
-    Allowed deposit window for requests:{" "}
-    <span className="text-yellow-400 font-medium">
-      {formatDepositRangeDescription(planSlug)} USD
-    </span>
-    . Change tiers on Investment Plans if you need different limits.
-  </p>
+          <p className="text-sm text-zinc-400 mt-1">
+            Tier follows{" "}
+            <strong className="text-zinc-300">approved principal only</strong>
+            {qualifyingPrincipal !== null ? (
+              <>
+                {" "}
+                (currently about $
+                {qualifyingPrincipal.toLocaleString(undefined, {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 2,
+                })}{" "}
+                qualifying principal: locked deposits plus matured principal not
+                yet withdrawn).
+              </>
+            ) : (
+              " (qualifying principal updates after deposits are approved)."
+            )}{" "}
+            Profits do not upgrade your tier. You may deposit any amount above
+            the platform minimum; there is no upper cap per tier.
+          </p>
 
-  <p className="text-xs text-zinc-500 mt-2">
-    The server enforces the same bounds when you submit—amounts outside this
-    range are rejected automatically.
-  </p>
-</div>
+          <p className="text-xs text-zinc-500 mt-2">
+            Brackets: Starter {formatDepositRangeDescription("Starter")}, Growth{" "}
+            {formatDepositRangeDescription("Growth")}, Pro{" "}
+            {formatDepositRangeDescription("Pro")}, Elite{" "}
+            {formatDepositRangeDescription("Elite")}. Withdrawing principal can
+            lower your tier when qualifying principal drops below a bracket.
+          </p>
+        </div>
 
         <div className="mb-4">
           <label className="block mb-3 text-zinc-400">

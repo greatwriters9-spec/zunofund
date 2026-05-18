@@ -58,7 +58,10 @@ export function dailyCompoundLabel(key: CanonicalInvestmentPlan): string {
   return `${PLAN_DAILY_COMPOUND_PERCENT[key]}% Daily Compound`;
 }
 
-/** USD deposit window per tier (inclusive). Elite has no upper cap in app + DB. */
+/**
+ * USD brackets per tier (inclusive). Used for marketing copy and for automatic tier assignment
+ * from qualifying principal (must stay aligned with `investment_plan_slug_for_principal` in Postgres).
+ */
 export const PLAN_DEPOSIT_RANGE_USD: Record<
   CanonicalInvestmentPlan,
   { min: number; max: number | null }
@@ -69,6 +72,20 @@ export const PLAN_DEPOSIT_RANGE_USD: Record<
   Elite: { min: 5000, max: null },
 };
 
+/** Minimum single deposit request (global); DB trigger enforces the same floor. */
+export const MIN_PLATFORM_DEPOSIT_USD = 200;
+
+/** Highest tier whose bracket contains `usd` (matches SQL Elite→Pro→Growth→Starter scan). */
+export function canonicalTierFromQualifyingPrincipalUsd(
+  usd: number,
+): CanonicalInvestmentPlan {
+  const x = Number.isFinite(usd) ? usd : 0;
+  if (x >= 5000) return "Elite";
+  if (x >= 1500) return "Pro";
+  if (x >= 500) return "Growth";
+  return "Starter";
+}
+
 export function formatDepositRangeDescription(
   key: CanonicalInvestmentPlan,
 ): string {
@@ -77,21 +94,13 @@ export function formatDepositRangeDescription(
   return `$${min.toLocaleString()} — $${max.toLocaleString()}`;
 }
 
-/** Client-side guard; DB trigger is authoritative. */
-export function validateDepositAmountForPlan(
-  amount: number,
-  planRaw: string | null | undefined,
-): string | null {
+/** Client-side guard for deposit amount; DB trigger enforces minimum only (no per-tier max). */
+export function validateMinimumDeposit(amount: number): string | null {
   if (!Number.isFinite(amount) || amount <= 0) {
     return "Enter a valid positive amount.";
   }
-  const key = normalizeInvestmentPlan(planRaw);
-  const { min, max } = PLAN_DEPOSIT_RANGE_USD[key];
-  if (amount < min) {
-    return `For ${displayPlanName(key)}, the minimum deposit is $${min.toLocaleString()} (upgrade your tier on Investment Plans for a wider range).`;
-  }
-  if (max !== null && amount > max) {
-    return `For ${displayPlanName(key)}, the maximum deposit is $${max.toLocaleString()} (choose a higher tier or submit multiple requests).`;
+  if (amount < MIN_PLATFORM_DEPOSIT_USD) {
+    return `The minimum deposit is $${MIN_PLATFORM_DEPOSIT_USD.toLocaleString()}.`;
   }
   return null;
 }

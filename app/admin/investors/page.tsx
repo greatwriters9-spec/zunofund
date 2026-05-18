@@ -18,6 +18,8 @@ interface InvestorRow {
   total_profit?: number | null;
   investment_plan?: string | null;
   status?: string | null;
+  tier_qualifying_principal?: number | null;
+  tier_manual_override?: boolean | null;
 }
 
 export default function InvestorsPage() {
@@ -65,8 +67,8 @@ export default function InvestorsPage() {
 
   async function savePlan(inv: InvestorRow) {
     const slug = draftById[inv.id];
-    if (!slug || slug === normalizeInvestmentPlan(inv.investment_plan)) {
-      setFormSuccess("Plan unchanged.");
+    if (!slug) {
+      setFormError("Choose an investment plan.");
       return;
     }
     setFormError(null);
@@ -74,7 +76,10 @@ export default function InvestorsPage() {
     setSavingId(inv.id);
     const { error } = await supabase
       .from("investors")
-      .update({ investment_plan: slug })
+      .update({
+        investment_plan: slug,
+        tier_manual_override: true,
+      })
       .eq("id", inv.id);
     setSavingId(null);
 
@@ -84,7 +89,27 @@ export default function InvestorsPage() {
     }
 
     setFormSuccess(
-      `${inv.email}: plan saved as ${slug}. Deposit limits follow this tier.`,
+      `${inv.email}: plan saved as ${slug} (manual override — automatic tier from principal is paused).`,
+    );
+    await fetchInvestors();
+  }
+
+  async function clearTierOverride(inv: InvestorRow) {
+    setFormError(null);
+    setFormSuccess(null);
+    setSavingId(inv.id);
+    const { error } = await supabase.rpc("admin_clear_tier_override_and_sync", {
+      p_investor_id: inv.id,
+    });
+    setSavingId(null);
+
+    if (error) {
+      setFormError(formatSupabaseError(error));
+      return;
+    }
+
+    setFormSuccess(
+      `${inv.email}: manual tier cleared — tier recomputed from qualifying principal.`,
     );
     await fetchInvestors();
   }
@@ -128,6 +153,17 @@ export default function InvestorsPage() {
               <p className="text-gray-400">
                 Balance: ${Number(inv.balance || 0).toFixed(2)}
               </p>
+              <p className="text-zinc-400 text-sm">
+                Qualifying principal (tier basis): $
+                {Number(inv.tier_qualifying_principal ?? 0).toFixed(2)}
+                {inv.tier_manual_override ? (
+                  <span className="ml-2 text-amber-400">
+                    · manual tier override
+                  </span>
+                ) : (
+                  <span className="ml-2 text-zinc-600">· automatic</span>
+                )}
+              </p>
               <p className="text-green-500">
                 Profit: ${Number(inv.total_profit || 0).toFixed(2)}
               </p>
@@ -136,7 +172,7 @@ export default function InvestorsPage() {
               <div className="flex flex-col sm:flex-row sm:items-end gap-3 pt-2 border-t border-zinc-800">
                 <div className="flex-1">
                   <label className="block text-xs text-zinc-500 mb-1">
-                    Investment plan (daily rate + deposit window)
+                    Investment plan (daily rate; saving locks automatic tier)
                   </label>
                   <select
                     className="w-full sm:max-w-md bg-black border border-zinc-700 rounded-xl px-3 py-2 text-sm outline-none focus:border-yellow-500"
@@ -153,21 +189,31 @@ export default function InvestorsPage() {
                   >
                     {CANONICAL_INVESTMENT_PLANS.map((slug) => (
                       <option key={slug} value={slug}>
-                        {displayPlanName(slug)} — deposits{" "}
+                        {displayPlanName(slug)} — bracket{" "}
                         {formatDepositRangeDescription(slug)} ·{" "}
                         {dailyCompoundLabel(slug)}
                       </option>
                     ))}
                   </select>
                 </div>
-                <button
-                  type="button"
-                  disabled={savingId === inv.id}
-                  onClick={() => savePlan(inv)}
-                  className="bg-yellow-500 hover:bg-yellow-400 disabled:opacity-50 text-black font-semibold px-5 py-2 rounded-xl text-sm"
-                >
-                  {savingId === inv.id ? "Saving…" : "Save plan"}
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={savingId === inv.id}
+                    onClick={() => clearTierOverride(inv)}
+                    className="bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 text-zinc-100 font-semibold px-5 py-2 rounded-xl text-sm disabled:opacity-50"
+                  >
+                    Use auto tier
+                  </button>
+                  <button
+                    type="button"
+                    disabled={savingId === inv.id}
+                    onClick={() => savePlan(inv)}
+                    className="bg-yellow-500 hover:bg-yellow-400 disabled:opacity-50 text-black font-semibold px-5 py-2 rounded-xl text-sm"
+                  >
+                    {savingId === inv.id ? "Saving…" : "Save plan (manual)"}
+                  </button>
+                </div>
               </div>
             </div>
           ))}
