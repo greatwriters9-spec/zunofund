@@ -1,51 +1,149 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useSupabase, formatSupabaseError } from "@/lib/supabase"
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
-export default function ResetPasswordPage() {
-  const supabase = useSupabase()
+import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 
-  const [password, setPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
-  const [formError, setFormError] = useState<string | null>(null)
+const QUERY_OTP_TYPES = new Set(["recovery", "email", "signup", "email_change"]);
 
-  async function handleUpdatePassword() {
+function ResetPasswordInner() {
+  const supabase = useSupabase();
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-    if (!password || !confirmPassword) return
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
-    if (password !== confirmPassword) {
-      setFormError("Passwords do not match.")
-      return
+  /** Finished consuming email link params (or confirmed no link was required). */
+  const [authGate, setAuthGate] = useState<"pending" | "ready" | "error">(
+    "pending",
+  );
+  const [authGateError, setAuthGateError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function establishSessionFromEmailLink() {
+      const code = searchParams.get("code");
+      const tokenHash = searchParams.get("token_hash");
+      const type = searchParams.get("type") ?? "";
+      const hash =
+        typeof window !== "undefined" ? window.location.hash.slice(1) : "";
+      const hasFragmentTokens =
+        hash.includes("access_token") || hash.includes("refresh_token");
+      const hadInboundParams =
+        Boolean(code) ||
+        Boolean(tokenHash && QUERY_OTP_TYPES.has(type)) ||
+        hasFragmentTokens;
+
+      try {
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) {
+            if (!cancelled) {
+              setAuthGateError(formatSupabaseError(error));
+              setAuthGate("error");
+            }
+            return;
+          }
+        } else if (tokenHash && QUERY_OTP_TYPES.has(type)) {
+          const { error } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: type as "recovery" | "email" | "signup" | "email_change",
+          });
+          if (error) {
+            if (!cancelled) {
+              setAuthGateError(formatSupabaseError(error));
+              setAuthGate("error");
+            }
+            return;
+          }
+        } else if (hasFragmentTokens) {
+          await new Promise((r) => setTimeout(r, 120));
+        }
+
+        let {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session && hasFragmentTokens) {
+          await new Promise((r) => setTimeout(r, 400));
+          ({
+            data: { session },
+          } = await supabase.auth.getSession());
+        }
+
+        if (!session) {
+          if (hadInboundParams && !cancelled) {
+            setAuthGateError(
+              "This reset link is invalid or has expired. Request a new password reset.",
+            );
+            setAuthGate("error");
+          } else if (!cancelled) {
+            setAuthGateError(
+              "Sign in or open the password-reset link from your email.",
+            );
+            setAuthGate("error");
+          }
+          return;
+        }
+
+        if (hadInboundParams && typeof window !== "undefined") {
+          window.history.replaceState(null, "", "/reset-password");
+          router.replace("/reset-password");
+        }
+
+        if (!cancelled) setAuthGate("ready");
+      } catch (e) {
+        if (!cancelled) {
+          setAuthGateError(
+            e instanceof Error ? e.message : "Something went wrong.",
+          );
+          setAuthGate("error");
+        }
+      }
     }
 
-    setFormError(null)
-    setLoading(true)
+    void establishSessionFromEmailLink();
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams, supabase, router]);
+
+  async function handleUpdatePassword() {
+    if (!password || !confirmPassword) return;
+
+    if (password !== confirmPassword) {
+      setFormError("Passwords do not match.");
+      return;
+    }
+
+    setFormError(null);
+    setLoading(true);
 
     const { error } = await supabase.auth.updateUser({
       password,
-    })
+    });
 
-    setLoading(false)
+    setLoading(false);
 
     if (error) {
-      setFormError(formatSupabaseError(error))
-      return
+      setFormError(formatSupabaseError(error));
+      return;
     }
 
-    setSuccess(true)
+    setSuccess(true);
   }
 
   return (
     <main className="min-h-screen flex items-center justify-center px-6 relative overflow-hidden">
-
-      {/* Glow */}
       <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-yellow-500/10 blur-[150px] rounded-full" />
 
       <div className="relative z-10 w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-[36px] p-10">
-
         <h1 className="text-5xl font-black text-yellow-500 mb-4">
           New Password
         </h1>
@@ -54,14 +152,20 @@ export default function ResetPasswordPage() {
           Create a new secure password for your account.
         </p>
 
-        {success ? (
-
+        {authGate === "pending" ? (
+          <div className="rounded-2xl border border-zinc-800 bg-black/40 px-5 py-4 text-sm text-zinc-400">
+            Verifying your reset link…
+          </div>
+        ) : authGate === "error" ? (
+          <div className="rounded-2xl border border-red-500/60 bg-red-500/10 px-5 py-4 text-sm text-red-300">
+            {authGateError ??
+              "We could not verify your reset link. Request a new email."}
+          </div>
+        ) : success ? (
           <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-5 text-green-400">
             Password updated successfully.
           </div>
-
         ) : (
-
           <>
             {formError ? (
               <div className="mb-6 rounded-2xl border border-red-500/60 bg-red-500/10 px-5 py-4 text-red-300 text-sm">
@@ -69,7 +173,6 @@ export default function ResetPasswordPage() {
               </div>
             ) : null}
             <div className="space-y-6">
-
               <div>
                 <label className="block text-sm text-zinc-400 mb-3">
                   New Password
@@ -95,11 +198,11 @@ export default function ResetPasswordPage() {
                   className="w-full bg-black border border-zinc-800 rounded-2xl px-5 py-4 text-white outline-none focus:border-yellow-500 transition"
                 />
               </div>
-
             </div>
 
             <button
-              onClick={handleUpdatePassword}
+              type="button"
+              onClick={() => void handleUpdatePassword()}
               disabled={loading}
               className="w-full mt-8 bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-4 rounded-2xl transition duration-300"
             >
@@ -107,9 +210,21 @@ export default function ResetPasswordPage() {
             </button>
           </>
         )}
-
       </div>
-
     </main>
-  )
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen flex items-center justify-center px-6 text-zinc-400">
+          Loading…
+        </main>
+      }
+    >
+      <ResetPasswordInner />
+    </Suspense>
+  );
 }

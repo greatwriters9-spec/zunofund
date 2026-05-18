@@ -141,10 +141,6 @@ export default function DashboardPage() {
   }, [supabase]);
 
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  useEffect(() => {
     let cancelled = false;
     const ac = new AbortController();
     fetch("https://api.coingecko.com/api/v3/global", {
@@ -165,116 +161,130 @@ export default function DashboardPage() {
     };
   }, []);
 
-  async function fetchDashboardData() {
+  const fetchDashboardData = useCallback(async () => {
     setLoading(true);
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+      if (!user?.email || !user.id) {
+        return;
+      }
 
-    if (!user?.email || !user.id) {
-      setLoading(false);
-      return;
-    }
+      const { data: investorData } = await supabase
+        .from("investors")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
 
-    const { data: investorData } = await supabase
-  .from("investors")
-  .select("*")
-  .eq("user_id", user.id)
-  .single();
+      setInvestor(investorData);
 
-    setInvestor(investorData);
+      const snap = await fetchInvestorNotificationSnapshot(
+        supabase,
+        user.id,
+        user.email.trim(),
+      );
+      setNotifications(snap.preview as Notification[]);
+      setUnreadNotificationCount(snap.unreadTotal);
 
-    const snap = await fetchInvestorNotificationSnapshot(
-      supabase,
-      user.id,
-      user.email.trim(),
-    );
-    setNotifications(snap.preview as Notification[]);
-    setUnreadNotificationCount(snap.unreadTotal);
+      const { data: deposits } = await supabase
+        .from("deposits")
+        .select("id, amount, status, created_at")
+        .eq("user_id", user.id);
 
-    const { data: deposits } = await supabase
-      .from("deposits")
-      .select("id, amount, status, created_at")
-      .eq("user_id", user.id);
+      const { data: withdrawals } = await supabase
+        .from("withdrawals")
+        .select("id, amount, status, created_at")
+        .eq("user_id", user.id);
 
-    const { data: withdrawals } = await supabase
-      .from("withdrawals")
-      .select("id, amount, status, created_at")
-      .eq("user_id", user.id);
+      const profitOwner = notificationsOwnerOrFilter({
+        userId: user.id,
+        investorEmail: user.email.trim(),
+      });
 
-    const profitOwner = notificationsOwnerOrFilter({
-      userId: user.id,
-      investorEmail: user.email.trim(),
-    });
+      const { data: profitsRaw } = await supabase
+        .from("profits")
+        .select("*")
+        .or(profitOwner)
+        .order("created_at", { ascending: true });
 
-    const { data: profitsRaw } = await supabase
-      .from("profits")
-      .select("*")
-      .or(profitOwner)
-      .order("created_at", { ascending: true });
+      const profitsChronoAsc = [...(profitsRaw ?? [])];
 
-    const profitsChronoAsc = [...(profitsRaw ?? [])];
-
-    const profitsDesc = [...profitsChronoAsc].sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-    );
-
-    const formattedProfits = profitsDesc.map((item) => ({
-      id: item.id,
-      type: "profit" as const,
-      amount: Number(item.amount),
-      status: item.status,
-      created_at: item.created_at,
-    }));
-
-    const formattedDeposits = (deposits || []).map((item) => ({
-      id: item.id,
-      type: "deposit",
-      amount: Number(item.amount),
-      status: item.status,
-      created_at: item.created_at,
-    }));
-
-    const formattedWithdrawals = (withdrawals || []).map((item) => ({
-      id: item.id,
-      type: "withdrawal",
-      amount: Number(item.amount),
-      status: item.status,
-      created_at: item.created_at,
-    }));
-
-    const mergedActivities = [
-      ...formattedDeposits,
-      ...formattedWithdrawals,
-      ...formattedProfits,
-    ]
-      .sort(
+      const profitsDesc = [...profitsChronoAsc].sort(
         (a, b) =>
-          new Date(b.created_at).getTime() -
-          new Date(a.created_at).getTime()
-      )
-      .slice(0, 3);
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      );
 
-    setActivities(mergedActivities);
+      const formattedProfits = profitsDesc.map((item) => ({
+        id: item.id,
+        type: "profit" as const,
+        amount: Number(item.amount),
+        status: item.status,
+        created_at: item.created_at,
+      }));
 
-    let cumulativeProfit = 0;
+      const formattedDeposits = (deposits || []).map((item) => ({
+        id: item.id,
+        type: "deposit",
+        amount: Number(item.amount),
+        status: item.status,
+        created_at: item.created_at,
+      }));
 
-    const growthData = profitsChronoAsc.map((profit, index) => {
-      cumulativeProfit += Number(profit.amount);
+      const formattedWithdrawals = (withdrawals || []).map((item) => ({
+        id: item.id,
+        type: "withdrawal",
+        amount: Number(item.amount),
+        status: item.status,
+        created_at: item.created_at,
+      }));
 
-      return {
-        id: index + 1,
-        date: new Date(profit.created_at).toLocaleDateString(),
-        profit: cumulativeProfit,
-      };
+      const mergedActivities = [
+        ...formattedDeposits,
+        ...formattedWithdrawals,
+        ...formattedProfits,
+      ]
+        .sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() -
+            new Date(a.created_at).getTime(),
+        )
+        .slice(0, 3);
+
+      setActivities(mergedActivities);
+
+      let cumulativeProfit = 0;
+
+      const growthData = profitsChronoAsc.map((profit, index) => {
+        cumulativeProfit += Number(profit.amount);
+
+        return {
+          id: index + 1,
+          date: new Date(profit.created_at).toLocaleDateString(),
+          profit: cumulativeProfit,
+        };
+      });
+
+      setChartData(growthData);
+    } catch (e) {
+      console.error("Dashboard load failed:", e);
+    } finally {
+      setLoading(false);
+    }
+  }, [supabase]);
+
+  useEffect(() => {
+    void fetchDashboardData();
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "INITIAL_SESSION" || event === "SIGNED_IN") {
+        void fetchDashboardData();
+      }
     });
-
-    setChartData(growthData);
-
-    setLoading(false);
-  }
+    return () => subscription.unsubscribe();
+  }, [fetchDashboardData, supabase]);
 
   useEffect(() => {
     const onRealtimeOrInsert = () => {

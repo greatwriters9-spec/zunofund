@@ -29,8 +29,8 @@ export async function POST(request: Request) {
   }
 
   const origin = getServerSiteOrigin();
-  const next = encodeURIComponent("/reset-password");
-  const redirectTo = `${origin}/auth/callback?next=${next}`;
+  /** Recovery often uses `token_hash` / fragments — server `/auth/callback` only sees `?code=`. Land on reset-password and finish in the browser. */
+  const redirectTo = `${origin}/reset-password`;
 
   const supabase = createClient(getSupabaseUrl(), getSupabaseAnonKey(), {
     auth: {
