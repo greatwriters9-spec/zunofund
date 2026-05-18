@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import {
   SUPABASE_EMAIL_LINK_OTP_TYPES,
+  authRedirectLooksLikePasswordRecovery,
   supabaseAuthHashLooksLikeSession,
 } from "@/lib/auth/supabaseEmailLink";
 import { sanitizeNextParam } from "@/lib/authLinks";
@@ -14,8 +15,28 @@ import { useSupabase } from "@/lib/supabase";
 const SIGN_IN_NOTICE =
   "Your email is usually verified already — especially if you opened this link inside WhatsApp or another app. Sign in with your email and password. If that fails, open the same link in Safari or Chrome, or request a new confirmation email.";
 
+const PASSWORD_RESET_CALLBACK_NOTICE =
+  "We couldn’t finish opening your reset link from this app — try opening the same email link in Safari or Chrome, or send yourself a fresh reset email below.";
+
 function redirectToAuthNotice(router: ReturnType<typeof useRouter>) {
   router.replace(`/auth?notice=${encodeURIComponent(SIGN_IN_NOTICE)}`);
+}
+
+function redirectToPasswordResetHelp(router: ReturnType<typeof useRouter>) {
+  router.replace(
+    `/forgot-password?notice=${encodeURIComponent(PASSWORD_RESET_CALLBACK_NOTICE)}`,
+  );
+}
+
+function redirectAfterInboundAuthFailure(
+  router: ReturnType<typeof useRouter>,
+  inboundUrl: URL,
+) {
+  if (authRedirectLooksLikePasswordRecovery(inboundUrl)) {
+    redirectToPasswordResetHelp(router);
+  } else {
+    redirectToAuthNotice(router);
+  }
 }
 
 function parseBrowserAuthUrl(): URL | null {
@@ -102,10 +123,14 @@ function AuthCallbackInner() {
               data: { session },
             } = await supabase.auth.getSession());
             if (session?.user) {
-              window.location.assign(nextPath);
+              if (authRedirectLooksLikePasswordRecovery(u)) {
+                window.location.assign("/reset-password");
+              } else {
+                window.location.assign(nextPath);
+              }
               return;
             }
-            redirectToAuthNotice(router);
+            redirectAfterInboundAuthFailure(router, u);
             return;
           }
         } else if (tokenHash && SUPABASE_EMAIL_LINK_OTP_TYPES.has(type)) {
@@ -124,10 +149,14 @@ function AuthCallbackInner() {
               data: { session },
             } = await supabase.auth.getSession());
             if (session?.user) {
-              window.location.assign(nextPath);
+              if (authRedirectLooksLikePasswordRecovery(u)) {
+                window.location.assign("/reset-password");
+              } else {
+                window.location.assign(nextPath);
+              }
               return;
             }
-            redirectToAuthNotice(router);
+            redirectAfterInboundAuthFailure(router, u);
             return;
           }
         } else if (hasFragmentTokens) {
@@ -147,8 +176,13 @@ function AuthCallbackInner() {
 
         if (!session?.user) {
           if (!cancelled) {
-            redirectToAuthNotice(router);
+            redirectAfterInboundAuthFailure(router, u);
           }
+          return;
+        }
+
+        if (authRedirectLooksLikePasswordRecovery(u)) {
+          window.location.assign("/reset-password");
           return;
         }
 
@@ -169,11 +203,15 @@ function AuthCallbackInner() {
             data: { session: recovered },
           } = await supabase.auth.getSession();
           if (recovered?.user) {
-            window.location.assign(nextPath);
+            if (authRedirectLooksLikePasswordRecovery(u)) {
+              window.location.assign("/reset-password");
+            } else {
+              window.location.assign(nextPath);
+            }
             return;
           }
           if (hadInboundParams) {
-            redirectToAuthNotice(router);
+            redirectAfterInboundAuthFailure(router, u);
             return;
           }
           setError(e instanceof Error ? e.message : "Something went wrong.");

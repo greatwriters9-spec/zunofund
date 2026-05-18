@@ -26,6 +26,12 @@ export function supabaseAuthHashLooksLikeSession(fragmentWithoutLeadingHash: str
   );
 }
 
+export function authRedirectLooksLikePasswordRecovery(url: URL): boolean {
+  const t = (url.searchParams.get("type") ?? "").toLowerCase();
+  const hash = url.hash.slice(1).toLowerCase();
+  return t === "recovery" || hash.includes("type=recovery");
+}
+
 export function urlLooksLikeSupabaseAuthRedirect(url: URL): boolean {
   const code = url.searchParams.get("code");
   const tokenHash = url.searchParams.get("token_hash");
@@ -36,4 +42,10 @@ export function urlLooksLikeSupabaseAuthRedirect(url: URL): boolean {
     Boolean(tokenHash && SUPABASE_EMAIL_LINK_OTP_TYPES.has(type)) ||
     supabaseAuthHashLooksLikeSession(hash)
   );
+}
+
+/** When Site URL is `/`, route magic-link params to signup confirm vs password reset. */
+export function landingAuthForwardPath(url: URL): "/auth/callback" | "/reset-password" | null {
+  if (!urlLooksLikeSupabaseAuthRedirect(url)) return null;
+  return authRedirectLooksLikePasswordRecovery(url) ? "/reset-password" : "/auth/callback";
 }

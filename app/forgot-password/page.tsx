@@ -1,8 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
-export default function ForgotPasswordPage() {
+function ForgotPasswordInner() {
+  const searchParams = useSearchParams();
+  const inboundNotice = searchParams.get("notice");
+
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -56,6 +60,12 @@ export default function ForgotPasswordPage() {
           Enter your email address and we’ll send you a password reset link.
         </p>
 
+        {inboundNotice?.trim() ? (
+          <div className="mb-6 rounded-2xl border border-yellow-500/35 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-100/95 leading-relaxed">
+            {inboundNotice.trim()}
+          </div>
+        ) : null}
+
         {sent ? (
           <div className="bg-green-500/10 border border-green-500 text-green-400 rounded-2xl p-4 text-sm">
             If an account exists for that email, you’ll receive a reset link
@@ -88,5 +98,19 @@ export default function ForgotPasswordPage() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function ForgotPasswordPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen flex items-center justify-center px-6 text-zinc-400">
+          Loading…
+        </main>
+      }
+    >
+      <ForgotPasswordInner />
+    </Suspense>
   );
 }

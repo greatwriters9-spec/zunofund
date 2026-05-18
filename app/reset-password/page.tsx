@@ -9,6 +9,10 @@ import {
 } from "@/lib/auth/supabaseEmailLink";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 
+/** Shown when PKCE / in-app browsers break the exchange even though the link can work in Safari or Chrome. */
+const OPEN_IN_BROWSER_NOTICE =
+  "If you tapped this link inside WhatsApp or another in-app browser, open it in Safari or Chrome instead—or copy the link into your browser. You can always request a fresh reset email from the sign-in page.";
+
 function ResetPasswordInner() {
   const supabase = useSupabase();
   const router = useRouter();
@@ -30,11 +34,23 @@ function ResetPasswordInner() {
     let cancelled = false;
 
     async function establishSessionFromEmailLink() {
-      const code = searchParams.get("code");
-      const tokenHash = searchParams.get("token_hash");
-      const type = searchParams.get("type") ?? "";
-      const hash =
-        typeof window !== "undefined" ? window.location.hash.slice(1) : "";
+      await new Promise((r) => setTimeout(r, 80));
+
+      const browserUrl =
+        typeof window !== "undefined"
+          ? new URL(window.location.href)
+          : null;
+
+      const code =
+        browserUrl?.searchParams.get("code") ?? searchParams.get("code");
+      const tokenHash =
+        browserUrl?.searchParams.get("token_hash") ??
+        searchParams.get("token_hash");
+      const type =
+        browserUrl?.searchParams.get("type") ??
+        searchParams.get("type") ??
+        "";
+      const hash = browserUrl?.hash.slice(1) ?? "";
       const hasFragmentTokens = supabaseAuthHashLooksLikeSession(hash);
       const hadInboundParams =
         Boolean(code) ||
@@ -43,28 +59,51 @@ function ResetPasswordInner() {
 
       try {
         if (code) {
-          const { error } = await supabase.auth.exchangeCodeForSession(code);
-          if (error) {
-            if (!cancelled) {
-              setAuthGateError(formatSupabaseError(error));
+          const { error: exErr } =
+            await supabase.auth.exchangeCodeForSession(code);
+          if (exErr) {
+            const {
+              data: { session: recovered },
+            } = await supabase.auth.getSession();
+            if (!recovered?.user && !cancelled) {
+              const detail =
+                exErr.message?.trim() ||
+                "We could not verify your reset link.";
+              setAuthGateError(`${detail} ${OPEN_IN_BROWSER_NOTICE}`);
               setAuthGate("error");
             }
-            return;
+            if (!recovered?.user) {
+              return;
+            }
           }
         } else if (tokenHash && SUPABASE_EMAIL_LINK_OTP_TYPES.has(type)) {
-          const { error } = await supabase.auth.verifyOtp({
+          const { error: vErr } = await supabase.auth.verifyOtp({
             token_hash: tokenHash,
-            type: type as "recovery" | "email" | "signup" | "email_change",
+            type: type as
+              | "recovery"
+              | "email"
+              | "signup"
+              | "email_change"
+              | "magiclink"
+              | "invite",
           });
-          if (error) {
-            if (!cancelled) {
-              setAuthGateError(formatSupabaseError(error));
+          if (vErr) {
+            const {
+              data: { session: recovered },
+            } = await supabase.auth.getSession();
+            if (!recovered?.user && !cancelled) {
+              const detail =
+                vErr.message?.trim() ||
+                "We could not verify your reset link.";
+              setAuthGateError(`${detail} ${OPEN_IN_BROWSER_NOTICE}`);
               setAuthGate("error");
             }
-            return;
+            if (!recovered?.user) {
+              return;
+            }
           }
         } else if (hasFragmentTokens) {
-          await new Promise((r) => setTimeout(r, 120));
+          await new Promise((r) => setTimeout(r, 250));
         }
 
         let {
@@ -72,21 +111,28 @@ function ResetPasswordInner() {
         } = await supabase.auth.getSession();
 
         if (!session && hasFragmentTokens) {
-          await new Promise((r) => setTimeout(r, 400));
+          await new Promise((r) => setTimeout(r, 700));
           ({
             data: { session },
           } = await supabase.auth.getSession());
         }
 
         if (!session) {
+          const {
+            data: { session: retry },
+          } = await supabase.auth.getSession();
+          session = retry;
+        }
+
+        if (!session) {
           if (hadInboundParams && !cancelled) {
             setAuthGateError(
-              "This reset link is invalid or has expired. Request a new password reset.",
+              `This reset link is invalid or has expired. Request a new password reset. ${OPEN_IN_BROWSER_NOTICE}`,
             );
             setAuthGate("error");
           } else if (!cancelled) {
             setAuthGateError(
-              "Sign in or open the password-reset link from your email.",
+              `Sign in or open the password-reset link from your email. ${OPEN_IN_BROWSER_NOTICE}`,
             );
             setAuthGate("error");
           }
@@ -101,8 +147,17 @@ function ResetPasswordInner() {
         if (!cancelled) setAuthGate("ready");
       } catch (e) {
         if (!cancelled) {
+          const {
+            data: { session: recovered },
+          } = await supabase.auth.getSession();
+          if (recovered?.user) {
+            if (!cancelled) setAuthGate("ready");
+            return;
+          }
           setAuthGateError(
-            e instanceof Error ? e.message : "Something went wrong.",
+            e instanceof Error
+              ? `${e.message} ${OPEN_IN_BROWSER_NOTICE}`
+              : `Something went wrong. ${OPEN_IN_BROWSER_NOTICE}`,
           );
           setAuthGate("error");
         }
@@ -158,13 +213,37 @@ function ResetPasswordInner() {
             Verifying your reset link…
           </div>
         ) : authGate === "error" ? (
-          <div className="rounded-2xl border border-red-500/60 bg-red-500/10 px-5 py-4 text-sm text-red-300">
-            {authGateError ??
-              "We could not verify your reset link. Request a new email."}
+          <div className="space-y-5">
+            <div className="rounded-2xl border border-red-500/60 bg-red-500/10 px-5 py-4 text-sm text-red-300">
+              {authGateError ??
+                "We could not verify your reset link. Request a new email."}
+            </div>
+            <div className="flex flex-col gap-2 text-sm">
+              <a
+                href="/forgot-password"
+                className="font-semibold text-yellow-500 hover:text-yellow-400 transition"
+              >
+                Request a new reset email
+              </a>
+              <a
+                href="/auth"
+                className="text-zinc-500 hover:text-zinc-400 transition"
+              >
+                Back to sign in
+              </a>
+            </div>
           </div>
         ) : success ? (
-          <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-5 text-green-400">
-            Password updated successfully.
+          <div className="space-y-5">
+            <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-5 text-green-400">
+              Password updated successfully.
+            </div>
+            <a
+              href="/auth"
+              className="inline-block text-sm font-semibold text-yellow-500 hover:text-yellow-400 transition"
+            >
+              Continue to sign in
+            </a>
           </div>
         ) : (
           <>
