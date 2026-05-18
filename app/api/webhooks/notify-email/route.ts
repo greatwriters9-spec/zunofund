@@ -218,6 +218,19 @@ export async function POST(request: Request) {
     const notifType =
       typeof record.type === "string" ? record.type : "notification";
 
+    /*
+     * Signup email verification must come from Supabase Auth only — it contains the
+     * signed confirmation URL. Our Zuno layout always CTAs `dashboardUrl`, which
+     * sends unverified users to `/dashboard` → proxy redirects to `/` (looks “broken”).
+     * Duplicate mail also hurts trust/spam scores.
+     */
+    if (notifType.toLowerCase().includes("account_verify_reminder")) {
+      return jsonResponse({
+        ok: true,
+        skipped: "account-verify-supabase-auth-email-only",
+      });
+    }
+
     if (!id || !to.includes("@")) {
       return jsonResponse({ ok: true, skipped: "missing-target" });
     }
