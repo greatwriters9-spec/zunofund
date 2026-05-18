@@ -6,12 +6,14 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { sanitizeNextParam } from "@/lib/authLinks";
+import { authRedirectToUrl } from "@/lib/site-url";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 
 function AuthPageInner() {
   const supabase = useSupabase();
   const searchParams = useSearchParams();
   const wantsSignup = searchParams.get("signup") === "1";
+  const authCallbackError = searchParams.get("error");
   const nextDestination =
     sanitizeNextParam(searchParams.get("next")) ?? "/dashboard";
 
@@ -120,8 +122,13 @@ setLoading(true)
 
     // REGISTER
 const { data, error } = await supabase.auth.signUp({
-  email,
+  email: email.trim(),
   password,
+  options: {
+    emailRedirectTo: authRedirectToUrl("/auth/callback", {
+      next: nextDestination,
+    }),
+  },
 });
 
 if (error) {
@@ -151,7 +158,7 @@ const { error: investorError } = await supabase
       surname: surname,
       dob: dob,
       phone: phone,
-      email: email,
+      email: email.trim(),
       balance: 0,
       total_profit: 0,
       investment_plan: "Starter",
@@ -165,7 +172,13 @@ if (investorError) {
   return;
 }
 
-setFormSuccess("Account created successfully. You can sign in now.");
+if (data.session) {
+  setFormSuccess("Account created. You’re signed in.");
+} else {
+  setFormSuccess(
+    "Account created. Check your email and confirm your address before signing in.",
+  );
+}
 
 setIsLogin(true);
 setLoading(false);
@@ -202,6 +215,15 @@ return;
               : "Begin your premium investment journey with ZUNO"}
           </p>
         </div>
+
+        {authCallbackError ? (
+          <div
+            className="mb-6 rounded-2xl border border-red-500/60 bg-red-500/10 px-5 py-4 text-red-300"
+            role="alert"
+          >
+            {authCallbackError}
+          </div>
+        ) : null}
 
         {formError ? (
           <div

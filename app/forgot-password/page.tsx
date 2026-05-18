@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { authRedirectToUrl } from "@/lib/site-url"
 import { useSupabase, formatSupabaseError } from "@/lib/supabase"
 
 export default function ForgotPasswordPage() {
@@ -16,8 +17,10 @@ export default function ForgotPasswordPage() {
     setSendError(null)
     setLoading(true)
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: "http://localhost:3000/reset-password",
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: authRedirectToUrl("/auth/callback", {
+        next: "/reset-password",
+      }),
     })
 
     setLoading(false)
