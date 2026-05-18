@@ -14,6 +14,7 @@ function AuthPageInner() {
   const searchParams = useSearchParams();
   const wantsSignup = searchParams.get("signup") === "1";
   const authCallbackError = searchParams.get("error");
+  const authNotice = searchParams.get("notice");
   const nextDestination =
     sanitizeNextParam(searchParams.get("next")) ?? "/dashboard";
 
@@ -22,6 +23,10 @@ function AuthPageInner() {
   useEffect(() => {
     setIsLogin(!wantsSignup);
   }, [wantsSignup]);
+
+  useEffect(() => {
+    if (authNotice?.trim()) setIsLogin(true);
+  }, [authNotice]);
 
   const [firstName, setFirstName] = useState("");
   const [middleName, setMiddleName] = useState("");
@@ -220,6 +225,15 @@ setLoading(true)
               : "Begin your premium investment journey with ZUNO"}
           </p>
         </div>
+
+        {authNotice ? (
+          <div
+            className="mb-6 rounded-2xl border border-emerald-500/50 bg-emerald-500/10 px-5 py-4 text-emerald-200"
+            role="status"
+          >
+            {authNotice}
+          </div>
+        ) : null}
 
         {authCallbackError ? (
           <div

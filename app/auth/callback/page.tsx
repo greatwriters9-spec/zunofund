@@ -10,6 +10,31 @@ import {
 import { sanitizeNextParam } from "@/lib/authLinks";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 
+/** PKCE email links fail cross-browser (no code_verifier); email may already be verified server-side. */
+function exchangeFailedLikelyPkceOrConsumed(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const msg =
+    "message" in err && typeof (err as { message: unknown }).message === "string"
+      ? (err as { message: string }).message.toLowerCase()
+      : "";
+  const code =
+    "code" in err && typeof (err as { code: unknown }).code === "string"
+      ? (err as { code: string }).code.toLowerCase()
+      : "";
+  return (
+    msg.includes("code verifier") ||
+    msg.includes("code_verifier") ||
+    (msg.includes("code") && msg.includes("verifier")) ||
+    msg.includes("invalid_grant") ||
+    msg.includes("bad_oauth") ||
+    msg.includes("bad code verifier") ||
+    msg.includes("both auth code and code verifier") ||
+    code === "validation_failed" ||
+    code === "bad_oauth_state" ||
+    code === "invalid_grant"
+  );
+}
+
 function parseBrowserAuthUrl(): URL | null {
   if (typeof window === "undefined") return null;
   try {
@@ -97,6 +122,14 @@ function AuthCallbackInner() {
               window.location.assign(nextPath);
               return;
             }
+            if (exchangeFailedLikelyPkceOrConsumed(exErr)) {
+              router.replace(
+                `/auth?notice=${encodeURIComponent(
+                  "Your email is verified. Sign in with your email and password.",
+                )}`,
+              );
+              return;
+            }
             const msg = formatSupabaseError(exErr).toLowerCase();
             const looksConsumed =
               msg.includes("code") &&
@@ -170,6 +203,24 @@ function AuthCallbackInner() {
         window.location.assign(nextPath);
       } catch (e) {
         if (!cancelled) {
+          const { data: sess } = await supabase.auth.getSession();
+          if (sess?.user) {
+            window.location.assign(nextPath);
+            return;
+          }
+          if (
+            hadInboundParams &&
+            (e instanceof Error
+              ? exchangeFailedLikelyPkceOrConsumed({ message: e.message })
+              : false)
+          ) {
+            router.replace(
+              `/auth?notice=${encodeURIComponent(
+                "Your email is verified. Sign in with your email and password.",
+              )}`,
+            );
+            return;
+          }
           setError(e instanceof Error ? e.message : "Something went wrong.");
         }
       }
