@@ -99,6 +99,7 @@ export default function AdminProfitsPage() {
         amount: profitAmount,
         description,
         status: "completed",
+        profit_origin: "manual_admin",
       },
     ]);
 
