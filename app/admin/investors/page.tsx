@@ -20,6 +20,7 @@ interface InvestorRow {
   status?: string | null;
   tier_qualifying_principal?: number | null;
   tier_manual_override?: boolean | null;
+  profit_auto_accrue?: boolean | null;
 }
 
 export default function InvestorsPage() {
@@ -29,6 +30,9 @@ export default function InvestorsPage() {
   const [loading, setLoading] = useState(true);
   const [draftById, setDraftById] = useState<
     Record<string, CanonicalInvestmentPlan>
+  >({});
+  const [profitAutoDraft, setProfitAutoDraft] = useState<
+    Record<string, boolean>
   >({});
   const [savingId, setSavingId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -40,10 +44,13 @@ export default function InvestorsPage() {
 
   useEffect(() => {
     const m: Record<string, CanonicalInvestmentPlan> = {};
+    const pa: Record<string, boolean> = {};
     for (const inv of investors) {
       m[inv.id] = normalizeInvestmentPlan(inv.investment_plan);
+      pa[inv.id] = inv.profit_auto_accrue !== false;
     }
     setDraftById(m);
+    setProfitAutoDraft(pa);
   }, [investors]);
 
   async function fetchInvestors() {
@@ -90,6 +97,28 @@ export default function InvestorsPage() {
 
     setFormSuccess(
       `${inv.email}: plan saved as ${slug} (manual override — automatic tier from principal is paused).`,
+    );
+    await fetchInvestors();
+  }
+
+  async function saveProfitAuto(inv: InvestorRow) {
+    const enabled = profitAutoDraft[inv.id] ?? true;
+    setFormError(null);
+    setFormSuccess(null);
+    setSavingId(inv.id);
+    const { error } = await supabase
+      .from("investors")
+      .update({ profit_auto_accrue: enabled })
+      .eq("id", inv.id);
+    setSavingId(null);
+
+    if (error) {
+      setFormError(formatSupabaseError(error));
+      return;
+    }
+
+    setFormSuccess(
+      `${inv.email}: ${enabled ? "automatic daily profit on (~24h cadence)." : "daily profit paused — credit manually on Profits."}`,
     );
     await fetchInvestors();
   }
@@ -168,6 +197,39 @@ export default function InvestorsPage() {
                 Profit: ${Number(inv.total_profit || 0).toFixed(2)}
               </p>
               <p className="text-blue-400">Status: {inv.status}</p>
+
+              <div className="space-y-3 pt-2 border-t border-zinc-800">
+                <label className="flex items-start gap-3 text-sm text-zinc-300 cursor-pointer select-none max-w-xl">
+                  <input
+                    type="checkbox"
+                    className="mt-1 size-4 rounded border-zinc-600 bg-zinc-900 text-yellow-500 focus:ring-yellow-500/40"
+                    checked={profitAutoDraft[inv.id] ?? true}
+                    onChange={(e) =>
+                      setProfitAutoDraft((prev) => ({
+                        ...prev,
+                        [inv.id]: e.target.checked,
+                      }))
+                    }
+                  />
+                  <span>
+                    <strong className="text-white">
+                      Automatic daily profit (compound job)
+                    </strong>
+                    <span className="block text-zinc-500 text-xs mt-1 leading-relaxed">
+                      Uncheck to pause automated accrual for this investor only,
+                      then record profits on the Profits admin page.
+                    </span>
+                  </span>
+                </label>
+                <button
+                  type="button"
+                  disabled={savingId === inv.id}
+                  onClick={() => void saveProfitAuto(inv)}
+                  className="bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 text-zinc-100 font-semibold px-5 py-2 rounded-xl text-sm disabled:opacity-50"
+                >
+                  {savingId === inv.id ? "Saving…" : "Save profit accrual"}
+                </button>
+              </div>
 
               <div className="flex flex-col sm:flex-row sm:items-end gap-3 pt-2 border-t border-zinc-800">
                 <div className="flex-1">

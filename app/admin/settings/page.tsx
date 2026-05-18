@@ -46,16 +46,22 @@ export default function AdminSettingsPage() {
         </h2>
         <ul className="list-disc list-inside text-zinc-300 text-sm space-y-2">
           <li>
-            Investor <strong>tier / plan</strong> (daily compound + bracket;
-            saving locks auto-tier until “Use auto tier”){" "}
+            Investor <strong>tier / plan</strong> and{" "}
+            <strong>automatic vs paused daily profit accrual</strong> (per
+            investor) on the{" "}
             <Link href="/admin/investors" className="text-yellow-500 underline">
-              on the Investors page
+              Investors
+            </Link>{" "}
+            page. Manual profit entries use{" "}
+            <Link href="/admin/profits" className="text-yellow-500 underline">
+              Profits
             </Link>
             .
           </li>
           <li>
             <strong>Deposits & withdrawals</strong> approval queues on their
-            respective pages—those actions run the audited server functions.
+            respective pages—those actions run the audited server functions
+            (deposit flow unchanged).
           </li>
         </ul>
       </section>
@@ -115,8 +121,13 @@ export default function AdminSettingsPage() {
             first, then principal—principal withdrawals can lower tier.
           </li>
           <li>
-            <strong>Daily profit</strong> compounds per current tier; totals on
-            the investor dashboard reflect locked vs withdrawable buckets.
+            <strong>Daily automated profit</strong> uses the tier percentage on
+            current <strong>balance</strong>, credits{" "}
+            <strong>withdrawable profit</strong>, and runs at most about{" "}
+            <strong>once per ~24 hours</strong> per investor (sliding window via{" "}
+            <code className="text-yellow-400/90">last_compound_at</code>
+            ). Turn it off per investor on the Investors page when you need to
+            credit profits manually instead.
           </li>
         </ul>
       </section>
@@ -126,14 +137,17 @@ export default function AdminSettingsPage() {
           Operations (must be scheduled)
         </h2>
         <p className="text-zinc-300 text-sm leading-relaxed">
-          Compounding job and principal unlocks rely on PostgreSQL routines
-          (e.g.{' '}
-          <code className="text-yellow-400/90">run_daily_investment_jobs()</code>{' '}
-          as{' '}
-          <code className="text-yellow-400/90">service_role</code>). Schedule
-          that about once per day in Supabase—pg cron, Edge, or external
-          runner—or maturities and periodic accruals will not advance on their
-          own.
+          Compounding and principal unlocks call{" "}
+          <code className="text-yellow-400/90">run_daily_investment_jobs()</code>{" "}
+          using the Supabase{" "}
+          <code className="text-yellow-400/90">service_role</code> key. This
+          repo can call it from{" "}
+          <code className="text-yellow-400/90">/api/cron/run-daily-jobs</code>{" "}
+          (see <code className="text-yellow-400/90">vercel.json</code>) with{" "}
+          <code className="text-yellow-400/90">CRON_SECRET</code> and{" "}
+          <code className="text-yellow-400/90">SUPABASE_SERVICE_ROLE_KEY</code>{" "}
+          on Vercel, or schedule the same RPC from Supabase pg_cron or another
+          runner.
         </p>
       </section>
 
