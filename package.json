@@ -7,7 +7,9 @@
     "dev:insecure-tls": "node scripts/next-dev-insecure.cjs",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:notify-email": "node scripts/test-notify-email.mjs",
+    "sync:webhook-triggers": "node scripts/sync-webhook-triggers-from-env.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",

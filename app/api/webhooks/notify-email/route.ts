@@ -1,5 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 
+import { getEmailBrandConfig } from "@/lib/email/brand";
+import { siteOriginFromRequest } from "@/lib/email/request-origin";
+import { buildZunoEmailHtml } from "@/lib/email/zuno-layout";
 import { getSupabaseUrl } from "@/lib/supabase/env";
 
 export const runtime = "nodejs";
@@ -34,9 +37,13 @@ function safeEqual(a: string, b: string): boolean {
   return mismatches === 0;
 }
 
-function investorEmailSubject(type: string, title?: string): string {
+function investorEmailSubject(
+  type: string,
+  title: string | undefined,
+  brandTag: string,
+): string {
   const t = type.toLowerCase();
-  const base = `[Vault]`;
+  const base = `[${brandTag}]`;
   if (t.includes("deposit_submitted"))
     return `${base} Deposit request received`;
   if (t.includes("deposit_approved")) return `${base} Deposit approved`;
@@ -55,9 +62,9 @@ function investorEmailSubject(type: string, title?: string): string {
   return raw ? `${base} ${raw}` : `${base} Account update`;
 }
 
-function adminEmailSubject(type?: string): string {
+function adminEmailSubject(type: string | undefined, brandTag: string): string {
   const t = (type ?? "").toLowerCase();
-  const base = `[Admin]`;
+  const base = `[${brandTag} Admin]`;
   if (t.includes("pending_deposit")) return `${base} Pending deposit`;
   if (t.includes("pending_withdrawal")) return `${base} Pending withdrawal`;
   if (t.includes("new_ticket")) return `${base} New support ticket`;
@@ -116,7 +123,7 @@ export async function POST(request: Request) {
   const expected = process.env.NOTIFICATION_WEBHOOK_SECRET ?? "";
   if (expected.length < 16) {
     console.error(
-      "[notify-email] NOTIFY_WEBHOOK_SECRET must be configured (≥16 chars).",
+      "[notify-email] NOTIFICATION_WEBHOOK_SECRET must be configured (≥16 chars).",
     );
     return unauthorized();
   }
@@ -146,6 +153,10 @@ export async function POST(request: Request) {
       },
     );
   }
+
+  const brand = getEmailBrandConfig({
+    preferSiteUrl: siteOriginFromRequest(request),
+  });
 
   const svc = createClient(url, serviceRole, {
     auth: {
@@ -216,16 +227,15 @@ export async function POST(request: Request) {
       return jsonResponse({ ok: true, skipped: "already-mailed" });
     }
 
-    const subject = investorEmailSubject(notifType, title);
-    const html = `
-<div style="font-family:system-ui,Segoe UI,Roboto,Helvetica,sans-serif;line-height:1.5;color:#e4e4e7;background:#09090b;padding:24px">
-  <div style="max-width:520px;margin:0 auto;border:1px solid #27272a;border-radius:16px;background:#09090b;padding:24px">
-    <div style="color:#eab308;font-size:13px;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Vault</div>
-    <h2 style="color:#fafafa;margin:0 0 16px">${title}</h2>
-    <p style="color:#d4d4d8;margin:0 0 20px">${bodyMsg}</p>
-    <p style="color:#71717a;font-size:13px;margin:0">Prefer in-app alerts? Stay signed in — we ping you instantly when something changes.</p>
-  </div>
-</div>`;
+    const subject = investorEmailSubject(notifType, title, brand.brandName);
+    const html = buildZunoEmailHtml({
+      variant: "investor",
+      title,
+      bodyText: bodyMsg,
+      footnoteText:
+        "Prefer in-app alerts? Stay signed in — we ping you instantly when something changes.",
+      brand,
+    });
 
     const mailed = await sendResend({
       to,
@@ -302,15 +312,13 @@ export async function POST(request: Request) {
       ),
     ];
 
-    const subject = adminEmailSubject(notifType);
-    const html = `
-<div style="font-family:system-ui,Segoe UI,Roboto,Helvetica,sans-serif;line-height:1.5;color:#e4e4e7;background:#09090b;padding:24px">
-  <div style="max-width:520px;margin:0 auto;border:1px solid #27272a;border-radius:16px;background:#09090b;padding:24px">
-    <div style="color:#eab308;font-size:13px;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Admin Desk</div>
-    <h2 style="color:#fafafa;margin:0 0 16px">${title}</h2>
-    <p style="color:#d4d4d8;margin:0">${bodyMsg}</p>
-  </div>
-</div>`;
+    const subject = adminEmailSubject(notifType, brand.brandName);
+    const html = buildZunoEmailHtml({
+      variant: "admin",
+      title,
+      bodyText: bodyMsg,
+      brand,
+    });
 
     let dispatched = false;
     for (const inbox of uniqueRecipients) {
