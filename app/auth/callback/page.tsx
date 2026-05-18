@@ -8,31 +8,14 @@ import {
   supabaseAuthHashLooksLikeSession,
 } from "@/lib/auth/supabaseEmailLink";
 import { sanitizeNextParam } from "@/lib/authLinks";
-import { formatSupabaseError, useSupabase } from "@/lib/supabase";
+import { useSupabase } from "@/lib/supabase";
 
-/** PKCE email links fail cross-browser (no code_verifier); email may already be verified server-side. */
-function exchangeFailedLikelyPkceOrConsumed(err: unknown): boolean {
-  if (!err || typeof err !== "object") return false;
-  const msg =
-    "message" in err && typeof (err as { message: unknown }).message === "string"
-      ? (err as { message: string }).message.toLowerCase()
-      : "";
-  const code =
-    "code" in err && typeof (err as { code: unknown }).code === "string"
-      ? (err as { code: string }).code.toLowerCase()
-      : "";
-  return (
-    msg.includes("code verifier") ||
-    msg.includes("code_verifier") ||
-    (msg.includes("code") && msg.includes("verifier")) ||
-    msg.includes("invalid_grant") ||
-    msg.includes("bad_oauth") ||
-    msg.includes("bad code verifier") ||
-    msg.includes("both auth code and code verifier") ||
-    code === "validation_failed" ||
-    code === "bad_oauth_state" ||
-    code === "invalid_grant"
-  );
+/** When exchange fails (PKCE / in-app browser / cookies), verification often already succeeded server-side. */
+const SIGN_IN_NOTICE =
+  "Your email is usually verified already — especially if you opened this link inside WhatsApp or another app. Sign in with your email and password. If that fails, open the same link in Safari or Chrome, or request a new confirmation email.";
+
+function redirectToAuthNotice(router: ReturnType<typeof useRouter>) {
+  router.replace(`/auth?notice=${encodeURIComponent(SIGN_IN_NOTICE)}`);
 }
 
 function parseBrowserAuthUrl(): URL | null {
@@ -54,8 +37,8 @@ function AuthCallbackInner() {
     let cancelled = false;
 
     async function run() {
-      /** Let @supabase/ssr parse hash/query into cookies on first tick (race with React). */
-      await new Promise((r) => setTimeout(r, 0));
+      /** Extra beat for in-app browsers + @supabase/ssr parsing URL → cookies. */
+      await new Promise((r) => setTimeout(r, 80));
 
       const browserUrl = parseBrowserAuthUrl();
       const spNext = sanitizeNextParam(searchParams.get("next"));
@@ -122,26 +105,7 @@ function AuthCallbackInner() {
               window.location.assign(nextPath);
               return;
             }
-            if (exchangeFailedLikelyPkceOrConsumed(exErr)) {
-              router.replace(
-                `/auth?notice=${encodeURIComponent(
-                  "Your email is verified. Sign in with your email and password.",
-                )}`,
-              );
-              return;
-            }
-            const msg = formatSupabaseError(exErr).toLowerCase();
-            const looksConsumed =
-              msg.includes("code") &&
-              (msg.includes("invalid") ||
-                msg.includes("expired") ||
-                msg.includes("already") ||
-                msg.includes("exchange"));
-            setError(
-              looksConsumed
-                ? "This link was already used or expired. Your email may already be verified — try signing in below."
-                : formatSupabaseError(exErr),
-            );
+            redirectToAuthNotice(router);
             return;
           }
         } else if (tokenHash && SUPABASE_EMAIL_LINK_OTP_TYPES.has(type)) {
@@ -163,11 +127,11 @@ function AuthCallbackInner() {
               window.location.assign(nextPath);
               return;
             }
-            setError(formatSupabaseError(vErr));
+            redirectToAuthNotice(router);
             return;
           }
         } else if (hasFragmentTokens) {
-          await new Promise((r) => setTimeout(r, 200));
+          await new Promise((r) => setTimeout(r, 250));
         }
 
         ({
@@ -175,7 +139,7 @@ function AuthCallbackInner() {
         } = await supabase.auth.getSession());
 
         if (!session && hasFragmentTokens) {
-          await new Promise((r) => setTimeout(r, 500));
+          await new Promise((r) => setTimeout(r, 700));
           ({
             data: { session },
           } = await supabase.auth.getSession());
@@ -183,9 +147,7 @@ function AuthCallbackInner() {
 
         if (!session?.user) {
           if (!cancelled) {
-            setError(
-              "This link is invalid or has expired. Try signing in, or request a new confirmation email.",
-            );
+            redirectToAuthNotice(router);
           }
           return;
         }
@@ -208,17 +170,8 @@ function AuthCallbackInner() {
             window.location.assign(nextPath);
             return;
           }
-          if (
-            hadInboundParams &&
-            (e instanceof Error
-              ? exchangeFailedLikelyPkceOrConsumed({ message: e.message })
-              : false)
-          ) {
-            router.replace(
-              `/auth?notice=${encodeURIComponent(
-                "Your email is verified. Sign in with your email and password.",
-              )}`,
-            );
+          if (hadInboundParams) {
+            redirectToAuthNotice(router);
             return;
           }
           setError(e instanceof Error ? e.message : "Something went wrong.");
