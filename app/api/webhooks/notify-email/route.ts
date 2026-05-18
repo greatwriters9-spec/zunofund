@@ -46,6 +46,8 @@ function investorEmailSubject(
   const base = `[${brandTag}]`;
   if (t.includes("deposit_submitted"))
     return `${base} Deposit request received`;
+  if (t.includes("account_verify_reminder"))
+    return `${base} Welcome — verify your email`;
   if (t.includes("deposit_approved")) return `${base} Deposit approved`;
   if (t.includes("withdrawal_submitted"))
     return `${base} Withdrawal submitted`;

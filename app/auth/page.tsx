@@ -120,69 +120,55 @@ if (password !== confirmPassword) {
 }
 setLoading(true)
 
-    // REGISTER
-const { data, error } = await supabase.auth.signUp({
-  email: email.trim(),
-  password,
-  options: {
-    emailRedirectTo: authRedirectToUrl("/auth/callback", {
-      next: nextDestination,
-    }),
-  },
-});
+    const fullName = [firstName, middleName, surname].filter(Boolean).join(" ");
 
-if (error) {
-  setFormError(formatSupabaseError(error))
-  setLoading(false)
-  return
-}
-
-// GET CREATED USER
-const user = data.user;
-
-if (!user) {
-  setFormError("Failed to create user");
-  setLoading(false);
-  return;
-}
-
-// CREATE INVESTOR PROFILE
-const { error: investorError } = await supabase
-  .from("investors")
-  .insert([
-    {
-      user_id: user.id,
-      full_name: `${firstName} ${middleName} ${surname}`,
-      first_name: firstName,
-      middle_name: middleName,
-      surname: surname,
-      dob: dob,
-      phone: phone,
+    const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
-      balance: 0,
-      total_profit: 0,
-      investment_plan: "Starter",
-      status: "active",
-    },
-  ]);
+      password,
+      options: {
+        emailRedirectTo: authRedirectToUrl("/auth/callback", {
+          next: nextDestination,
+        }),
+        data: {
+          signup_flow: true,
+          full_name: fullName,
+          first_name: firstName,
+          middle_name: middleName,
+          surname,
+          dob,
+          phone,
+          investment_plan: "Starter",
+        },
+      },
+    });
 
-if (investorError) {
-  setFormError(formatSupabaseError(investorError));
-  setLoading(false);
-  return;
-}
+    if (error) {
+      setFormError(formatSupabaseError(error));
+      setLoading(false);
+      return;
+    }
 
-if (data.session) {
-  setFormSuccess("Account created. You’re signed in.");
-} else {
-  setFormSuccess(
-    "Account created. Check your email and confirm your address before signing in.",
-  );
-}
+    if (!data.user) {
+      setFormError("Failed to create user");
+      setLoading(false);
+      return;
+    }
 
-setIsLogin(true);
-setLoading(false);
-return;
+    // Investor row + optional welcome notification are created by DB trigger
+    // `sync_investor_profile_from_auth_user` (see migration). Client insert fails when email
+    // confirmation is on because there is no JWT yet for RLS.
+
+    if (data.session) {
+      setFormSuccess("Account created. You’re signed in.");
+    } else {
+      setFormSuccess(
+        "Your account has been created. Check your email and verify your address to activate your account — then you can sign in.",
+      );
+    }
+
+    setIsLogin(true);
+    setLoading(false);
+    return;
   }
 
   // SUCCESS SCREEN

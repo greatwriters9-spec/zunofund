@@ -1,36 +1,48 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { authRedirectToUrl } from "@/lib/site-url"
-import { useSupabase, formatSupabaseError } from "@/lib/supabase"
+import { useState } from "react";
 
 export default function ForgotPasswordPage() {
-  const supabase = useSupabase()
-  const [email, setEmail] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [sent, setSent] = useState(false)
-  const [sendError, setSendError] = useState<string | null>(null)
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
 
   async function handleReset() {
-    if (!email) return
+    if (!email.trim()) return;
 
-    setSendError(null)
-    setLoading(true)
+    setSendError(null);
+    setLoading(true);
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: authRedirectToUrl("/auth/callback", {
-        next: "/reset-password",
-      }),
-    })
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      });
 
-    setLoading(false)
+      const payload = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        error?: string;
+      };
 
-    if (error) {
-      setSendError(formatSupabaseError(error))
-      return
+      if (!res.ok) {
+        setSendError(
+          payload.error === "invalid-email"
+            ? "Enter a valid email address."
+            : "Could not send reset email. Try again shortly.",
+        );
+        setLoading(false);
+        return;
+      }
+    } catch {
+      setSendError("Network error. Check your connection and try again.");
+      setLoading(false);
+      return;
     }
 
-    setSent(true)
+    setLoading(false);
+    setSent(true);
   }
 
   return (
@@ -46,7 +58,8 @@ export default function ForgotPasswordPage() {
 
         {sent ? (
           <div className="bg-green-500/10 border border-green-500 text-green-400 rounded-2xl p-4 text-sm">
-            Password reset email sent successfully.
+            If an account exists for that email, you’ll receive a reset link
+            shortly. Check your inbox and spam folder.
           </div>
         ) : (
           <>
@@ -64,6 +77,7 @@ export default function ForgotPasswordPage() {
             />
 
             <button
+              type="button"
               onClick={handleReset}
               disabled={loading}
               className="w-full bg-yellow-500 hover:bg-yellow-400 transition text-black font-bold py-4 rounded-2xl"
@@ -74,5 +88,5 @@ export default function ForgotPasswordPage() {
         )}
       </div>
     </main>
-  )
+  );
 }

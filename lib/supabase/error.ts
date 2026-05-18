@@ -19,7 +19,16 @@ export function formatSupabaseError(error: unknown): string {
   const debug = process.env.NODE_ENV === "development";
 
   if (isSupabaseError(error) && error.message) {
-    return debug ? error.message : "Something went wrong. Please try again.";
+    const m = error.message;
+    if (debug) return m;
+    if (
+      /rate limit|already registered|already been registered|invalid login|email not confirmed|invalid credentials|password should|password must|email address is invalid|user already registered/i.test(
+        m,
+      )
+    ) {
+      return m;
+    }
+    return "Something went wrong. Please try again.";
   }
 
   if (error instanceof Error && error.message) {
