@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 
 import { useSupabase } from "@/lib/supabase";
-import { notificationsOwnerOrFilter } from "@/lib/notificationQuery";
 
 interface Transaction {
   id: string;
@@ -44,73 +43,49 @@ export default function HistoryPage() {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user?.email || !user.id) {
+    if (!user?.id) {
       setLoading(false);
       return;
     }
 
-    // DEPOSITS
-    const { data: deposits } = await supabase
-      .from("deposits")
-      .select("*")
-      .ilike("investor_email", user.email.trim());
-
-    // WITHDRAWALS
-    const { data: withdrawals } = await supabase
-      .from("withdrawals")
-      .select("*")
-      .ilike("investor_email", user.email.trim());
-
-    // PROFITS (RLS matches user_id OR email — mirror with PostgREST .or(...))
-    const profitOwner = notificationsOwnerOrFilter({
-      userId: user.id,
-      investorEmail: user.email.trim(),
-    });
-
-    const { data: profits } = await supabase
-      .from("profits")
-      .select("*")
-      .or(profitOwner);
-
-    const formattedDeposits =
-      deposits?.map((item) => ({
-        id: item.id,
-        type: "deposit" as const,
-        amount: Number(item.amount),
-        status: item.status || "completed",
-        description: item.description || "Deposit",
-        created_at: item.created_at,
-      })) || [];
-
-    const formattedWithdrawals =
-      withdrawals?.map((item) => ({
-        id: item.id,
-        type: "withdrawal" as const,
-        amount: Number(item.amount),
-        status: item.status || "completed",
-        description: item.description || "Withdrawal",
-        created_at: item.created_at,
-      })) || [];
-
-    const formattedProfits =
-      profits?.map((item) => ({
-        id: item.id,
-        type: "profit" as const,
-        amount: Number(item.amount),
-        status: item.status || "completed",
-        description: item.description || "Profit Added",
-        created_at: item.created_at,
-      })) || [];
-
-    const mergedTransactions = [
-      ...formattedDeposits,
-      ...formattedWithdrawals,
-      ...formattedProfits,
-    ].sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() -
-        new Date(a.created_at).getTime()
+    const { data: rows, error } = await supabase.rpc(
+      "investor_recent_transactions",
+      { p_limit: 250 },
     );
+
+    if (error) {
+      console.error(error);
+      setTransactions([]);
+      setLoading(false);
+      return;
+    }
+
+    type RpcTxn = {
+      id: string;
+      txn_type: string;
+      amount: number;
+      status: string;
+      description: string | null;
+      created_at: string;
+    };
+
+    const mergedTransactions = ((rows ?? []) as RpcTxn[]).reduce<
+      Transaction[]
+    >((acc, item) => {
+      const t = item.txn_type;
+      if (t !== "deposit" && t !== "withdrawal" && t !== "profit") {
+        return acc;
+      }
+      acc.push({
+        id: item.id,
+        type: t,
+        amount: Number(item.amount),
+        status: item.status || "completed",
+        description: item.description ?? undefined,
+        created_at: item.created_at,
+      });
+      return acc;
+    }, []);
 
     setTransactions(mergedTransactions);
 
@@ -188,7 +163,7 @@ export default function HistoryPage() {
                 Transaction history
               </h1>
               <p className="mt-1 text-sm text-zinc-600">
-                Same row layout as dashboard recent activity — full ledger.
+                Combined deposits, withdrawals, and profits — newest first (up to 250 rows).
               </p>
             </div>
             <Link

@@ -47,47 +47,49 @@ export default function AdminPage() {
   >([]);
 
   const fetchDashboardData = useCallback(async () => {
-    // Pending Deposits
-    const { count: depositsCount } = await supabase
-      .from("deposits")
-      .select("*", {
+    const investorListCols =
+      "id, full_name, email, balance, total_profit, investment_plan, status, created_at";
+
+    const [
+      depositsCountRes,
+      withdrawalsCountRes,
+      investorsCountRes,
+      investorsListRes,
+    ] = await Promise.all([
+      supabase
+        .from("deposits")
+        .select("*", {
+          count: "exact",
+          head: true,
+        })
+        .eq("status", "pending"),
+      supabase
+        .from("withdrawals")
+        .select("*", {
+          count: "exact",
+          head: true,
+        })
+        .eq("status", "pending"),
+      supabase.from("investors").select("*", {
         count: "exact",
         head: true,
-      })
-      .eq("status", "pending");
+      }),
+      supabase
+        .from("investors")
+        .select(investorListCols)
+        .order("created_at", {
+          ascending: false,
+        })
+        .limit(300),
+    ]);
 
-    // Pending Withdrawals
-    const { count: withdrawalsCount } = await supabase
-      .from("withdrawals")
-      .select("*", {
-        count: "exact",
-        head: true,
-      })
-      .eq("status", "pending");
+    setPendingDeposits(depositsCountRes.count ?? 0);
 
-    // Investors Count
-    const { count: investorsCount } = await supabase
-      .from("investors")
-      .select("*", {
-        count: "exact",
-        head: true,
-      });
+    setPendingWithdrawals(withdrawalsCountRes.count ?? 0);
 
-    // Investors List
-    const { data: investorsData } = await supabase
-      .from("investors")
-      .select("*")
-      .order("created_at", {
-        ascending: false,
-      });
+    setTotalInvestors(investorsCountRes.count ?? 0);
 
-    setPendingDeposits(depositsCount || 0);
-
-    setPendingWithdrawals(withdrawalsCount || 0);
-
-    setTotalInvestors(investorsCount || 0);
-
-    setInvestors(investorsData || []);
+    setInvestors((investorsListRes.data as Investor[]) || []);
   }, [supabase]);
 
   useEffect(() => {

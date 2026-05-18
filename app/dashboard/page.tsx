@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { X, Menu } from "lucide-react"
@@ -18,16 +19,7 @@ import {
   UserRound,
 } from "lucide-react";
 
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  Tooltip,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-} from "recharts";
-
+import type { ProfitChartDatum } from "@/components/dashboard/ProfitGrowthChart";
 import { coerceRpcBigint, formatSupabaseError, useSupabase } from "@/lib/supabase";
 import {
   dailyCompoundLabel,
@@ -36,6 +28,28 @@ import {
 } from "@/lib/investmentPlans";
 import { fetchInvestorNotificationSnapshot } from "@/lib/dashboardInvestorAlerts";
 import { notificationsOwnerOrFilter } from "@/lib/notificationQuery";
+
+const INVESTOR_DASHBOARD_COLUMNS =
+  "id, full_name, first_name, email, avatar_url, balance, total_profit, investment_plan, status, withdrawable_balance, withdrawable_profit, withdrawable_principal, locked_principal_balance";
+
+const PROFIT_FEED_COLUMNS =
+  "id, amount, status, created_at, profit_origin, investment_plan_snapshot";
+
+const ProfitGrowthChart = dynamic(
+  () =>
+    import("@/components/dashboard/ProfitGrowthChart").then((m) => ({
+      default: m.ProfitGrowthChart,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="min-h-[240px] w-full animate-pulse rounded-lg bg-zinc-900/40 sm:min-h-[280px] md:min-h-[300px]"
+        style={{ height: 300 }}
+      />
+    ),
+  },
+);
 
 interface Investor {
   id: string;
@@ -67,12 +81,6 @@ interface Activity {
   created_at: string;
 }
 
-interface ProfitChartData {
-  id: number;
-  date: string;
-  profit: number;
-}
-
 export default function DashboardPage() {
   const supabase = useSupabase();
 
@@ -84,7 +92,7 @@ export default function DashboardPage() {
 
   const [activities, setActivities] = useState<Activity[]>([]);
 
-  const [chartData, setChartData] = useState<ProfitChartData[]>([]);
+  const [chartData, setChartData] = useState<ProfitChartDatum[]>([]);
 
   const [showBalance, setShowBalance] = useState(true);
 
@@ -143,13 +151,12 @@ export default function DashboardPage() {
   useEffect(() => {
     let cancelled = false;
     const ac = new AbortController();
-    fetch("https://api.coingecko.com/api/v3/global", {
+    fetch("/api/market/global", {
       signal: ac.signal,
-      cache: "no-store",
     })
       .then((res) => (res.ok ? res.json() : Promise.reject()))
-      .then((payload: { data?: { total_market_cap?: { usd?: number } } }) => {
-        const v = payload?.data?.total_market_cap?.usd;
+      .then((payload: { totalMarketCapUsd?: number | null }) => {
+        const v = payload?.totalMarketCapUsd;
         if (!cancelled && typeof v === "number") setGlobalMarketCapUsd(v);
       })
       .catch(() => {
@@ -172,42 +179,52 @@ export default function DashboardPage() {
         return;
       }
 
-      const { data: investorData } = await supabase
-        .from("investors")
-        .select("*")
-        .eq("user_id", user.id)
-        .single();
-
-      setInvestor(investorData);
-
-      const snap = await fetchInvestorNotificationSnapshot(
-        supabase,
-        user.id,
-        user.email.trim(),
-      );
-      setNotifications(snap.preview as Notification[]);
-      setUnreadNotificationCount(snap.unreadTotal);
-
-      const { data: deposits } = await supabase
-        .from("deposits")
-        .select("id, amount, status, created_at")
-        .eq("user_id", user.id);
-
-      const { data: withdrawals } = await supabase
-        .from("withdrawals")
-        .select("id, amount, status, created_at")
-        .eq("user_id", user.id);
-
       const profitOwner = notificationsOwnerOrFilter({
         userId: user.id,
         investorEmail: user.email.trim(),
       });
 
-      const { data: profitsRaw } = await supabase
-        .from("profits")
-        .select("*")
-        .or(profitOwner)
-        .order("created_at", { ascending: true });
+      const [
+        investorRes,
+        snap,
+        depositsRes,
+        withdrawalsRes,
+        profitsRes,
+      ] = await Promise.all([
+        supabase
+          .from("investors")
+          .select(INVESTOR_DASHBOARD_COLUMNS)
+          .eq("user_id", user.id)
+          .single(),
+        fetchInvestorNotificationSnapshot(
+          supabase,
+          user.id,
+          user.email.trim(),
+        ),
+        supabase
+          .from("deposits")
+          .select("id, amount, status, created_at")
+          .eq("user_id", user.id),
+        supabase
+          .from("withdrawals")
+          .select("id, amount, status, created_at")
+          .eq("user_id", user.id),
+        supabase
+          .from("profits")
+          .select(PROFIT_FEED_COLUMNS)
+          .or(profitOwner)
+          .order("created_at", { ascending: true }),
+      ]);
+
+      setInvestor(investorRes.data as Investor | null);
+
+      setNotifications(snap.preview as Notification[]);
+      setUnreadNotificationCount(snap.unreadTotal);
+
+      const deposits = depositsRes.data;
+      const withdrawals = withdrawalsRes.data;
+
+      const profitsRaw = profitsRes.data;
 
       const profitsChronoAsc = [...(profitsRaw ?? [])];
 
@@ -835,45 +852,7 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            <div
-              className="min-h-[240px] w-full sm:min-h-[280px] md:min-h-[300px]"
-              style={{ height: 300 }}
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="profit" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#facc15" stopOpacity={0.35} />
-                      <stop offset="95%" stopColor="#facc15" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-
-                  <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-
-                  <XAxis dataKey="date" stroke="#71717a" tick={{ fontSize: 11 }} />
-
-                  <YAxis stroke="#71717a" tick={{ fontSize: 11 }} width={44} />
-
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#09090b",
-                      border: "1px solid #3f3f46",
-                      borderRadius: "8px",
-                      color: "#fff",
-                      fontSize: "12px",
-                    }}
-                  />
-
-                  <Area
-                    type="monotone"
-                    dataKey="profit"
-                    stroke="#facc15"
-                    fill="url(#profit)"
-                    strokeWidth={2}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
+            <ProfitGrowthChart data={chartData} />
           </div>
 
           <div className="flex max-h-[min(420px,55vh)] flex-col border border-zinc-800/80 bg-zinc-950/40 p-4 sm:p-5 lg:rounded-xl">
