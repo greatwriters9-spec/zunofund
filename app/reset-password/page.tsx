@@ -3,9 +3,11 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
+import {
+  SUPABASE_EMAIL_LINK_OTP_TYPES,
+  supabaseAuthHashLooksLikeSession,
+} from "@/lib/auth/supabaseEmailLink";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
-
-const QUERY_OTP_TYPES = new Set(["recovery", "email", "signup", "email_change"]);
 
 function ResetPasswordInner() {
   const supabase = useSupabase();
@@ -33,11 +35,10 @@ function ResetPasswordInner() {
       const type = searchParams.get("type") ?? "";
       const hash =
         typeof window !== "undefined" ? window.location.hash.slice(1) : "";
-      const hasFragmentTokens =
-        hash.includes("access_token") || hash.includes("refresh_token");
+      const hasFragmentTokens = supabaseAuthHashLooksLikeSession(hash);
       const hadInboundParams =
         Boolean(code) ||
-        Boolean(tokenHash && QUERY_OTP_TYPES.has(type)) ||
+        Boolean(tokenHash && SUPABASE_EMAIL_LINK_OTP_TYPES.has(type)) ||
         hasFragmentTokens;
 
       try {
@@ -50,7 +51,7 @@ function ResetPasswordInner() {
             }
             return;
           }
-        } else if (tokenHash && QUERY_OTP_TYPES.has(type)) {
+        } else if (tokenHash && SUPABASE_EMAIL_LINK_OTP_TYPES.has(type)) {
           const { error } = await supabase.auth.verifyOtp({
             token_hash: tokenHash,
             type: type as "recovery" | "email" | "signup" | "email_change",

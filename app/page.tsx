@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useEffect } from "react";
+
+import { urlLooksLikeSupabaseAuthRedirect } from "@/lib/auth/supabaseEmailLink";
 
 import { MarketingNavbar } from "@/components/navbar";
 import { LiveMarketTickerView, useLiveMarketPrices } from "@/components/LiveMarketTicker";
@@ -19,6 +22,19 @@ import {
 
 export default function HomePage() {
   const liveMarkets = useLiveMarketPrices();
+
+  /** Supabase may redirect failed/simplified confirms to Site URL (`/`) — forward params to `/auth/callback`. */
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    const path = url.pathname.replace(/\/+$/, "") || "/";
+    if (path !== "/") return;
+    if (!urlLooksLikeSupabaseAuthRedirect(url)) return;
+
+    const dest = new URL("/auth/callback", url.origin);
+    url.searchParams.forEach((v, k) => dest.searchParams.set(k, v));
+    window.location.replace(dest.pathname + dest.search + url.hash);
+  }, []);
 
   const plans = [
     {

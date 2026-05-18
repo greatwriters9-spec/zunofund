@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-import { getServerSiteOrigin } from "@/lib/server-site-origin";
+import { getRequestSiteOrigin } from "@/lib/server-site-origin";
 import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/supabase/env";
 
 export const runtime = "nodejs";
@@ -28,8 +28,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "invalid-email" }, { status: 400 });
   }
 
-  const origin = getServerSiteOrigin();
-  /** Recovery often uses `token_hash` / fragments — server `/auth/callback` only sees `?code=`. Land on reset-password and finish in the browser. */
+  const origin = getRequestSiteOrigin(request);
+  /** Recovery finishes on `/reset-password` (PKCE `code`, `token_hash`, or hash tokens). */
   const redirectTo = `${origin}/reset-password`;
 
   const supabase = createClient(getSupabaseUrl(), getSupabaseAnonKey(), {

@@ -122,13 +122,32 @@ setLoading(true)
 
     const fullName = [firstName, middleName, surname].filter(Boolean).join(" ");
 
+    let emailRedirectTo = authRedirectToUrl("/auth/callback", {
+      next: nextDestination,
+    });
+    try {
+      const r = await fetch(
+        `/api/auth/email-confirmation-redirect?next=${encodeURIComponent(nextDestination)}`,
+        { cache: "no-store" },
+      );
+      if (r.ok) {
+        const j = (await r.json()) as { redirectTo?: string };
+        if (
+          typeof j.redirectTo === "string" &&
+          /^https?:\/\//i.test(j.redirectTo)
+        ) {
+          emailRedirectTo = j.redirectTo;
+        }
+      }
+    } catch {
+      /* keep authRedirectToUrl fallback */
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
       options: {
-        emailRedirectTo: authRedirectToUrl("/auth/callback", {
-          next: nextDestination,
-        }),
+        emailRedirectTo,
         data: {
           signup_flow: true,
           full_name: fullName,
