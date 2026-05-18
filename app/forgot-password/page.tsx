@@ -3,7 +3,11 @@
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
+import { authRedirectToUrl } from "@/lib/site-url";
+import { formatSupabaseError, useSupabase } from "@/lib/supabase";
+
 function ForgotPasswordInner() {
+  const supabase = useSupabase();
   const searchParams = useSearchParams();
   const inboundNotice = searchParams.get("notice");
 
@@ -13,39 +17,50 @@ function ForgotPasswordInner() {
   const [sendError, setSendError] = useState<string | null>(null);
 
   async function handleReset() {
-    if (!email.trim()) return;
+    const trimmed = email.trim();
+    if (!trimmed.includes("@")) {
+      setSendError("Enter a valid email address.");
+      return;
+    }
 
     setSendError(null);
     setLoading(true);
 
+    /**
+     * Must run in the browser Supabase client (`flowType: "implicit"` in `createBrowserClient`).
+     * Server-side `resetPasswordForEmail` defaults to PKCE and embeds a code_challenge; the email
+     * is then opened on another device (mail app) with no code_verifier → exchange fails and users
+     * never reach `/reset-password`. Signup already uses the browser client for the same reason.
+     */
+    let redirectTo = authRedirectToUrl("/reset-password");
     try {
-      const res = await fetch("/api/auth/forgot-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
+      const r = await fetch("/api/auth/password-reset-redirect", {
+        cache: "no-store",
       });
-
-      const payload = (await res.json().catch(() => ({}))) as {
-        ok?: boolean;
-        error?: string;
-      };
-
-      if (!res.ok) {
-        setSendError(
-          payload.error === "invalid-email"
-            ? "Enter a valid email address."
-            : "Could not send reset email. Try again shortly.",
-        );
-        setLoading(false);
-        return;
+      if (r.ok) {
+        const j = (await r.json()) as { redirectTo?: string };
+        if (
+          typeof j.redirectTo === "string" &&
+          /^https?:\/\//i.test(j.redirectTo)
+        ) {
+          redirectTo = j.redirectTo;
+        }
       }
     } catch {
-      setSendError("Network error. Check your connection and try again.");
-      setLoading(false);
+      /* keep authRedirectToUrl fallback */
+    }
+
+    const { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
+      redirectTo,
+    });
+
+    setLoading(false);
+
+    if (error) {
+      setSendError(formatSupabaseError(error));
       return;
     }
 
-    setLoading(false);
     setSent(true);
   }
 
@@ -88,7 +103,7 @@ function ForgotPasswordInner() {
 
             <button
               type="button"
-              onClick={handleReset}
+              onClick={() => void handleReset()}
               disabled={loading}
               className="w-full bg-yellow-500 hover:bg-yellow-400 transition text-black font-bold py-4 rounded-2xl"
             >
