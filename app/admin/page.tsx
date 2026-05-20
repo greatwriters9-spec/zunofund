@@ -1,24 +1,9 @@
 "use client";
 
-
-import Link from "next/link";
-
 import { useCallback, useEffect, useState } from "react";
 
 import { displayPlanName, normalizeInvestmentPlan } from "@/lib/investmentPlans";
 import { useSupabase } from "@/lib/supabase";
-
-import {
-  LayoutDashboard,
-  Wallet,
-  ArrowDownCircle,
-  Users,
-  TrendingUp,
-  Settings,
-  LogOut,
-  ShieldCheck,
-  MessageCircle,
-} from "lucide-react";
 
 interface Investor {
   id: string;
@@ -33,18 +18,13 @@ interface Investor {
 export default function AdminPage() {
   const supabase = useSupabase();
 
-  const [pendingDeposits, setPendingDeposits] =
-    useState(0);
+  const [pendingDeposits, setPendingDeposits] = useState(0);
 
-  const [pendingWithdrawals, setPendingWithdrawals] =
-    useState(0);
+  const [pendingWithdrawals, setPendingWithdrawals] = useState(0);
 
-  const [totalInvestors, setTotalInvestors] =
-    useState(0);
+  const [totalInvestors, setTotalInvestors] = useState(0);
 
-  const [investors, setInvestors] = useState<
-    Investor[]
-  >([]);
+  const [investors, setInvestors] = useState<Investor[]>([]);
 
   const fetchDashboardData = useCallback(async () => {
     const investorListCols =
@@ -106,277 +86,108 @@ export default function AdminPage() {
     };
   }, [fetchDashboardData]);
 
-  async function handleLogout() {
-    await supabase.auth.signOut();
-
-    window.location.href = "/admin-login";
-  }
-
   return (
-    <div className="min-h-screen text-white flex">
+    <>
+      <div className="border-b border-[#D4AF37]/10 pb-8">
+        <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+          <span className="text-[#D4AF37]">Admin</span> overview
+        </h1>
 
-      {/* Sidebar */}
-      <aside className="w-72 bg-zinc-950 border-r border-zinc-800 p-6 flex flex-col justify-between">
+        <p className="mt-3 max-w-2xl text-sm text-zinc-500">
+          Same shell as investor P2P — dark canvas, gold accents, wide content rail.
+        </p>
+      </div>
 
-        <div>
+      <div className="mb-10 mt-8 grid min-w-0 grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="rounded-2xl border border-[#D4AF37]/18 bg-black/35 p-6 backdrop-blur-sm">
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Pending deposits</p>
 
-          {/* Logo */}
-          <div className="flex items-center gap-3 mb-10">
-
-            <ShieldCheck
-              className="text-yellow-500"
-              size={34}
-            />
-
-            <div>
-              <h1 className="text-2xl font-bold text-yellow-500">
-                Admin Panel
-              </h1>
-
-              <p className="text-gray-500 text-sm">
-                Trading Management
-              </p>
-            </div>
-          </div>
-
-          {/* Navigation */}
-          <nav className="space-y-3">
-
-            <Link
-              href="/admin"
-              className="flex items-center gap-3 bg-yellow-500 text-black font-semibold px-5 py-4 rounded-2xl"
-            >
-              <LayoutDashboard size={20} />
-              Dashboard
-            </Link>
-
-            <Link
-              href="/admin/deposits"
-              className="flex items-center gap-3 hover:bg-zinc-900 transition px-5 py-4 rounded-2xl text-gray-300"
-            >
-              <Wallet size={20} />
-              Deposits
-            </Link>
-
-            <Link
-              href="/admin/withdrawals"
-              className="flex items-center gap-3 hover:bg-zinc-900 transition px-5 py-4 rounded-2xl text-gray-300"
-            >
-              <ArrowDownCircle size={20} />
-              Withdrawals
-            </Link>
-
-            <Link
-              href="/admin/investors"
-              className="flex items-center gap-3 hover:bg-zinc-900 transition px-5 py-4 rounded-2xl text-gray-300"
-            >
-              <Users size={20} />
-              Investors
-            </Link>
-
-            <Link
-              href="/admin/profits"
-              className="flex items-center gap-3 hover:bg-zinc-900 transition px-5 py-4 rounded-2xl text-gray-300"
-            >
-              <TrendingUp size={20} />
-              Profits
-            </Link>
-
-            {/* SUPPORT BUTTON */}
-            <Link
-              href="/admin/support"
-              className="flex items-center gap-3 hover:bg-zinc-900 transition px-5 py-4 rounded-2xl text-gray-300"
-            >
-              <MessageCircle size={20} />
-              Support
-            </Link>
-
-            <Link
-              href="/admin/settings"
-              className="flex items-center gap-3 hover:bg-zinc-900 transition px-5 py-4 rounded-2xl text-gray-300"
-            >
-              <Settings size={20} />
-              Settings
-            </Link>
-
-          </nav>
+          <h2 className="text-4xl font-bold tabular-nums text-[#F5E6B3]">{pendingDeposits}</h2>
         </div>
 
-        {/* Logout */}
-        <button
-          onClick={handleLogout}
-          className="flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 transition py-4 rounded-2xl font-semibold"
-        >
-          <LogOut size={18} />
-          Logout
-        </button>
-      </aside>
+        <div className="rounded-2xl border border-[#D4AF37]/18 bg-black/35 p-6 backdrop-blur-sm">
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Pending withdrawals</p>
 
-      {/* Main Content */}
-      <main className="flex-1 p-10 overflow-auto">
-
-        {/* Header */}
-        <div className="mb-10">
-
-          <h1 className="text-5xl font-bold text-yellow-500 mb-3">
-            Welcome Admin
-          </h1>
-
-          <p className="text-gray-400 text-lg">
-            Manage investors, deposits,
-            withdrawals and profits.
-          </p>
+          <h2 className="text-4xl font-bold tabular-nums text-[#F5E6B3]">{pendingWithdrawals}</h2>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <div className="rounded-2xl border border-[#D4AF37]/18 bg-black/35 p-6 backdrop-blur-sm">
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Total investors</p>
 
-          <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-6">
-            <p className="text-gray-400 mb-3">
-              Pending Deposits
-            </p>
+          <h2 className="text-4xl font-bold tabular-nums text-[#F5E6B3]">{totalInvestors}</h2>
+        </div>
+      </div>
 
-            <h2 className="text-5xl font-bold text-yellow-500">
-              {pendingDeposits}
-            </h2>
-          </div>
+      <div className="overflow-hidden rounded-2xl border border-[#D4AF37]/18 bg-black/35 backdrop-blur-sm">
+        <div className="border-b border-white/10 px-6 py-5">
+          <h2 className="text-[13px] font-bold uppercase tracking-[0.14em] text-[#F5E6B3]">
+            Investor management
+          </h2>
 
-          <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-6">
-            <p className="text-gray-400 mb-3">
-              Pending Withdrawals
-            </p>
-
-            <h2 className="text-5xl font-bold text-yellow-500">
-              {pendingWithdrawals}
-            </h2>
-          </div>
-
-          <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-6">
-            <p className="text-gray-400 mb-3">
-              Total Investors
-            </p>
-
-            <h2 className="text-5xl font-bold text-yellow-500">
-              {totalInvestors}
-            </h2>
-          </div>
+          <p className="mt-2 text-xs text-zinc-500">Monitor investor accounts and balances.</p>
         </div>
 
-        {/* Investor Table */}
-        <div className="bg-zinc-950 border border-zinc-800 rounded-3xl overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px]">
+            <thead className="border-b border-white/10 bg-black/40 text-left text-[11px] uppercase tracking-[0.12em] text-zinc-500">
+              <tr>
+                <th className="p-5">Investor</th>
 
-          <div className="p-6 border-b border-zinc-800">
+                <th className="p-5">Balance</th>
 
-            <h2 className="text-3xl font-bold mb-2">
-              Investor Management
-            </h2>
+                <th className="p-5">Total Profit</th>
 
-            <p className="text-gray-500">
-              Monitor investor accounts and
-              balances.
-            </p>
-          </div>
+                <th className="p-5">Plan</th>
 
-          <div className="overflow-x-auto">
+                <th className="p-5">Status</th>
+              </tr>
+            </thead>
 
-            <table className="w-full">
+            <tbody>
+              {investors.length > 0 ? (
+                investors.map((investor) => (
+                  <tr
+                    key={investor.id}
+                    className="border-t border-white/10 bg-black/20 transition hover:bg-black/40"
+                  >
+                    <td className="p-5">
+                      <div>
+                        <h3 className="font-semibold text-[#F5E6B3]">{investor.full_name}</h3>
 
-              <thead className="bg-zinc-900 text-gray-400 text-sm">
+                        <p className="text-sm text-zinc-500">{investor.email}</p>
+                      </div>
+                    </td>
 
-                <tr>
-                  <th className="text-left p-5">
-                    Investor
-                  </th>
+                    <td className="p-5 font-semibold tabular-nums text-white">
+                      ${Number(investor.balance || 0).toFixed(2)}
+                    </td>
 
-                  <th className="text-left p-5">
-                    Balance
-                  </th>
+                    <td className="p-5 font-semibold tabular-nums text-emerald-400">
+                      +${Number(investor.total_profit || 0).toFixed(2)}
+                    </td>
 
-                  <th className="text-left p-5">
-                    Total Profit
-                  </th>
+                    <td className="p-5 font-semibold text-[#D4AF37]">
+                      {displayPlanName(normalizeInvestmentPlan(investor.investment_plan))}
+                    </td>
 
-                  <th className="text-left p-5">
-                    Plan
-                  </th>
-
-                  <th className="text-left p-5">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-
-                {investors.length > 0 ? (
-                  investors.map((investor) => (
-                    <tr
-                      key={investor.id}
-                      className="border-t border-zinc-800 hover:bg-zinc-900 transition"
-                    >
-
-                      <td className="p-5">
-                        <div>
-                          <h3 className="font-semibold">
-                            {
-                              investor.full_name
-                            }
-                          </h3>
-
-                          <p className="text-gray-500 text-sm">
-                            {investor.email}
-                          </p>
-                        </div>
-                      </td>
-
-                      <td className="p-5 font-semibold">
-                        $
-                        {Number(
-                          investor.balance || 0
-                        ).toFixed(2)}
-                      </td>
-
-                      <td className="p-5 text-green-500 font-semibold">
-                        +$
-                        {Number(
-                          investor.total_profit ||
-                            0
-                        ).toFixed(2)}
-                      </td>
-
-                      <td className="p-5 text-yellow-500 font-semibold">
-                        {
-                          displayPlanName(
-                            normalizeInvestmentPlan(investor.investment_plan),
-                          )
-                        }
-                      </td>
-
-                      <td className="p-5">
-
-                        <span className="bg-green-500/10 text-green-500 px-4 py-2 rounded-xl text-sm font-medium">
-                          {investor.status}
-                        </span>
-
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td
-                      colSpan={5}
-                      className="text-center p-10 text-gray-500"
-                    >
-                      No investors found.
+                    <td className="p-5">
+                      <span className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-300">
+                        {investor.status}
+                      </span>
                     </td>
                   </tr>
-                )}
-
-              </tbody>
-            </table>
-          </div>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="p-10 text-center text-zinc-500">
+                    No investors found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
-      </main>
-    </div>
+      </div>
+    </>
   );
 }

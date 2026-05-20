@@ -17,6 +17,7 @@ import {
   Headset,
   ArrowRight,
   UserRound,
+  Store,
 } from "lucide-react";
 
 import type { ProfitChartDatum } from "@/components/dashboard/ProfitGrowthChart";
@@ -113,6 +114,9 @@ export default function DashboardPage() {
   const [showWalletModal, setShowWalletModal] = useState(false)
 
   const [loading, setLoading] = useState(true);
+  const [merchantProfile, setMerchantProfile] = useState<{ status: string } | null | undefined>(
+    undefined,
+  );
   const [profileAvatarBroken, setProfileAvatarBroken] = useState(false);
   /** Global crypto market cap (USD), CoinGecko — informational only. */
   const [globalMarketCapUsd, setGlobalMarketCapUsd] = useState<number | null>(
@@ -183,6 +187,7 @@ export default function DashboardPage() {
 
       const [
         investorRes,
+        merchantProfRes,
         snap,
         depositsRes,
         withdrawalsRes,
@@ -193,6 +198,11 @@ export default function DashboardPage() {
           .select("*")
           .eq("user_id", user.id)
           .single(),
+        supabase
+          .from("merchant_profiles")
+          .select("status")
+          .eq("user_id", user.id)
+          .maybeSingle(),
         fetchInvestorNotificationSnapshot(
           supabase,
           user.id,
@@ -219,6 +229,18 @@ export default function DashboardPage() {
           formatSupabaseError(investorRes.error),
         );
       }
+
+      if (merchantProfRes.error) {
+        console.error(
+          "[dashboard] merchant_profiles:",
+          formatSupabaseError(merchantProfRes.error),
+        );
+      }
+      setMerchantProfile(
+        merchantProfRes.error
+          ? null
+          : ((merchantProfRes.data as { status: string } | null) ?? null),
+      );
 
       setInvestor(investorRes.data as Investor | null);
 
@@ -810,7 +832,7 @@ export default function DashboardPage() {
           
         </div>
 
-        <div className="mb-7 flex snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:snap-none md:grid-cols-2 md:gap-3 xl:grid-cols-4 xl:gap-4 md:overflow-visible md:pb-0">
+        <div className="mb-7 flex snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:snap-none md:grid-cols-2 md:gap-3 xl:grid-cols-5 xl:gap-4 md:overflow-visible md:pb-0">
 
           <Link
             href="/deposit"
@@ -827,6 +849,13 @@ export default function DashboardPage() {
           </Link>
 
           <Link
+            href="/p2p"
+            className="min-w-[calc(50%-4px)] shrink-0 snap-start rounded-xl border border-yellow-500/25 bg-yellow-500/5 px-4 py-3 text-center text-sm font-semibold text-yellow-400 transition hover:border-yellow-500/50 md:min-w-0"
+          >
+            P2P
+          </Link>
+
+          <Link
             href="/investment-plans"
             className="min-w-[calc(50%-4px)] shrink-0 snap-start rounded-xl border border-zinc-800 bg-zinc-950/50 px-4 py-3 text-center text-sm font-semibold text-white transition hover:border-yellow-500/50 md:min-w-0"
           >
@@ -840,6 +869,66 @@ export default function DashboardPage() {
             Support
           </Link>
         </div>
+
+        {merchantProfile != null ? (
+          <div className="mb-7 rounded-xl border border-yellow-500/25 bg-yellow-500/[0.06] p-4 sm:p-5 lg:rounded-xl">
+            <div className="flex gap-3">
+              <Store className="mt-0.5 h-5 w-5 shrink-0 text-yellow-500" aria-hidden />
+              <div className="min-w-0">
+                <h2 className="text-[11px] font-medium uppercase tracking-wide text-yellow-600/90">
+                  Merchant — your P2P offers
+                </h2>
+                {merchantProfile.status === "active" ? (
+                  <>
+                    <p className="mt-1 text-sm text-zinc-400">
+                      Create buy and sell listings; active offers are visible to every investor under{" "}
+                      <Link href="/p2p" className="text-yellow-500 hover:underline">
+                        P2P
+                      </Link>
+                      .
+                    </p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <Link
+                        href="/merchant"
+                        className="rounded-xl border border-yellow-500/40 bg-yellow-500/15 px-4 py-2 text-center text-sm font-semibold text-yellow-300 transition hover:border-yellow-500/60"
+                      >
+                        Merchant dashboard
+                      </Link>
+                      <Link
+                        href="/merchant/offers/new?side=sell_usdt"
+                        className="rounded-xl border border-red-500/45 bg-red-500/15 px-4 py-2 text-center text-sm font-semibold text-red-300 transition hover:border-red-400/70"
+                      >
+                        New sell-USDT offer
+                      </Link>
+                      <Link
+                        href="/merchant/offers/new?side=buy_usdt"
+                        className="rounded-xl border border-zinc-700 bg-zinc-950/60 px-4 py-2 text-center text-sm font-semibold text-white transition hover:border-yellow-500/50"
+                      >
+                        New buy-USDT offer
+                      </Link>
+                    </div>
+                  </>
+                ) : merchantProfile.status === "pending" ? (
+                  <p className="mt-1 text-sm text-zinc-400">
+                    Your merchant application is pending admin approval. You will be able to post offers once
+                    activated.{" "}
+                    <Link href="/merchant" className="text-yellow-500 hover:underline">
+                      View status
+                    </Link>
+                  </p>
+                ) : (
+                  <p className="mt-1 text-sm text-zinc-400">
+                    Merchant status:{" "}
+                    <span className="font-medium capitalize text-zinc-300">{merchantProfile.status}</span>.{" "}
+                    <Link href="/merchant" className="text-yellow-500 hover:underline">
+                      Open merchant area
+                    </Link>
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         <div className="mb-7 grid grid-cols-1 gap-3 xl:grid-cols-3 xl:gap-4">
 

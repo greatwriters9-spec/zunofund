@@ -130,14 +130,18 @@ export async function updateSession(request: NextRequest) {
     }
 
     try {
-      const { data: adminRow } = await supabase
-        .from("admins")
-        .select("user_id")
-        .eq("user_id", uid)
-        .maybeSingle();
+      // SECURITY DEFINER RPC avoids any mismatch vs direct `admins` SELECT under RLS/session timing.
+      const { data: adminFlag, error: adminRpcError } = await supabase.rpc("is_admin", {
+        check_uid: uid,
+      });
 
-      if (!adminRow) {
-        const redirect = NextResponse.redirect(new URL("/auth", request.url));
+      if (adminRpcError || adminFlag !== true) {
+        const url = new URL("/admin-login", request.url);
+        url.searchParams.set(
+          "notice",
+          "not_admin",
+        );
+        const redirect = NextResponse.redirect(url);
         copyCookies(response, redirect);
         return redirect;
       }

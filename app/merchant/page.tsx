@@ -1,0 +1,395 @@
+"use client";
+
+import Link from "next/link";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+
+import { MerchantAppShell } from "@/components/merchant/MerchantAppShell";
+import {
+  MerchantOfferHorizontalCard,
+  type MerchantOfferHorizontalRow,
+} from "@/components/merchant/MerchantOfferHorizontalCard";
+import type { MerchantOrderCard } from "@/components/merchant/merchantOrderTypes";
+import { MerchantTradesList } from "@/components/merchant/MerchantTradesList";
+import { fetchMerchantOrdersWithInvestors } from "@/components/merchant/useMerchantOrders";
+import { formatSupabaseError, useSupabase } from "@/lib/supabase";
+
+type MerchantMainTab = "offers" | "active";
+type Profile = {
+  user_id: string;
+  display_name: string | null;
+  status: string;
+};
+
+function normalizeMerchantOfferRows(raw: unknown): MerchantOfferHorizontalRow[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((r) => {
+    const row = r as Record<string, unknown>;
+    return {
+      id: String(row.id),
+      side: String(row.side ?? ""),
+      status: String(row.status ?? ""),
+      min_limit: Number(row.min_limit ?? 0),
+      max_limit: Number(row.max_limit ?? 0),
+      rate_percentage: Number(row.rate_percentage ?? 0),
+      payment_methods: Array.isArray(row.payment_methods) ? [...(row.payment_methods as string[])] : [],
+      advert_message:
+        typeof row.advert_message === "string" && row.advert_message.trim() ? row.advert_message.trim() : null,
+    };
+  });
+}
+
+/** Isolated so `MerchantDashboardPage` can wrap this in `<Suspense>` (Next.js `useSearchParams` requirement). */
+function MerchantAdvMigrationBanner() {
+  const searchParams = useSearchParams();
+  if (searchParams.get("adv_migration") !== "1") return null;
+  return (
+    <div className="mb-6 rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-3 text-sm leading-relaxed text-amber-100">
+      <strong className="text-amber-200">Listing saved,</strong> but your <strong>advert message was not stored</strong>{' '}
+      yet — the hosted database does not expose the newer <span className="font-mono text-xs">merchant_create_offer</span>{' '}
+      with <span className="font-mono text-xs">p_advert_message</span>. Apply migration{' '}
+      <span className="font-mono text-[11px]">20260623120000_merchant_offers_advert_message.sql</span> (see{' '}
+      <strong className="text-amber-200">docs/supabase-p2p-advert-migration.md</strong>). Then republish if you want the
+      investor-facing advert saved.
+    </div>
+  );
+}
+
+export default function MerchantDashboardPage() {
+  const supabase = useSupabase();
+  const [profile, setProfile] = useState<Profile | null | undefined>(undefined);
+  const [sessionUserId, setSessionUserId] = useState<string | null | undefined>(undefined);
+  const [offers, setOffers] = useState<MerchantOfferHorizontalRow[]>([]);
+  const [activeTradeCount, setActiveTradeCount] = useState<number | null>(null);
+  const [completedTradeCount, setCompletedTradeCount] = useState<number | null>(null);
+  const [merchantActiveOrders, setMerchantActiveOrders] = useState<MerchantOrderCard[]>([]);
+  const [activeOrdersError, setActiveOrdersError] = useState<string | null>(null);
+  const [mainTab, setMainTab] = useState<MerchantMainTab>("offers");
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user?.id) {
+      setSessionUserId(null);
+      setProfile(null);
+      return;
+    }
+
+    setSessionUserId(user.id);
+
+    const { data: prof } = await supabase
+      .from("merchant_profiles")
+      .select("user_id, display_name, status")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    setProfile(prof as Profile | null);
+
+    if ((prof as Profile | null)?.status === "active") {
+      const [offersRes, activeTradeHead, completedTradeHead, activeFull] = await Promise.all([
+        supabase
+          .from("merchant_offers")
+          .select("*")
+          .eq("merchant_user_id", user.id)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("merchant_orders")
+          .select("id", { count: "exact", head: true })
+          .eq("merchant_user_id", user.id)
+          .in("status", ["pending_payment", "paid"]),
+        supabase
+          .from("merchant_orders")
+          .select("id", { count: "exact", head: true })
+          .eq("merchant_user_id", user.id)
+          .in("status", ["completed", "cancelled"]),
+        fetchMerchantOrdersWithInvestors(supabase, user.id, "active"),
+      ]);
+      const activeC = activeTradeHead.count;
+      const completedC = completedTradeHead.count;
+      if (offersRes.error) {
+        setError(formatSupabaseError(offersRes.error));
+        setOffers([]);
+      } else {
+        setOffers(normalizeMerchantOfferRows(offersRes.data));
+      }
+      setActiveOrdersError(activeFull.error);
+      setMerchantActiveOrders(activeFull.error ? [] : activeFull.orders);
+      setActiveTradeCount(typeof activeC === "number" ? activeC : null);
+      setCompletedTradeCount(typeof completedC === "number" ? completedC : null);
+    } else {
+      setOffers([]);
+      setMerchantActiveOrders([]);
+      setActiveOrdersError(null);
+      setActiveTradeCount(null);
+      setCompletedTradeCount(null);
+    }
+  }, [supabase]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function toggleOffer(offerId: string, active: boolean) {
+    setError(null);
+    const { error: e } = await supabase.rpc("merchant_set_offer_status", {
+      p_offer_id: offerId,
+      p_active: active,
+    });
+    if (e) {
+      setError(formatSupabaseError(e));
+      return;
+    }
+    await load();
+  }
+
+  async function deleteOffer(offerId: string) {
+    const ok = confirm(
+      "Permanently remove this listing?\n\n" +
+        "You can delete it if there are no active trades using it " +
+        "(waiting for fiat, paid awaiting release).\n\n" +
+        "Trades already completed or cancelled no longer block removal.",
+    );
+    if (!ok) return;
+
+    setError(null);
+    const { error: e } = await supabase.rpc("merchant_delete_offer", {
+      p_offer_id: offerId,
+    });
+    if (e) {
+      setError(formatSupabaseError(e));
+      return;
+    }
+    await load();
+  }
+
+  const inactivePanel = (
+    className: string,
+    inner: React.ReactNode,
+    foot?: React.ReactNode,
+  ) => (
+    <div className={`max-w-xl rounded-2xl border border-[#D4AF37]/18 bg-black/35 p-6 backdrop-blur-sm ${className}`}>
+      {inner}
+      {foot}
+    </div>
+  );
+
+  let body: React.ReactNode;
+
+  if (profile === undefined || sessionUserId === undefined) {
+    body = (
+      <div className="flex gap-4 overflow-hidden">
+        <div className="h-36 min-w-[200px] flex-1 animate-pulse rounded-2xl bg-white/[0.06]" />
+        <div className="h-36 min-w-[200px] flex-1 animate-pulse rounded-2xl bg-white/[0.06]" />
+      </div>
+    );
+  } else if (sessionUserId === null) {
+    body = inactivePanel("", <p className="text-zinc-400">Sign in to open the merchant console.</p>, (
+      <Link
+        href="/auth"
+        className="mt-5 inline-flex rounded-xl bg-emerald-600 px-6 py-3 text-sm font-bold uppercase tracking-wide text-white shadow-lg shadow-emerald-500/20 hover:bg-emerald-500"
+      >
+        Sign in
+      </Link>
+    ));
+  } else if (profile === null) {
+    body = inactivePanel("", (
+      <>
+        <p className="text-sm text-zinc-400">
+          No merchant profile on this investor account yet. Ask an administrator to register you — public
+          self-service signup is disabled.
+        </p>
+        <Link
+          href="/dashboard"
+          className="mt-5 inline-flex rounded-xl border border-white/15 bg-black/30 px-5 py-2.5 text-sm font-semibold text-zinc-300 hover:border-[#D4AF37]/35 hover:text-[#F5E6B3]"
+        >
+          Investor dashboard
+        </Link>
+      </>
+    ));
+  } else if (profile.status === "pending") {
+    body = inactivePanel(
+      "border-amber-500/25 bg-amber-950/20",
+      <>
+        <p className="font-semibold uppercase tracking-[0.1em] text-amber-200">Pending review</p>
+        <p className="mt-3 text-sm text-zinc-400">
+          Offers and settlement tools activate after an administrator approves your profile.
+        </p>
+        <Link
+          href="/merchant/profile"
+          className="mt-5 inline-flex rounded-xl border border-white/15 px-5 py-2.5 text-sm font-semibold text-zinc-300 hover:border-[#D4AF37]/35"
+        >
+          Profile settings
+        </Link>
+      </>,
+    );
+  } else if (profile.status === "rejected" || profile.status === "suspended") {
+    body = inactivePanel("", (
+      <>
+        <p className="font-medium text-[#F5E6B3]">
+          Status: <strong className="uppercase">{profile.status}</strong>
+        </p>
+        <p className="mt-3 text-sm text-zinc-500">Contact administration for reinstatement if appropriate.</p>
+        <div className="mt-5 flex flex-wrap gap-3">
+          <Link
+            href="/merchant/profile"
+            className="rounded-xl border border-white/15 px-5 py-2.5 text-sm text-zinc-300 hover:bg-white/[0.04]"
+          >
+            Profile
+          </Link>
+          <Link href="/dashboard" className="rounded-xl border border-white/15 px-5 py-2.5 text-sm text-zinc-300">
+            Investor dashboard
+          </Link>
+        </div>
+      </>
+    ));
+  } else {
+    body = (
+      <>
+        <p className="mb-6 text-xs text-zinc-500 lg:hidden">
+          Logged in as <span className="text-zinc-300">{profile.display_name || "Merchant"}</span>
+        </p>
+
+        <div className="mb-8 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="rounded-2xl border border-[#D4AF37]/18 bg-black/35 p-5 backdrop-blur-sm">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Offers live</p>
+            <p className="mt-2 text-3xl font-bold tabular-nums text-[#F5E6B3]">{offers.filter((o) => o.status === "active").length}</p>
+            <div className="mt-3 flex flex-col gap-1.5">
+              <button
+                type="button"
+                onClick={() => setMainTab("offers")}
+                className="block text-left text-[11px] font-semibold uppercase tracking-wide text-zinc-400 hover:text-[#F5E6B3]"
+              >
+                View listings ↓
+              </button>
+              <Link href="/merchant/offers/new" className="text-[11px] font-bold uppercase tracking-wide text-[#D4AF37] hover:text-[#F5E6B3]">
+                + Publish another
+              </Link>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-[#D4AF37]/18 bg-black/35 p-5 backdrop-blur-sm">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Active trades</p>
+            <p className="mt-2 text-3xl font-bold tabular-nums text-[#F5E6B3]">{activeTradeCount ?? "—"}</p>
+            <button
+              type="button"
+              onClick={() => setMainTab("active")}
+              className="mt-3 block text-left text-[11px] font-bold uppercase tracking-wide text-[#D4AF37] hover:text-[#F5E6B3]"
+            >
+              Manage here →
+            </button>
+          </div>
+          <div className="rounded-2xl border border-[#D4AF37]/18 bg-black/35 p-5 backdrop-blur-sm">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Ended trades</p>
+            <p className="mt-2 text-3xl font-bold tabular-nums text-[#F5E6B3]">{completedTradeCount ?? "—"}</p>
+            <Link href="/merchant/orders/completed" className="mt-3 inline-block text-[11px] text-zinc-500 hover:text-zinc-300">
+              History →
+            </Link>
+          </div>
+        </div>
+
+        <section>
+          <div
+            className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap"
+            role="tablist"
+            aria-label="Console listings and trades"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mainTab === "offers"}
+              className={`relative flex-1 rounded-xl border px-4 py-2.5 text-center text-[11px] font-bold uppercase tracking-[0.14em] transition sm:flex-none sm:min-w-[11rem] sm:py-3 sm:text-[12px] ${
+                mainTab === "offers"
+                  ? "border-[#D4AF37]/55 bg-black/55 text-[#F5E6B3] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ring-1 ring-emerald-500/20"
+                  : "border-white/12 bg-black/28 text-zinc-500 hover:border-[#D4AF37]/30 hover:text-zinc-300"
+              }`}
+              onClick={() => setMainTab("offers")}
+            >
+              Your offers
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mainTab === "active"}
+              className={`relative flex-1 rounded-xl border px-4 py-2.5 text-center text-[11px] font-bold uppercase tracking-[0.14em] transition sm:flex-none sm:min-w-[11rem] sm:py-3 sm:text-[12px] ${
+                mainTab === "active"
+                  ? "border-[#D4AF37]/55 bg-black/55 text-[#F5E6B3] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ring-1 ring-emerald-500/20"
+                  : "border-white/12 bg-black/28 text-zinc-500 hover:border-[#D4AF37]/30 hover:text-zinc-300"
+              }`}
+              onClick={() => setMainTab("active")}
+            >
+              Active trades
+            </button>
+          </div>
+
+          <div className="min-h-0 min-w-full">
+            {mainTab === "offers" ? (
+              <>
+                {offers.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-[#D4AF37]/22 bg-black/25 py-14 text-center text-sm text-zinc-500">
+                    No offers yet —{" "}
+                    <Link href="/merchant/offers/new" className="font-semibold text-[#D4AF37] hover:underline">
+                      publish your first
+                    </Link>
+                    .
+                  </div>
+                ) : (
+                  <div className="flex max-h-[min(60vh,calc(100vh-14rem))] flex-col gap-3 overflow-y-auto pb-1 pr-1 [scrollbar-width:thin] lg:gap-4 [&::-webkit-scrollbar]:w-2">
+                    {offers.map((o) => (
+                      <MerchantOfferHorizontalCard
+                        key={o.id}
+                        offer={o}
+                        onToggleActive={() => void toggleOffer(o.id, o.status !== "active")}
+                        onDelete={() => void deleteOffer(o.id)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="max-h-[min(60vh,calc(100vh-14rem))] overflow-y-auto pr-1 pb-2 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2">
+                {activeOrdersError ? (
+                  <div className="mb-4 rounded-xl border border-red-500/35 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                    {activeOrdersError}
+                  </div>
+                ) : null}
+                <MerchantTradesList
+                  variant="console"
+                  orders={merchantActiveOrders}
+                  emptyMessage="No active trades. When investors open tickets on your ads, they appear here — same panel as your offers."
+                />
+              </div>
+            )}
+          </div>
+        </section>
+
+        <p className="mt-10 text-[11px] leading-relaxed text-zinc-600">
+          Dedicated pages still available:{" "}
+          <Link href="/merchant/orders/active" className="text-[#D4AF37] hover:text-[#F5E6B3]">
+            Active trades
+          </Link>{" "}
+          ·{" "}
+          <Link href="/merchant/orders/completed" className="text-[#D4AF37] hover:text-[#F5E6B3]">
+            Completed trades
+          </Link>
+          .
+        </p>
+      </>
+    );
+  }
+
+  return (
+    <MerchantAppShell
+      heading="Console"
+      description="Same glass-and-glow rails as investor P2P · switch Your offers / Active trades in one lane without leaving home."
+    >
+      <Suspense fallback={null}>
+        <MerchantAdvMigrationBanner />
+      </Suspense>
+      {error ? (
+        <div className="mb-6 rounded-xl border border-red-500/35 bg-red-500/10 px-4 py-3 text-sm text-red-200">{error}</div>
+      ) : null}
+      {body}
+    </MerchantAppShell>
+  );
+}

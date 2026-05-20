@@ -1,18 +1,26 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+
 import { useSupabase, formatSupabaseError } from "@/lib/supabase";
 
 export default function AdminLoginPage() {
   const supabase = useSupabase();
 
-  const router = useRouter();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    if (sp.get("notice") === "not_admin") {
+      setErrorMessage(
+        "That account is signed in but is not registered as an administrator. Use an admin login, or ask your team to add your user id to the admins table in Supabase.",
+      );
+    }
+  }, []);
 
   async function handleAdminLogin() {
     setErrorMessage(null);
@@ -42,11 +50,9 @@ export default function AdminLoginPage() {
     }
 
     // STEP 3: CHECK ADMIN TABLE
-    const { data: admin, error: adminError } = await supabase
-      .from("admins")
-      .select("user_id")
-      .eq("user_id", user.id)
-      .maybeSingle(); // safe
+    const { data: isAdmin, error: adminError } = await supabase.rpc("is_admin", {
+      check_uid: user.id,
+    });
 
     if (adminError) {
       setErrorMessage(formatSupabaseError(adminError));
@@ -54,7 +60,7 @@ export default function AdminLoginPage() {
       return;
     }
 
-    if (!admin) {
+    if (!isAdmin) {
       setErrorMessage("Unauthorized access");
 
       await supabase.auth.signOut();
@@ -62,9 +68,9 @@ export default function AdminLoginPage() {
       return;
     }
 
-    // SUCCESS
-    router.push("/admin");
+    // Full navigation so middleware sees freshly synced session cookies (client router.push can race).
     setLoading(false);
+    window.location.assign("/admin");
   }
 
   return (
@@ -76,6 +82,13 @@ export default function AdminLoginPage() {
 
         <p className="text-zinc-500 mb-8">
           Secure administrator access
+        </p>
+
+        <p className="mb-6 text-center text-sm text-zinc-500">
+          Investor login is separate —{" "}
+          <Link href="/auth" className="text-yellow-500 hover:underline">
+            Sign in as investor
+          </Link>
         </p>
 
         {errorMessage ? (
