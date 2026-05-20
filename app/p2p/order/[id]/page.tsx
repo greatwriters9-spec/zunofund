@@ -10,15 +10,15 @@ export default function P2pOrderDetailPage() {
 
   if (!id) {
     return (
-      <main className="relative min-h-screen p-6 text-white">
+      <main className="relative min-h-screen px-4 py-8 text-white pt-[max(1rem,env(safe-area-inset-top))]">
         <p className="text-red-400">Invalid order.</p>
       </main>
     );
   }
 
   return (
-    <main className="relative min-h-[100dvh] text-white">
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:py-8">
+    <main className="relative min-h-[100dvh] pb-[max(10px,env(safe-area-inset-bottom))] pt-[max(10px,env(safe-area-inset-top))] text-white">
+      <div className="mx-auto max-w-6xl px-3 py-4 sm:px-6 sm:py-6 lg:py-8">
         <P2pOrderWorkspace orderId={id} backHref="/p2p" backLabel="← Marketplace" embedded={false} />
       </div>
     </main>

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { ChevronDown } from "lucide-react";
 
 import { InvestorMarketplaceActiveTrades } from "@/components/p2p/InvestorMarketplaceActiveTrades";
 import { OfferCard, type OfferCardRow } from "@/components/p2p/OfferCard";
@@ -35,6 +36,7 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
   const [browseSplit, setBrowseSplit] = useState<BrowseSplit>("offers");
   const [liveOrderId, setLiveOrderId] = useState<string | null>(null);
   const [activeTradesGen, setActiveTradesGen] = useState(0);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const rpcSide = tab === "buy" ? "sell_usdt" : "buy_usdt";
 
@@ -185,7 +187,7 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
   const amtNum = Number(amount);
 
   const paneTabClass = (pressed: boolean) =>
-    `relative flex-1 rounded-xl border px-4 py-2.5 text-center text-[11px] font-bold uppercase tracking-[0.14em] transition sm:flex-none sm:min-w-[10.5rem] sm:py-3 sm:text-[12px] ${
+    `relative min-h-[44px] flex-1 rounded-xl border px-3 py-2.5 text-center text-[11px] font-bold uppercase tracking-[0.14em] transition sm:min-w-[10.5rem] sm:flex-none sm:py-3 sm:text-[12px] touch-manipulation ${
       pressed
         ? "border-[#D4AF37]/55 bg-black/55 text-[#F5E6B3] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ring-1 ring-emerald-500/20"
         : "border-white/12 bg-black/28 text-zinc-500 hover:border-[#D4AF37]/30 hover:text-zinc-300"
@@ -202,26 +204,61 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
         ? "Buy USDT from merchants"
         : "Sell USDT to merchants";
 
-  return (
-    <div className="relative flex min-h-screen min-w-0 flex-col bg-[#03060c] text-white lg:flex-row">
-      <P2pMarketplaceSidebar
-        tab={tab}
-        onTabChange={setTab}
-        asset={asset}
-        onAssetChange={setAsset}
-        amount={amount}
-        onAmountChange={setAmount}
-        paymentMethod={method}
-        onPaymentMethodChange={setMethod}
-        onSearch={() => void search()}
-        loading={loading}
-        sellPayoutValue={payoutInstructions}
-        onSellPayoutChange={setPayoutInstructions}
-        onOpenActiveTrades={jumpToActiveTrade}
-      />
+  const sidebarProps = {
+    tab,
+    onTabChange: setTab,
+    asset,
+    onAssetChange: setAsset,
+    amount,
+    onAmountChange: setAmount,
+    paymentMethod: method,
+    onPaymentMethodChange: setMethod,
+    onSearch: () => void search(),
+    loading,
+    sellPayoutValue: payoutInstructions,
+    onSellPayoutChange: setPayoutInstructions,
+    onOpenActiveTrades: jumpToActiveTrade,
+  } as const;
 
-      <main className="relative flex min-h-[50vh] min-w-0 flex-1 flex-col overflow-hidden lg:min-h-screen">
-        <div className="border-b border-[#D4AF37]/10 bg-black/20 px-4 py-4 sm:px-6">
+  return (
+    <div className="relative flex min-h-[100dvh] min-w-0 flex-col bg-[#03060c] pb-[max(0.5rem,env(safe-area-inset-bottom))] text-white lg:flex-row">
+      <div className="sticky top-0 z-40 border-b border-[#D4AF37]/15 bg-[#05080F]/96 pt-[env(safe-area-inset-top)] backdrop-blur-md lg:hidden">
+        <button
+          type="button"
+          className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left"
+          aria-expanded={mobileFiltersOpen}
+          onClick={() => setMobileFiltersOpen((o) => !o)}
+        >
+          <span>
+            <span className="block text-[11px] font-bold uppercase tracking-[0.14em] text-[#D4AF37]/90">
+              Search &amp; filters
+            </span>
+            <span className="mt-0.5 block text-[12px] text-zinc-500">
+              {asset} · {tab === "buy" ? "Buy" : "Sell"} · amount &amp; pay rail
+            </span>
+          </span>
+          <ChevronDown
+            className={`h-6 w-6 shrink-0 text-[#D4AF37] transition-transform duration-200 ${mobileFiltersOpen ? "rotate-180" : ""}`}
+            aria-hidden
+          />
+        </button>
+        {mobileFiltersOpen ? (
+          <div className="max-h-[min(72dvh,520px)] overflow-y-auto overscroll-y-contain border-t border-white/10 px-4 pb-4 pt-3 [scrollbar-width:thin]">
+            <P2pMarketplaceSidebar {...sidebarProps} />
+          </div>
+        ) : (
+          <p className="border-t border-white/5 px-4 py-3 text-center text-[11px] leading-snug text-zinc-500">
+            Expand to set amount, rail, payout (sell), and load offers — then browse below.
+          </p>
+        )}
+      </div>
+
+      <div className="hidden shrink-0 lg:block">
+        <P2pMarketplaceSidebar {...sidebarProps} />
+      </div>
+
+      <main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden lg:min-h-screen">
+        <div className="border-b border-[#D4AF37]/10 bg-black/20 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6 sm:py-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <Link href={backHref} className="text-sm font-medium text-[#D4AF37] transition hover:text-[#F5E6B3]">
@@ -256,7 +293,7 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
             </div>
           ) : null}
 
-          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap" role="tablist" aria-label="Marketplace content">
+          <div className="mb-4 flex w-full flex-row gap-2 sm:items-center sm:gap-3 md:flex-wrap" role="tablist" aria-label="Marketplace content">
             <button
               type="button"
               role="tab"
@@ -279,7 +316,7 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
 
           <div className="min-h-0 min-w-0 flex-1 overflow-hidden">
             {liveOrderId ? (
-              <div className="max-h-[min(78vh,calc(100vh-12rem))] overflow-y-auto pr-1 pb-2 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2">
+              <div className="max-h-[min(70dvh,calc(100dvh-11rem))] overflow-y-auto pr-1 pb-2 lg:max-h-[min(78vh,calc(100vh-12rem))] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2">
                 <P2pOrderWorkspace
                   embedded
                   orderId={liveOrderId}
@@ -288,18 +325,18 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
                 />
               </div>
             ) : browseSplit === "active" ? (
-              <div className="max-h-[min(70vh,calc(100vh-12rem))] overflow-y-auto pr-1 pb-2 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2">
+              <div className="max-h-[min(65dvh,calc(100dvh-12rem))] overflow-y-auto pr-1 pb-2 lg:max-h-[min(70vh,calc(100vh-12rem))] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2">
                 <InvestorMarketplaceActiveTrades refreshKey={activeTradesGen} onOpenOrder={openEmbeddedOrder} />
               </div>
             ) : asset !== "USDT" ? (
               <div className="rounded-2xl border border-dashed border-[#D4AF37]/25 bg-black/25 px-6 py-16 text-center backdrop-blur-sm">
                 <p className="text-zinc-400">
-                  {asset} P2P is not live yet. Select <strong className="text-[#D4AF37]">USDT</strong> in the left menu to
-                  browse active ads.
+                  {asset} P2P is not live yet. Select <strong className="text-[#D4AF37]">USDT</strong> in the filters
+                  strip (expand at top on mobile · rail on desktop).
                 </p>
               </div>
             ) : loading ? (
-              <div className="flex max-h-[min(70vh,calc(100vh-12rem))] flex-col gap-4 overflow-y-auto pr-1 pb-2 [scrollbar-width:thin]">
+              <div className="flex max-h-[min(65dvh,calc(100dvh-12rem))] flex-col gap-4 overflow-y-auto pr-1 pb-2 lg:max-h-[min(70vh,calc(100vh-12rem))] [scrollbar-width:thin]">
                 {[1, 2, 3].map((i) => (
                   <div
                     key={i}
@@ -310,12 +347,12 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
             ) : offers.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-[#D4AF37]/25 bg-black/25 px-6 py-16 text-center backdrop-blur-sm">
                 <p className="text-zinc-400">
-                  No matching offers yet. Set amount and payment method on the left, then tap{" "}
-                  <strong className="text-[#D4AF37]">Search offers</strong>.
+                  No matching offers yet. Expand <strong className="text-[#D4AF37]">Search &amp; filters</strong>, set
+                  amount and pay method, then tap <strong className="text-[#D4AF37]">Search offers</strong>.
                 </p>
               </div>
             ) : (
-              <div className="flex max-h-[min(70vh,calc(100vh-12rem))] flex-col gap-4 overflow-y-auto pr-1 pb-2 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2">
+              <div className="flex max-h-[min(65dvh,calc(100dvh-12rem))] flex-col gap-4 overflow-y-auto pr-1 pb-2 lg:max-h-[min(70vh,calc(100vh-12rem))] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2">
                 {offers.map((row) => (
                   <OfferCard
                     key={row.offer_id}

@@ -13,7 +13,7 @@ type TradeActionsProps = {
 export function TradeActions({ children, auxiliary, variant = "sticky" }: TradeActionsProps) {
   if (variant === "embedded") {
     return (
-      <div className="shrink-0 border-t border-white/[0.06] bg-black/[0.08] backdrop-blur-md">
+      <div className="shrink-0 border-t border-white/[0.06] bg-black/[0.08] pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur-md">
         {auxiliary ? <div className="border-b border-white/[0.06] px-4 pb-3 pt-3 sm:px-5">{auxiliary}</div> : null}
         <div className="flex flex-col gap-2 px-4 py-3 sm:gap-3 sm:px-5">{children}</div>
       </div>

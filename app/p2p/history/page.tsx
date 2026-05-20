@@ -5,7 +5,7 @@ import { InvestorP2pTradeHistoryView } from "@/components/p2p/InvestorP2pTradeHi
 /** Investor P2P ledger: Active, Completed, and Cancelled in full-page layout */
 export default function P2pInvestorTradeHistoryPage() {
   return (
-    <div className="min-h-screen bg-[#03060c] text-white">
+    <div className="min-h-[100dvh] bg-[#03060c] pb-[max(0px,env(safe-area-inset-bottom))] pt-[max(0px,env(safe-area-inset-top))] text-white">
       <header className="border-b border-[#D4AF37]/12 bg-black/35 backdrop-blur-sm">
         <div className="mx-auto flex max-w-4xl flex-col gap-4 px-4 py-5 sm:flex-row sm:items-end sm:justify-between sm:px-6">
           <div>

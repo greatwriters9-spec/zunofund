@@ -498,8 +498,8 @@ export function P2pOrderWorkspace({
 
   const shellHeight =
     embedded
-      ? "lg:h-[min(680px,calc(100vh-13rem))] lg:min-h-[420px]"
-      : "lg:h-[min(860px,calc(100dvh-7rem))] lg:min-h-[520px]";
+      ? "min-h-0 max-lg:min-h-[min(520px,82dvh)] lg:h-[min(680px,calc(100vh-13rem))] lg:min-h-[420px]"
+      : "min-h-0 max-lg:min-h-[min(560px,85dvh)] lg:h-[min(860px,calc(100dvh-7rem))] lg:min-h-[520px]";
 
   const backControl =
     onBack != null ? (
@@ -529,7 +529,7 @@ export function P2pOrderWorkspace({
 
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
               <aside className="w-full shrink-0 border-b border-white/[0.06] lg:flex lg:w-[min(360px,34%)] lg:flex-col lg:border-b-0 lg:border-r lg:border-white/[0.06]">
-                <div className="max-h-[min(38vh,320px)] space-y-3 overflow-y-auto px-4 py-4 lg:max-h-none lg:flex-1 lg:overflow-y-auto">
+                <div className="space-y-3 overflow-y-auto px-4 py-3 max-lg:max-h-[min(52dvh,340px)] lg:max-h-none lg:flex-1 lg:px-4 lg:py-4">
                   {error ? (
                     <div className="rounded-2xl border border-red-500/35 bg-red-500/10 px-4 py-3 text-sm text-red-200">
                       {error}
@@ -579,7 +579,7 @@ export function P2pOrderWorkspace({
                 </div>
               </aside>
 
-              <div className="flex min-h-[min(44vh,480px)] min-w-0 flex-1 flex-col bg-transparent lg:min-h-0">
+              <div className="flex min-h-[min(38dvh,320px)] min-w-0 flex-1 flex-col bg-transparent max-lg:flex-1 lg:min-h-0">
                 {chatSyncError ? (
                   <div className="shrink-0 border-b border-red-500/30 bg-red-500/10 px-4 py-2 text-xs text-red-200 sm:px-5">
                     {chatSyncError}

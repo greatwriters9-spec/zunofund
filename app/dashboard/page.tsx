@@ -18,6 +18,7 @@ import {
   ArrowRight,
   UserRound,
   Store,
+  ArrowLeftRight,
 } from "lucide-react";
 
 import type { ProfitChartDatum } from "@/components/dashboard/ProfitGrowthChart";
@@ -1153,6 +1154,21 @@ export default function DashboardPage() {
               Dashboard
             </Link>
             <Link
+              href="/p2p"
+              className="flex items-center gap-3 rounded-xl px-4 py-4 text-[#E5E7EB]/90 transition hover:bg-white/5 hover:text-[#D4AF37]"
+              onClick={() => setMobileNavOpen(false)}
+            >
+              <ArrowLeftRight className="h-5 w-5 shrink-0 text-[#D4AF37]" aria-hidden />
+              P2P marketplace
+            </Link>
+            <Link
+              href="/p2p/history"
+              className="rounded-xl px-4 py-4 pl-12 text-[14px] text-zinc-400 transition hover:bg-white/5 hover:text-[#D4AF37]"
+              onClick={() => setMobileNavOpen(false)}
+            >
+              P2P trade history
+            </Link>
+            <Link
               href="/investment-plans"
               className="rounded-xl px-4 py-4 text-[#E5E7EB]/90 transition hover:bg-white/5 hover:text-[#D4AF37]"
               onClick={() => setMobileNavOpen(false)}
@@ -1186,6 +1202,13 @@ export default function DashboardPage() {
               onClick={() => setMobileNavOpen(false)}
             >
               Deposit
+            </Link>
+            <Link
+              href="/withdraw"
+              className="rounded-xl px-4 py-4 text-[#E5E7EB]/90 transition hover:bg-white/5 hover:text-[#D4AF37]"
+              onClick={() => setMobileNavOpen(false)}
+            >
+              Withdraw
             </Link>
             <Link
               href="/support"

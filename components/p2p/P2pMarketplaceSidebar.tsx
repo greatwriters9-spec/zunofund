@@ -40,7 +40,7 @@ export function P2pMarketplaceSidebar({
   onOpenActiveTrades,
 }: P2pMarketplaceSidebarProps) {
   return (
-    <aside className="flex w-full shrink-0 flex-col gap-5 overflow-y-auto border-b border-[#D4AF37]/15 bg-[#05080F]/90 p-5 lg:h-[calc(100vh-0px)] lg:max-w-[380px] lg:border-b-0 lg:border-r xl:max-w-[430px]">
+    <aside className="flex w-full shrink-0 flex-col gap-4 overflow-y-auto border-b border-[#D4AF37]/15 bg-[#05080F]/90 p-4 max-lg:touch-pan-y lg:min-h-[100dvh] lg:gap-5 lg:border-b-0 lg:border-r lg:p-5 lg:pt-6 lg:max-w-[380px] xl:max-w-[430px]">
       <div>
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">Asset</p>
         <div className="mt-2 flex flex-row gap-2">
@@ -214,7 +214,7 @@ export function P2pMarketplaceSidebar({
         {loading ? "Searching…" : "SEARCH OFFERS"}
       </button>
 
-      <section className="rounded-xl border border-white/10 bg-black/35 p-4">
+      <section className="hidden rounded-xl border border-white/10 bg-black/35 p-4 lg:block">
         <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-[#D4AF37]/90">How P2P works</h3>
         <ol className="mt-3 list-decimal space-y-2 pl-4 text-[11px] leading-relaxed text-zinc-400">
           <li>
