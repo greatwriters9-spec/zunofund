@@ -13,13 +13,8 @@ import { resolveTradeAmount } from "@/components/p2p/resolveTradeAmount";
 import type { P2pAssetCode, P2pMarketTab } from "@/components/p2p/p2pTypes";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 import { formatFiat, type FiatCurrencyCode } from "@/lib/currencies";
-import {
-  assetFromOfferSide,
-  formatLimitRange,
-  inputAmountToCrypto,
-  minAmountPlaceholder,
-  p2pOfferSide,
-} from "@/lib/p2pAssets";
+import { assetFromOfferSide, formatLimitRange, minAmountPlaceholder, p2pOfferSide } from "@/lib/p2pAssets";
+import { inputToOfferFiat } from "@/lib/p2pValue";
 import { getFxRates, useFxRates } from "@/lib/useFx";
 
 
@@ -84,11 +79,15 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
     setError(null);
 
     setLoading(true);
+    const parsedAmt = Number(amount);
+    const searchAmount =
+      Number.isFinite(parsedAmt) && parsedAmt > 0 ? parsedAmt : null;
     const { data, error: rpcErr } = await supabase.rpc("investor_search_merchant_offers", {
       p_side: rpcSide,
-      p_amount: null,
+      p_amount: searchAmount,
       p_payment_method: method.trim() ? method.trim() : null,
       p_fiat_currency_code: fiatCurrency || null,
+      p_amount_currency: searchAmount != null ? amountUnit : null,
     });
     setLoading(false);
 
@@ -99,26 +98,26 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
     }
 
     setOffersRaw((data as OfferCardRow[]) ?? []);
-  }, [method, fiatCurrency, rpcSide, supabase]);
+  }, [amount, amountUnit, method, fiatCurrency, rpcSide, supabase]);
 
   useEffect(() => {
     void fetchOffers();
   }, [fetchOffers, asset, tab]);
 
-  const amountCryptoForFilter = useMemo(() => {
+  const toolbarAmount = useMemo(() => {
     const parsed = Number(amount);
     if (!Number.isFinite(parsed) || parsed <= 0) return null;
-    return inputAmountToCrypto(parsed, amountUnit, asset, fxRates);
-  }, [amount, amountUnit, asset, fxRates]);
+    return parsed;
+  }, [amount]);
 
   const offersDisplayed = useMemo(() => {
     let list = offersRaw;
-    if (amountCryptoForFilter != null) {
-      list = list.filter(
-        (o) =>
-          amountCryptoForFilter >= Number(o.min_limit) &&
-          amountCryptoForFilter <= Number(o.max_limit),
-      );
+    if (toolbarAmount != null) {
+      list = list.filter((o) => {
+        const offerFiat = (o.fiat_currency_code || "USD").toUpperCase();
+        const fiatAmt = inputToOfferFiat(toolbarAmount, amountUnit, offerFiat, fxRates);
+        return fiatAmt >= Number(o.min_limit) && fiatAmt <= Number(o.max_limit);
+      });
     }
     const cap = Number(feeCapInput);
     if (feeCapInput.trim() !== "" && Number.isFinite(cap) && cap >= 0) {
@@ -131,9 +130,9 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
     return [...list].sort(
       (a, b) => Number(a.rate_percentage) - Number(b.rate_percentage),
     );
-  }, [offersRaw, amountCryptoForFilter, feeCapInput, sizeFloorInput]);
+  }, [offersRaw, toolbarAmount, amountUnit, fxRates, feeCapInput, sizeFloorInput]);
 
-  async function executeOrder(row: OfferCardRow, amt: number) {
+  async function executeOrder(row: OfferCardRow, fiatAmt: number) {
     setBusyOfferId(row.offer_id);
     setError(null);
 
@@ -159,7 +158,7 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
     if (tab === "buy") {
       const { data: oid, error: e } = await supabase.rpc("investor_create_merchant_buy_order", {
         p_offer_id: row.offer_id,
-        p_amount_requested: amt,
+        p_fiat_amount: fiatAmt,
         p_payment_method: pm,
         p_fx_rate_usd_at_open: lockedRate,
       });
@@ -175,7 +174,7 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
 
     const { data: oid, error: e } = await supabase.rpc("investor_create_merchant_sell_order", {
       p_offer_id: row.offer_id,
-      p_usdt_amount: amt,
+      p_fiat_amount: fiatAmt,
       p_payment_method: pm,
       p_investor_payout_instructions: null,
       p_fx_rate_usd_at_open: lockedRate,
@@ -198,19 +197,19 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
       return;
     }
 
-    const { amount: amt, error: amtErr } = resolveTradeAmount(row, amount, resolveOpts);
+    const { fiatAmount, error: amtErr } = resolveTradeAmount(row, amount, resolveOpts);
     if (amtErr) {
       setError(amtErr);
       return;
     }
 
-    await executeOrder(row, amt);
+    await executeOrder(row, fiatAmount);
   }
 
   function confirmAmountPrompt() {
     const row = amountPromptRow;
     if (!row) return;
-    const { amount: amt, error: amtErr } = resolveTradeAmount(row, amountPromptValue, resolveOpts);
+    const { fiatAmount, error: amtErr } = resolveTradeAmount(row, amountPromptValue, resolveOpts);
     if (amtErr) {
       setAmountPromptError(amtErr);
       return;
@@ -218,7 +217,7 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
     setAmount(amountPromptValue.trim());
     setAmountPromptRow(null);
     setAmountPromptError(null);
-    void executeOrder(row, amt);
+    void executeOrder(row, fiatAmount);
   }
 
   function closeAmountPrompt() {
@@ -227,7 +226,7 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
     setAmountPromptValue("");
   }
 
-  const amtNum = amountCryptoForFilter ?? 0;
+  const amtNum = toolbarAmount ?? 0;
 
   const subtitle =
     listViewMode === "active"
@@ -332,7 +331,7 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
                     ? "No live ads on this side yet. Try Refresh, switch Buy/Sell, or pick another payment method."
                     : "No ads match your size or filters right now."}
                   {filterBadgeCount > 0 ? " Try clearing advanced filters." : null}
-                  {offersRaw.length > 0 && amountCryptoForFilter != null ? (
+                  {offersRaw.length > 0 && toolbarAmount != null ? (
                     <span className="block mt-2 text-zinc-500">
                       Widen your amount or change payment method — listings update as you adjust the toolbar.
                     </span>
@@ -346,7 +345,8 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
                     key={row.offer_id}
                     row={row}
                     flow={tab}
-                    amountCrypto={amtNum}
+                    toolbarAmount={amtNum}
+                    inputCurrency={amountUnit}
                     asset={asset}
                     busy={busyOfferId === row.offer_id}
                     onTrade={() => void pickOffer(row)}
@@ -455,12 +455,12 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
       ) : null}
 
       {amountPromptRow ? (() => {
-        const promptAsset = assetFromOfferSide(amountPromptRow.side);
-        const promptMinCrypto = Number(amountPromptRow.min_limit);
-        const promptMaxCrypto = Number(amountPromptRow.max_limit);
-        const promptNative = amountUnit !== promptAsset;
-        const limitsLine = `Limits ${formatLimitRange(promptMinCrypto, promptMaxCrypto, promptAsset, amountUnit, fxRates)}`;
-        const placeholderVal = minAmountPlaceholder(promptMinCrypto, promptAsset, amountUnit, fxRates);
+        const promptFiat = (amountPromptRow.fiat_currency_code || "USD").toUpperCase();
+        const promptMinFiat = Number(amountPromptRow.min_limit);
+        const promptMaxFiat = Number(amountPromptRow.max_limit);
+        const promptNative = amountUnit.toUpperCase() !== promptFiat;
+        const limitsLine = `Limits ${formatLimitRange(promptMinFiat, promptMaxFiat, promptFiat, asset, amountUnit, fxRates)}`;
+        const placeholderVal = minAmountPlaceholder(promptMinFiat, promptFiat);
 
         return (
         <div
@@ -492,14 +492,14 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
                   in <span className="font-semibold text-[#F5E6B3]">{amountUnit}</span>?
                 </>
               ) : (
-                <> ({promptAsset})?</>
+                <> ({promptFiat})?</>
               )}
             </p>
             <p className="mt-2 text-[11px] tabular-nums text-zinc-500">{limitsLine}</p>
 
             <label className="mt-4 block">
               <span className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
-                Amount ({promptNative ? amountUnit : promptAsset})
+                Amount ({promptNative ? amountUnit : promptFiat})
               </span>
               <input
                 type="number"
@@ -541,7 +541,7 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
                 disabled={busyOfferId === amountPromptRow.offer_id}
                 className="min-h-[44px] flex-1 rounded-xl bg-emerald-600 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-600/25 transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {tab === "buy" ? `Buy ${promptAsset}` : `Sell ${promptAsset}`}
+                {tab === "buy" ? `Buy ${asset}` : `Sell ${asset}`}
               </button>
             </div>
           </div>

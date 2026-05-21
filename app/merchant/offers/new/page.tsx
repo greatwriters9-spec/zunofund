@@ -203,11 +203,11 @@ export default function MerchantNewOfferPage() {
 
           <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
             <label className="min-w-0 sm:col-span-1">
-              <span className={label}>Min {listingAsset}</span>
+              <span className={label}>Min ({fiatCurrency})</span>
               <input type="number" value={minL} onChange={(e) => setMinL(e.target.value)} className={`mt-2 ${inp}`} />
             </label>
             <label className="min-w-0 sm:col-span-1">
-              <span className={label}>Max {listingAsset}</span>
+              <span className={label}>Max ({fiatCurrency})</span>
               <input type="number" value={maxL} onChange={(e) => setMaxL(e.target.value)} className={`mt-2 ${inp}`} />
             </label>
             <label className="min-w-0 sm:col-span-2">

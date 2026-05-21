@@ -1,10 +1,11 @@
 import type { OfferCardRow } from "@/components/p2p/OfferCard";
+import { assetFromOfferSide, type P2pAssetCode } from "@/lib/p2pAssets";
 import {
-  assetFromOfferSide,
-  formatLimitRange,
-  inputAmountToCrypto,
-  type P2pAssetCode,
-} from "@/lib/p2pAssets";
+  clampFiatToLimits,
+  fiatToCrypto,
+  formatFiatLimitRange,
+  inputToOfferFiat,
+} from "@/lib/p2pValue";
 import type { FxRateMap } from "@/lib/exchangeRates";
 
 export type ResolveTradeAmountOpts = {
@@ -17,27 +18,32 @@ export function resolveTradeAmount(
   row: OfferCardRow,
   amountInput: string,
   opts?: ResolveTradeAmountOpts,
-): { amount: number; error?: string } {
+): { fiatAmount: number; cryptoAmount: number; error?: string } {
   const asset = opts?.asset ?? assetFromOfferSide(row.side);
-  const inputCurrency = (opts?.inputCurrency || asset).toUpperCase();
+  const inputCurrency = (opts?.inputCurrency || row.fiat_currency_code || "USD").toUpperCase();
   const rates = opts?.rates ?? { USD: 1, USDT: 1, BTC: 70000 };
-  const minCrypto = Number(row.min_limit);
-  const maxCrypto = Number(row.max_limit);
-  const nativeInput = inputCurrency !== asset && inputCurrency !== "USDT";
+  const fiatCode = (row.fiat_currency_code || "USD").toUpperCase();
+  const minFiat = Number(row.min_limit);
+  const maxFiat = Number(row.max_limit);
 
   const parsed = Number(amountInput);
   if (Number.isFinite(parsed) && parsed > 0) {
-    const cryptoAmount = nativeInput
-      ? inputAmountToCrypto(parsed, inputCurrency, asset, rates)
-      : parsed;
-
-    if (cryptoAmount < minCrypto || cryptoAmount > maxCrypto) {
+    const fiatAmount = inputToOfferFiat(parsed, inputCurrency, fiatCode, rates);
+    if (fiatAmount < minFiat || fiatAmount > maxFiat) {
       return {
-        amount: 0,
-        error: `Amount must be between ${formatLimitRange(minCrypto, maxCrypto, asset, inputCurrency, rates)} for this ad.`,
+        fiatAmount: 0,
+        cryptoAmount: 0,
+        error: `Amount must be between ${formatFiatLimitRange(minFiat, maxFiat, fiatCode)} for this ad.`,
       };
     }
-    return { amount: cryptoAmount };
+    return {
+      fiatAmount,
+      cryptoAmount: fiatToCrypto(fiatAmount, fiatCode, asset, rates),
+    };
   }
-  return { amount: minCrypto };
+  const fiatAmount = minFiat;
+  return {
+    fiatAmount,
+    cryptoAmount: fiatToCrypto(fiatAmount, fiatCode, asset, rates),
+  };
 }

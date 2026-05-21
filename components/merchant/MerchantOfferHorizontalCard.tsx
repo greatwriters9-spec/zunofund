@@ -123,12 +123,18 @@ export function MerchantOfferHorizontalCard({ offer, onToggleActive, onDelete }:
         </p>
       </Zone>
 
-      <Zone label="Limits" aria-label={`Limits ${Number(offer.min_limit).toFixed(2)} to ${Number(offer.max_limit).toFixed(2)} USDT`}>
+      <Zone
+        label="Limits"
+        aria-label={`Limits ${Number(offer.min_limit).toFixed(2)} to ${Number(offer.max_limit).toFixed(2)} ${offer.fiat_currency_code ?? "USD"}`}
+      >
         <p className="truncate text-[15px] font-extrabold tabular-nums tracking-tight text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.45)]">
           {Number(offer.min_limit).toFixed(2)}
           <span className="text-zinc-500"> — </span>
           {Number(offer.max_limit).toFixed(2)}
-          <span className="text-[11px] font-semibold uppercase text-emerald-200/55"> USDT</span>
+          <span className="text-[11px] font-semibold uppercase text-emerald-200/55">
+            {" "}
+            {offer.fiat_currency_code ?? "USD"}
+          </span>
         </p>
       </Zone>
 

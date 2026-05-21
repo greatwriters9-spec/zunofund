@@ -4,23 +4,14 @@ import type { ReactNode } from "react";
 
 import { assetFromOfferSide, fmtAssetAmount, type P2pAssetCode } from "@/lib/p2pAssets";
 import { formatFiat, getFiatCurrency } from "@/lib/currencies";
-import { fromUsd } from "@/lib/exchangeRates";
+import {
+  clampFiatToLimits,
+  cryptoToFiat,
+  fiatToCrypto,
+  inputToOfferFiat,
+} from "@/lib/p2pValue";
 import { useFxRates } from "@/lib/useFx";
-
 import { paymentMethodLabelCaps, merchantInitials } from "./utils";
-
-function cryptoToFiat(
-  cryptoAmount: number,
-  asset: P2pAssetCode,
-  fiatCode: string,
-  rates: Record<string, number>,
-): number {
-  const usd =
-    asset === "BTC"
-      ? cryptoAmount * (rates.BTC ?? 70000)
-      : cryptoAmount;
-  return fromUsd(usd, fiatCode, rates);
-}
 
 export type OfferCardRow = {
   offer_id: string;
@@ -40,8 +31,8 @@ type OfferCardProps = {
   row: OfferCardRow;
   flow: "buy" | "sell";
   asset: P2pAssetCode;
-  /** When invalid, trade stays disabled — display still uses merchant min_limit for previews. */
-  amountCrypto: number;
+  toolbarAmount: number;
+  inputCurrency: string;
   busy?: boolean;
   onTrade: () => void;
 };
@@ -64,24 +55,30 @@ function PayReceiveCol({
   );
 }
 
-export function OfferCard({ row, flow, asset, amountCrypto, busy, onTrade }: OfferCardProps) {
+export function OfferCard({
+  row,
+  flow,
+  asset,
+  toolbarAmount,
+  inputCurrency,
+  busy,
+  onTrade,
+}: OfferCardProps) {
   const name = row.merchant_display_name || "Merchant";
   const { rates } = useFxRates();
   const offerAsset = assetFromOfferSide(row.side);
+  const fiatCode = (row.fiat_currency_code || "USD").toUpperCase();
+  const minFiat = Number(row.min_limit);
+  const maxFiat = Number(row.max_limit);
 
-  const browsingMode = !(Number.isFinite(amountCrypto) && amountCrypto > 0);
-  const qRaw = browsingMode ? row.min_limit : amountCrypto;
-  const clampedQty = Math.min(Math.max(qRaw, row.min_limit), row.max_limit);
+  const amountFiat =
+    toolbarAmount > 0 ? inputToOfferFiat(toolbarAmount, inputCurrency, fiatCode, rates) : 0;
+  const browsingMode = !(amountFiat > 0);
+  const clampedFiat = browsingMode ? minFiat : clampFiatToLimits(amountFiat, minFiat, maxFiat);
+  const clampedCrypto = fiatToCrypto(clampedFiat, fiatCode, offerAsset, rates);
 
-  const feeCrypto = clampedQty * (Number(row.rate_percentage) / 100);
-  const netBuyer = clampedQty - feeCrypto;
-
-  const fiatCode = row.fiat_currency_code || "USD";
-  const showFiat = fiatCode !== "USD";
-  const fiatMin = cryptoToFiat(Number(row.min_limit), offerAsset, fiatCode, rates);
-  const fiatMax = cryptoToFiat(Number(row.max_limit), offerAsset, fiatCode, rates);
-  const fiatGross = cryptoToFiat(clampedQty, offerAsset, fiatCode, rates);
-  const fiatNet = cryptoToFiat(netBuyer, offerAsset, fiatCode, rates);
+  const feeCrypto = clampedCrypto * (Number(row.rate_percentage) / 100);
+  const netCrypto = clampedCrypto - feeCrypto;
 
   const methodsCompact =
     row.payment_methods.slice(0, 2).map((c) => paymentMethodLabelCaps(c)).join(" · ") ||
@@ -89,8 +86,6 @@ export function OfferCard({ row, flow, asset, amountCrypto, busy, onTrade }: Off
   const methodsMore = row.payment_methods.length > 2 ? ` · +${row.payment_methods.length - 2}` : "";
 
   const primaryLabel = flow === "buy" ? "Buy" : "Sell";
-
-  const btnDisabled = busy;
 
   const btnBuyClass =
     "mt-4 inline-flex min-h-[44px] w-full items-center justify-center gap-1 rounded-xl bg-emerald-600 px-4 py-2.5 text-center text-[12px] font-extrabold uppercase tracking-wide text-white ring-1 ring-emerald-400/35 transition hover:bg-emerald-500 disabled:pointer-events-none disabled:opacity-40 sm:mt-0 md:max-w-[9.5rem]";
@@ -120,14 +115,13 @@ export function OfferCard({ row, flow, asset, amountCrypto, busy, onTrade }: Off
             {name}
           </h3>
           <p className="mt-1 text-[11px] font-medium tabular-nums text-zinc-400">
-            {fmtAssetAmount(offerAsset, row.min_limit)}–{fmtAssetAmount(offerAsset, row.max_limit)}{" "}
-            <span className="uppercase tracking-wide text-zinc-600">{offerAsset} · limits</span>
+            {formatFiat(minFiat, fiatCode)}–{formatFiat(maxFiat, fiatCode)}{" "}
+            <span className="uppercase tracking-wide text-zinc-600">{fiatCode} · limits</span>
           </p>
-          {showFiat ? (
-            <p className="text-[10px] tabular-nums text-zinc-500">
-              ≈ {formatFiat(fiatMin, fiatCode)} – {formatFiat(fiatMax, fiatCode)}
-            </p>
-          ) : null}
+          <p className="text-[10px] tabular-nums text-zinc-500">
+            ≈ {fmtAssetAmount(offerAsset, fiatToCrypto(minFiat, fiatCode, offerAsset, rates))} –{" "}
+            {fmtAssetAmount(offerAsset, fiatToCrypto(maxFiat, fiatCode, offerAsset, rates))}
+          </p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <span className="rounded-md bg-red-500/15 px-2 py-0.5 text-[10px] font-bold tabular-nums text-red-200 ring-1 ring-red-400/35">
               +{feePct}% fee
@@ -155,39 +149,25 @@ export function OfferCard({ row, flow, asset, amountCrypto, busy, onTrade }: Off
           <>
             <PayReceiveCol
               top={`Pay (${browsingMode ? "from " : ""}${fiatCode})`}
-              value={showFiat ? formatFiat(fiatGross, fiatCode) : `${clampedQty.toFixed(2)} USDT`}
-              sub={
-                showFiat
-                  ? `≈ ${clampedQty.toFixed(2)} USDT · settle off-platform`
-                  : "Settle fiat with merchant off-platform."
-              }
+              value={formatFiat(clampedFiat, fiatCode)}
+              sub={`≈ ${fmtAssetAmount(offerAsset, clampedCrypto)} · settle off-platform`}
             />
             <PayReceiveCol
               top="Receive"
-              value={`≈ ${netBuyer.toFixed(2)} USDT`}
-              sub={
-                showFiat
-                  ? `≈ ${formatFiat(fiatNet, fiatCode)} · ${feePct}% fee`
-                  : `Uses ${feePct}% rate on sampled size`
-              }
+              value={`≈ ${fmtAssetAmount(offerAsset, netCrypto)}`}
+              sub={`${feePct}% fee on sampled size`}
             />
           </>
         ) : (
           <>
             <PayReceiveCol
               top="Escrow lock"
-              value={fmtAssetAmount(offerAsset, clampedQty)}
-              sub="Released after your fiat settles."
+              value={fmtAssetAmount(offerAsset, clampedCrypto)}
+              sub={`≈ ${formatFiat(clampedFiat, fiatCode)} · released after fiat settles`}
             />
             <PayReceiveCol
               top={`Receive (${fiatCode})`}
-              value={
-                showFiat ? (
-                  formatFiat(fiatNet, fiatCode)
-                ) : (
-                  <span className="text-[13px] font-semibold">≈ {netBuyer.toFixed(2)} USD</span>
-                )
-              }
+              value={formatFiat(cryptoToFiat(netCrypto, offerAsset, fiatCode, rates), fiatCode)}
               sub={`${methodsCompact}${methodsMore} · net of ${feePct}% fee`}
             />
           </>
@@ -195,7 +175,7 @@ export function OfferCard({ row, flow, asset, amountCrypto, busy, onTrade }: Off
       </div>
 
       <div className="flex flex-col items-stretch md:items-stretch md:justify-center">
-        <button type="button" disabled={btnDisabled} onClick={onTrade} className={flow === "buy" ? btnBuyClass : btnSellClass}>
+        <button type="button" disabled={busy} onClick={onTrade} className={flow === "buy" ? btnBuyClass : btnSellClass}>
           {busy ? "…" : primaryLabel}{" "}
           <span className="tabular-nums text-[11px] font-bold opacity-95">{offerAsset}</span>
         </button>
