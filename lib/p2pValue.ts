@@ -74,13 +74,8 @@ export function fiatAmountInOfferCurrency(
 export function investorWithdrawableUsd(
   withdrawableProfit: number,
   withdrawablePrincipal: number,
-  btcWithdrawable: number,
-  rates: FxRateMap,
 ): number {
-  const usdtUsd =
-    (Number(withdrawableProfit) || 0) + (Number(withdrawablePrincipal) || 0);
-  const btcUsd = (Number(btcWithdrawable) || 0) * usdPerUnit("BTC", rates);
-  return usdtUsd + btcUsd;
+  return (Number(withdrawableProfit) || 0) + (Number(withdrawablePrincipal) || 0);
 }
 
 export function inputToOfferFiat(

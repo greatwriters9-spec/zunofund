@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
+import { fromUsd, toUsd } from "@/lib/exchangeRates";
+import { useFxRates } from "@/lib/useFx";
 import { motion } from "framer-motion";
 
 export default function WithdrawWalletPage() {
   const supabase = useSupabase();
+  const { rates: fxRates } = useFxRates();
 
   const [amount, setAmount] = useState("");
   const [walletAddress, setWalletAddress] = useState("");
@@ -20,6 +23,18 @@ export default function WithdrawWalletPage() {
 
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+
+  const isBtc = paymentMethod === "BTC";
+
+  const displayTotal = useMemo(
+    () => (isBtc ? fromUsd(totalBalance, "BTC", fxRates) : totalBalance),
+    [isBtc, totalBalance, fxRates],
+  );
+
+  const displayWithdrawable = useMemo(
+    () => (isBtc ? fromUsd(withdrawableBalance, "BTC", fxRates) : withdrawableBalance),
+    [isBtc, withdrawableBalance, fxRates],
+  );
 
   useEffect(() => {
     fetchInvestorBalance();
@@ -69,7 +84,11 @@ export default function WithdrawWalletPage() {
       return;
     }
 
-    if (withdrawalAmount > withdrawableBalance) {
+    const usdtNeeded = isBtc
+      ? toUsd(withdrawalAmount, "BTC", fxRates)
+      : withdrawalAmount;
+
+    if (usdtNeeded > withdrawableBalance) {
       setErrorMessage(
         "That amount exceeds what you can withdraw right now. New deposits unlock after 30 days; daily profits are withdrawable sooner — see totals below.",
       );
@@ -139,20 +158,27 @@ export default function WithdrawWalletPage() {
           <p>
             Total portfolio:{" "}
             <span className="font-semibold text-white">
-              ${totalBalance.toFixed(2)}
+              {isBtc
+                ? `${displayTotal.toFixed(8)} BTC`
+                : `$${displayTotal.toFixed(2)}`}
             </span>
           </p>
           <p>
             <span className="font-semibold text-green-500">
-              Available to withdraw now: ${withdrawableBalance.toFixed(2)}
+              Available to withdraw now:{" "}
+              {isBtc
+                ? `${displayWithdrawable.toFixed(8)} BTC`
+                : `$${displayWithdrawable.toFixed(2)}`}
             </span>
           </p>
-          <p>
-            Locked principal (30-day rule per deposit):{" "}
-            <span className="font-semibold text-yellow-500/90">
-              ${lockedPrincipal.toFixed(2)}
-            </span>
-          </p>
+          {!isBtc && (
+            <p>
+              Locked principal (30-day rule per deposit):{" "}
+              <span className="font-semibold text-yellow-500/90">
+                ${lockedPrincipal.toFixed(2)}
+              </span>
+            </p>
+          )}
         </div>
 
         {errorMessage && (

@@ -64,7 +64,6 @@ interface Investor {
   email: string;
   avatar_url?: string | null;
   balance: number;
-  btc_balance?: number | null;
   total_profit: number;
   investment_plan: string;
   status: string;
@@ -132,7 +131,6 @@ export default function DashboardPage() {
     null,
   );
   const balance = Number(investor?.balance || 0);
-  const btcBalance = Number(investor?.btc_balance ?? 0);
   const withdrawable = Number(investor?.withdrawable_balance ?? balance);
   const lockedPrincipal = Number(investor?.locked_principal_balance ?? 0);
   const planKey = normalizeInvestmentPlan(investor?.investment_plan);
@@ -437,9 +435,7 @@ export default function DashboardPage() {
   function formatBalanceHeadline(): string {
     if (!showBalance) return "••••••";
     if (displayCrypto === "BTC") {
-      const btc =
-        btcBalance > 0 ? btcBalance : fromUsd(balance, "BTC", fxRates);
-      return fmtAssetAmount("BTC", btc);
+      return fmtAssetAmount("BTC", fromUsd(balance, "BTC", fxRates));
     }
     const maxFrac = balance > 0 && balance < 1 ? 6 : 2;
     return `${balance.toLocaleString("en-US", {

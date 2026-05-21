@@ -26,6 +26,16 @@ export function resolveTradeAmount(
   const minFiat = Number(row.min_limit);
   const maxFiat = Number(row.max_limit);
 
+  const isSellSide = row.side === "buy_usdt" || row.side === "buy_btc";
+  const ratePct = Number(row.rate_percentage) || 0;
+  const rateFactor = 1 + ratePct / 100;
+
+  function appliedCrypto(fiat: number): number {
+    const spot = fiatToCrypto(fiat, fiatCode, asset, rates);
+    if (isSellSide) return spot / Math.max(0.0001, rateFactor);
+    return spot * Math.max(0, 1 - ratePct / 100);
+  }
+
   const parsed = Number(amountInput);
   if (Number.isFinite(parsed) && parsed > 0) {
     const fiatAmount = inputToOfferFiat(parsed, inputCurrency, fiatCode, rates);
@@ -38,12 +48,12 @@ export function resolveTradeAmount(
     }
     return {
       fiatAmount,
-      cryptoAmount: fiatToCrypto(fiatAmount, fiatCode, asset, rates),
+      cryptoAmount: appliedCrypto(fiatAmount),
     };
   }
   const fiatAmount = minFiat;
   return {
     fiatAmount,
-    cryptoAmount: fiatToCrypto(fiatAmount, fiatCode, asset, rates),
+    cryptoAmount: appliedCrypto(fiatAmount),
   };
 }

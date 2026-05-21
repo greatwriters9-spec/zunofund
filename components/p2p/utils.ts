@@ -31,6 +31,8 @@ export function orderStatusHeadline(status: string): string {
       return "Trade completed";
     case "cancelled":
       return "Trade cancelled";
+    case "completed_expired":
+      return "Trade expired";
     default:
       return status.replace(/_/g, " ");
   }

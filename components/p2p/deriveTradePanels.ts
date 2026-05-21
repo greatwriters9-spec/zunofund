@@ -135,11 +135,17 @@ export function deriveTradePanels(order: WorkspaceOrderRow, viewerIsMerchant: bo
     : `$${esc} USDT is escrowed.\nYou'll collect fiat externally using your payout mandate; release USDT once funds have cleared.${fiatLockedLine}\nFee on their listing: ${rate}%. Coordinating rail: ${payLabel}.`;
 
   const payoutLines =
-    payout.length > 0 ? payout : "(Payout specifics were blank when trade opened — post bank / wallet handles before moving funds.)";
+    payout.length > 0
+      ? payout
+      : viewerIsMerchant
+        ? "(Investor has not yet provided payout details. Wait for them to post their bank / wallet address in chat before disbursing.)"
+        : "ACTION REQUIRED: Post your bank account, mobile money, or wallet address in the chat below right now so the merchant knows where to send your fiat. Do not wait — the merchant cannot pay until you provide this.";
 
   const instructions = viewerIsMerchant
     ? `Seller payout coordinates:\nFiat MUST only route to:\n\n${payoutLines}`
-    : `Your fiat payout mandate (merchant must honour this):\n\n${payoutLines}`;
+    : payout.length > 0
+      ? `Your fiat payout mandate (merchant must honour this):\n\n${payoutLines}`
+      : payoutLines;
 
   return {
     tradeLine,

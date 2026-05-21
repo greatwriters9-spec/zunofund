@@ -77,8 +77,12 @@ export function OfferCard({
   const clampedFiat = browsingMode ? minFiat : clampFiatToLimits(amountFiat, minFiat, maxFiat);
   const clampedCrypto = fiatToCrypto(clampedFiat, fiatCode, offerAsset, rates);
 
-  const feeCrypto = clampedCrypto * (Number(row.rate_percentage) / 100);
+  const ratePct = Number(row.rate_percentage) || 0;
+  const feeCrypto = clampedCrypto * (ratePct / 100);
   const netCrypto = clampedCrypto - feeCrypto;
+
+  const rateFactor = 1 + ratePct / 100;
+  const sellLockCrypto = clampedCrypto / Math.max(0.0001, rateFactor);
 
   const methodsCompact =
     row.payment_methods.slice(0, 2).map((c) => paymentMethodLabelCaps(c)).join(" · ") ||
@@ -93,10 +97,16 @@ export function OfferCard({
   const btnSellClass =
     "mt-4 inline-flex min-h-[44px] w-full items-center justify-center gap-1 rounded-xl bg-red-600 px-4 py-2.5 text-center text-[12px] font-extrabold uppercase tracking-wide text-white ring-1 ring-red-400/35 transition hover:bg-red-500 disabled:pointer-events-none disabled:opacity-40 sm:mt-0 md:max-w-[9.5rem]";
 
-  const feePct = Number(row.rate_percentage).toLocaleString(undefined, {
+  const feePct = Math.abs(ratePct).toLocaleString(undefined, {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   });
+  const rateBadge =
+    flow === "sell"
+      ? ratePct >= 0
+        ? `+${feePct}% above spot`
+        : `${Number(row.rate_percentage).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}% below spot`
+      : `+${feePct}% fee`;
 
   return (
     <article
@@ -123,8 +133,16 @@ export function OfferCard({
             {fmtAssetAmount(offerAsset, fiatToCrypto(maxFiat, fiatCode, offerAsset, rates))}
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <span className="rounded-md bg-red-500/15 px-2 py-0.5 text-[10px] font-bold tabular-nums text-red-200 ring-1 ring-red-400/35">
-              +{feePct}% fee
+            <span
+              className={`rounded-md px-2 py-0.5 text-[10px] font-bold tabular-nums ring-1 ${
+                flow === "sell" && ratePct >= 0
+                  ? "bg-emerald-500/15 text-emerald-200 ring-emerald-400/35"
+                  : flow === "sell" && ratePct < 0
+                    ? "bg-orange-500/15 text-orange-200 ring-orange-400/35"
+                    : "bg-red-500/15 text-red-200 ring-red-400/35"
+              }`}
+            >
+              {rateBadge}
             </span>
             <span
               className="rounded-md bg-[#D4AF37]/12 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#F5E6B3] ring-1 ring-[#D4AF37]/35"
@@ -162,13 +180,13 @@ export function OfferCard({
           <>
             <PayReceiveCol
               top="Escrow lock"
-              value={fmtAssetAmount(offerAsset, clampedCrypto)}
-              sub={`≈ ${formatFiat(clampedFiat, fiatCode)} · released after fiat settles`}
+              value={fmtAssetAmount(offerAsset, sellLockCrypto)}
+              sub={`${ratePct >= 0 ? `${feePct}% above spot — lock less` : `${feePct}% below spot — lock more`} · after fiat settles`}
             />
             <PayReceiveCol
               top={`Receive (${fiatCode})`}
-              value={formatFiat(cryptoToFiat(netCrypto, offerAsset, fiatCode, rates), fiatCode)}
-              sub={`${methodsCompact}${methodsMore} · net of ${feePct}% fee`}
+              value={formatFiat(clampedFiat, fiatCode)}
+              sub={`${methodsCompact}${methodsMore} · merchant sends fiat`}
             />
           </>
         )}
