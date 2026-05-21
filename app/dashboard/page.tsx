@@ -901,7 +901,8 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        {merchantProfile != null ? (
+        {merchantProfile != null &&
+        (merchantProfile.status === "active" || merchantProfile.status === "pending") ? (
           <div className="mb-7 rounded-xl border border-yellow-500/25 bg-yellow-500/[0.06] p-4 sm:p-5 lg:rounded-xl">
             <div className="flex gap-3">
               <Store className="mt-0.5 h-5 w-5 shrink-0 text-yellow-500" aria-hidden />

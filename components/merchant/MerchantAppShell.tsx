@@ -45,13 +45,16 @@ export function MerchantAppShell({
   children,
   heading,
   description,
+  merchantStatus,
 }: {
   children: ReactNode;
   /** e.g. "Console" → rendered as Merchant · Console */
   heading?: string;
   description?: string;
+  merchantStatus?: string | null;
 }) {
   const pathname = usePathname();
+  const canTrade = merchantStatus === "active";
 
   return (
     <div className="min-h-screen bg-[#03060c] text-white">
@@ -60,7 +63,7 @@ export function MerchantAppShell({
           aria-label="Merchant shortcuts"
           className="sticky top-0 z-40 flex shrink-0 gap-2 overflow-x-auto border-b border-[#D4AF37]/15 bg-[#05080F]/95 px-3 pb-3 pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-md [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden"
         >
-          {MERCHANT_MOBILE_NAV.map(({ href, label }) => (
+          {(canTrade ? MERCHANT_MOBILE_NAV : MERCHANT_MOBILE_NAV.filter((n) => n.href === "/merchant" || n.href === "/merchant/profile")).map(({ href, label }) => (
             <Link
               key={href}
               href={href}
@@ -102,18 +105,22 @@ export function MerchantAppShell({
               <LayoutDashboard className={iconCls} aria-hidden />
               Dashboard
             </Link>
-            <Link href="/merchant/offers/new" className={navLinkClass("/merchant/offers/new", pathname)}>
-              <PackagePlus className={iconCls} aria-hidden />
-              New offer
-            </Link>
-            <Link href="/merchant/orders/active" className={navLinkClass("/merchant/orders/active", pathname)}>
-              <Zap className={iconCls} aria-hidden />
-              Active trades
-            </Link>
-            <Link href="/merchant/orders/completed" className={navLinkClass("/merchant/orders/completed", pathname)}>
-              <CheckCircle2 className={iconCls} aria-hidden />
-              Completed trades
-            </Link>
+            {canTrade ? (
+              <>
+                <Link href="/merchant/offers/new" className={navLinkClass("/merchant/offers/new", pathname)}>
+                  <PackagePlus className={iconCls} aria-hidden />
+                  New offer
+                </Link>
+                <Link href="/merchant/orders/active" className={navLinkClass("/merchant/orders/active", pathname)}>
+                  <Zap className={iconCls} aria-hidden />
+                  Active trades
+                </Link>
+                <Link href="/merchant/orders/completed" className={navLinkClass("/merchant/orders/completed", pathname)}>
+                  <CheckCircle2 className={iconCls} aria-hidden />
+                  Completed trades
+                </Link>
+              </>
+            ) : null}
             <Link href="/merchant/profile" className={navLinkClass("/merchant/profile", pathname)}>
               <UserRound className={iconCls} aria-hidden />
               Profile

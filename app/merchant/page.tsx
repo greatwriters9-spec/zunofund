@@ -386,6 +386,7 @@ export default function MerchantDashboardPage() {
     <MerchantAppShell
       heading="Console"
       description="Same glass-and-glow rails as investor P2P · switch Your offers / Active trades in one lane without leaving home."
+      merchantStatus={profile?.status ?? null}
     >
       <Suspense fallback={null}>
         <MerchantAdvMigrationBanner />

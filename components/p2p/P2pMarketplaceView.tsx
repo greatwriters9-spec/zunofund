@@ -47,6 +47,26 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
   const [amountPromptRow, setAmountPromptRow] = useState<OfferCardRow | null>(null);
   const [amountPromptValue, setAmountPromptValue] = useState("");
   const [amountPromptError, setAmountPromptError] = useState<string | null>(null);
+  const [merchantActive, setMerchantActive] = useState(false);
+
+  useEffect(() => {
+    async function loadMerchantAccess() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user?.id) {
+        setMerchantActive(false);
+        return;
+      }
+      const { data } = await supabase
+        .from("merchant_profiles")
+        .select("status")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      setMerchantActive((data as { status?: string } | null)?.status === "active");
+    }
+    void loadMerchantAccess();
+  }, [supabase]);
 
   const rpcSide = p2pOfferSide(tab, asset);
   const { rates: fxRates } = useFxRates();
@@ -387,10 +407,14 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
             <Link href="/p2p/history" className="text-[#D4AF37] hover:text-[#F5E6B3] hover:underline">
               Full trade history
             </Link>
-            {" · "}
-            <Link href="/merchant" className="text-[#D4AF37] hover:text-[#F5E6B3] hover:underline">
-              Merchant dashboard
-            </Link>
+            {merchantActive ? (
+              <>
+                {" · "}
+                <Link href="/merchant" className="text-[#D4AF37] hover:text-[#F5E6B3] hover:underline">
+                  Merchant dashboard
+                </Link>
+              </>
+            ) : null}
           </p>
         </div>
       </main>
