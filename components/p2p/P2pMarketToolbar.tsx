@@ -184,15 +184,12 @@ export function P2pMarketToolbar({
                     type="button"
                     role="option"
                     aria-selected={asset === a.code}
-                    disabled={a.disabled}
-                    className={`flex w-full items-center px-3 py-2.5 text-left text-[13px] transition hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-45 ${
+                    className={`flex w-full items-center px-3 py-2.5 text-left text-[13px] transition hover:bg-white/[0.05] ${
                       asset === a.code ? "bg-emerald-500/10 text-emerald-200" : "text-zinc-200"
                     }`}
                     onClick={() => {
-                      if (!a.disabled) {
-                        onAssetChange(a.code);
-                        setOpenMenu(null);
-                      }
+                      onAssetChange(a.code);
+                      setOpenMenu(null);
                     }}
                   >
                     {a.label}
