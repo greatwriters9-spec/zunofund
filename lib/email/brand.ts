@@ -91,6 +91,37 @@ export type GetEmailBrandConfigOpts = {
 };
 
 /** Reads env each call so tests / preview pick up changes without module cache surprises. */
+export function applyPlatformContactToBrand(
+  brand: EmailBrandConfig,
+  contact: {
+    support_email?: string | null;
+    support_phone?: string | null;
+    telegram?: string | null;
+  },
+): EmailBrandConfig {
+  const email = contact.support_email?.trim();
+  const phone = contact.support_phone?.trim();
+  const telegram = contact.telegram?.trim();
+
+  const socialLinks = [...brand.socialLinks];
+  if (telegram) {
+    const url = `https://t.me/${telegram.replace(/^@+/, "")}`;
+    const hasTelegram = socialLinks.some(
+      (l) => l.label.toLowerCase().includes("telegram") || l.url.includes("t.me/"),
+    );
+    if (!hasTelegram && url.length > "https://t.me/".length) {
+      socialLinks.push({ label: "Telegram", url });
+    }
+  }
+
+  return {
+    ...brand,
+    supportEmail: email || null,
+    supportPhone: phone || null,
+    socialLinks,
+  };
+}
+
 export function getEmailBrandConfig(
   opts?: GetEmailBrandConfigOpts,
 ): EmailBrandConfig {

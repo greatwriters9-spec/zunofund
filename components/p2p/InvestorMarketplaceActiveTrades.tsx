@@ -4,6 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 
 import { merchantInitials, orderStatusHeadline, paymentMethodLabel } from "@/components/p2p/utils";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
+import { formatFiat } from "@/lib/currencies";
+
+/** Subset aligned with toolbar “Trades” menu (browse uses offers list, not this component). */
+export type InvestorTradesBucket = "active" | "completed" | "cancelled";
 
 type InvestorTradeRow = {
   id: string;
@@ -15,6 +19,8 @@ type InvestorTradeRow = {
   created_at: string;
   merchant_user_id: string;
   merchant_display_name: string | null;
+  fiat_currency_code: string | null;
+  fiat_amount: number | null;
 };
 
 function investorFlowLabel(side: string): string {
@@ -29,16 +35,22 @@ function statusBadgeClass(status: string): string {
       return "bg-amber-500/15 text-amber-200 ring-amber-400/35";
     case "paid":
       return "bg-sky-500/15 text-sky-200 ring-sky-400/35";
+    case "completed":
+      return "bg-emerald-500/15 text-emerald-200 ring-emerald-500/30";
+    case "cancelled":
+      return "bg-red-500/12 text-red-200 ring-red-400/30";
     default:
       return "bg-white/10 text-zinc-300 ring-white/15";
   }
 }
 
-/** Live / settling investor orders opened from the marketplace (no navigation). */
+/** Investor tickets for marketplace “Trades” menu (active · completed · cancelled). */
 export function InvestorMarketplaceActiveTrades({
+  bucket,
   refreshKey,
   onOpenOrder,
 }: {
+  bucket: InvestorTradesBucket;
   refreshKey?: number | string;
   onOpenOrder: (orderId: string) => void;
 }) {
@@ -57,16 +69,26 @@ export function InvestorMarketplaceActiveTrades({
     if (!user) {
       setLoading(false);
       setRows([]);
-      setError("Sign in to see active trades.");
+      setError("Sign in to see your trades.");
       return;
     }
 
-    const { data: ord, error: qErr } = await supabase
+    let q = supabase
       .from("merchant_orders")
-      .select("id, side, status, amount_requested, payment_method, fee_amount, created_at, merchant_user_id")
-      .eq("investor_user_id", user.id)
-      .in("status", ["pending_payment", "paid"])
-      .order("created_at", { ascending: false });
+      .select(
+        "id, side, status, amount_requested, payment_method, fee_amount, created_at, merchant_user_id, fiat_currency_code, fiat_amount",
+      )
+      .eq("investor_user_id", user.id);
+
+    if (bucket === "active") {
+      q = q.in("status", ["pending_payment", "paid"]);
+    } else if (bucket === "completed") {
+      q = q.eq("status", "completed");
+    } else {
+      q = q.eq("status", "cancelled");
+    }
+
+    const { data: ord, error: qErr } = await q.order("created_at", { ascending: false });
 
     if (qErr) {
       setLoading(false);
@@ -103,12 +125,13 @@ export function InvestorMarketplaceActiveTrades({
       ...r,
       amount_requested: Number(r.amount_requested),
       fee_amount: Number(r.fee_amount ?? 0),
+      fiat_amount: r.fiat_amount == null ? null : Number(r.fiat_amount),
       merchant_display_name: nameMap.get(r.merchant_user_id) ?? null,
     }));
 
     setRows(merged);
     setLoading(false);
-  }, [supabase]);
+  }, [bucket, supabase]);
 
   useEffect(() => {
     void load();
@@ -130,13 +153,17 @@ export function InvestorMarketplaceActiveTrades({
     );
   }
 
+  const emptyCopy =
+    bucket === "active"
+      ? "No active trades yet. Browse offers above — pick BUY or SELL on a row when you are ready."
+      : bucket === "completed"
+        ? "No completed P2P tickets yet."
+        : "No cancelled trades in this bucket.";
+
   if (rows.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-[#D4AF37]/25 bg-black/25 px-6 py-16 text-center backdrop-blur-sm">
-        <p className="text-zinc-400">
-          No active trades yet. Tap <strong className="text-[#D4AF37]">BUY</strong> or{" "}
-          <strong className="text-[#D4AF37]/90">SELL</strong> on an offer to open one here—without leaving this page.
-        </p>
+        <p className="text-zinc-400">{emptyCopy}</p>
       </div>
     );
   }
@@ -170,7 +197,15 @@ export function InvestorMarketplaceActiveTrades({
               <p className="mt-1 text-[11px] text-zinc-500">
                 {investorFlowLabel(r.side)}
                 {" · "}
-                <span className="font-semibold text-zinc-200 tabular-nums">{r.amount_requested} USDT</span>
+                <span className="font-semibold text-zinc-200 tabular-nums">
+                  {Number(r.amount_requested).toFixed(2)} USDT
+                </span>
+                {r.fiat_currency_code && r.fiat_currency_code !== "USD" && r.fiat_amount && r.fiat_amount > 0 ? (
+                  <span className="text-zinc-500">
+                    {" · "}
+                    <span className="tabular-nums">{formatFiat(Number(r.fiat_amount), r.fiat_currency_code)}</span>
+                  </span>
+                ) : null}
                 {" · "}
                 {paymentMethodLabel(r.payment_method)}
                 {Number.isFinite(r.fee_amount) && r.fee_amount > 0 ? (
@@ -180,7 +215,11 @@ export function InvestorMarketplaceActiveTrades({
                 ) : null}
               </p>
               <p className="mt-1 text-[10px] uppercase tracking-wide text-zinc-600">
-                Started {new Date(r.created_at).toLocaleString()}
+                Started{" "}
+                {new Date(r.created_at).toLocaleString(undefined, {
+                  dateStyle: "short",
+                  timeStyle: "short",
+                })}
               </p>
             </div>
           </button>

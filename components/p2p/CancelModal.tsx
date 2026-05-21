@@ -87,8 +87,7 @@ export function CancelModal({
             className="mt-1 h-4 w-4 rounded border-zinc-600 text-red-600 focus:ring-red-500"
           />
           <span className="text-sm text-zinc-300">
-            I confirm I have <strong className="text-white">NOT</strong> paid (or I understand balances will unlock
-            per platform rules).
+            I confirm I want to cancel this trade. Balances and escrow unlock per platform rules.
           </span>
         </label>
 

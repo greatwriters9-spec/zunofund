@@ -8,10 +8,8 @@ export type ChatMessageKind = "user" | "system";
 export type ChatMessage = {
   id: string;
   kind?: ChatMessageKind;
-  /** For `system` rows: default = statement, success = milestones */
   systemTone?: "default" | "success";
   hideTime?: boolean;
-  /** true = current user (right), false = counterparty (left); ignored for system */
   mine: boolean;
   body: string;
   at: Date;
@@ -22,16 +20,19 @@ type TradeChatProps = {
   onSend: (text: string) => void;
   placeholder?: string;
   disabled?: boolean;
-  /** Fills parent flex column (trade shell right pane); removes outer card chrome */
-  embedded?: boolean;
+  /** Counterparty label shown in the chat bubbles' name strip */
+  counterpartLabel?: string;
+  /** Render dark-on-light styling (Noones-like) */
+  light?: boolean;
 };
 
 export function TradeChat({
   messages,
   onSend,
-  placeholder = "Type a message…",
+  placeholder = "Write a message…",
   disabled,
-  embedded,
+  counterpartLabel,
+  light = true,
 }: TradeChatProps) {
   const [text, setText] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
@@ -47,102 +48,101 @@ export function TradeChat({
     setText("");
   }
 
-  const userMessages = messages.filter((m) => (m.kind ?? "user") === "user");
-  const root =
-    embedded === true
-      ? "flex min-h-0 flex-1 flex-col bg-transparent"
-      : "mx-4 flex min-h-[280px] flex-col rounded-2xl border border-white/[0.06] bg-black/25 shadow-inner backdrop-blur-sm sm:mx-5";
+  if (!light) {
+    return null;
+  }
 
   return (
-    <section className={root}>
-      <div
-        className={`shrink-0 ${embedded ? "border-b border-white/[0.05] px-4 py-2 sm:px-5" : "border-b border-white/[0.06] bg-black/[0.06] px-4 py-3 sm:px-5"}`}
-      >
-        <h2 className="text-[10px] font-semibold uppercase tracking-wider text-[#D4AF37]/75">
-          Trade chat
-        </h2>
-        <p className="mt-0.5 text-[10px] leading-relaxed text-zinc-600">
-          Same thread shown to both parties — stay on script with the escrow actions below.
-        </p>
-      </div>
-
-      <div
-        className={`min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-4 sm:px-5 ${embedded ? "" : "sm:max-h-[360px]"}`}
-      >
-        {messages.length === 0 ? (
-          <p className="py-8 text-center text-sm text-zinc-600">
-            No messages yet. Say hello and confirm payment details.
-          </p>
-        ) : (
-          messages.map((m) => {
-            const kind = m.kind ?? "user";
-            if (kind === "system") {
-              const success = m.systemTone === "success";
+    <section className="flex h-full min-h-0 flex-1 flex-col bg-[#05080F]">
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+        <div className="mx-auto flex max-w-3xl flex-col gap-3">
+          {messages.length === 0 ? (
+            <p className="py-12 text-center text-sm text-zinc-500">
+              No messages yet. Say hello and confirm payment details.
+            </p>
+          ) : (
+            messages.map((m) => {
+              const kind = m.kind ?? "user";
+              if (kind === "system") {
+                const success = m.systemTone === "success";
+                return (
+                  <div key={m.id} className="my-1 w-full">
+                    <div
+                      className={`w-full rounded-md border px-4 py-3 text-[13px] leading-relaxed ${
+                        success
+                          ? "border-emerald-500/25 bg-emerald-500/[0.08] text-emerald-50"
+                          : "border-[#D4AF37]/15 bg-black/40 text-zinc-300"
+                      }`}
+                    >
+                      {success ? null : (
+                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-[#D4AF37]/85">
+                          System message
+                        </p>
+                      )}
+                      <p className="whitespace-pre-wrap">{m.body}</p>
+                      {!m.hideTime ? (
+                        <p
+                          className={`mt-1.5 text-[11px] tabular-nums ${
+                            success ? "text-emerald-300/80" : "text-zinc-500"
+                          }`}
+                        >
+                          {m.at.toLocaleDateString(undefined, {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                          })}{" "}
+                          ·{" "}
+                          {m.at.toLocaleTimeString(undefined, {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              }
               return (
-                <div key={m.id} className="flex w-full justify-stretch px-1 sm:px-2">
-                  <div
-                    className={`w-full rounded-xl border px-3.5 py-2.5 text-left text-[12.5px] leading-snug ${
-                      success
-                        ? "border-emerald-500/22 bg-emerald-500/[0.07] text-emerald-50/95 shadow-[inset_0_1px_0_0_rgba(212,175,55,0.05)]"
-                        : "border-white/[0.07] bg-white/[0.025] text-zinc-100/95 backdrop-blur-[3px]"
-                    }`}
-                  >
-                    <p className="whitespace-pre-wrap font-medium tracking-tight">{m.body}</p>
-                    {!m.hideTime ? (
+                <div key={m.id} className={`flex ${m.mine ? "justify-end" : "justify-start"}`}>
+                  <div className="max-w-[80%] sm:max-w-[68%]">
+                    {!m.mine && counterpartLabel ? (
+                      <p className="mb-0.5 px-1 text-[11px] font-medium text-[#D4AF37]/80">{counterpartLabel}</p>
+                    ) : null}
+                    <div
+                      className={`px-3.5 py-2.5 text-[14px] leading-relaxed ${
+                        m.mine
+                          ? "rounded-[14px] rounded-br-[4px] bg-emerald-600 text-white ring-1 ring-[#D4AF37]/25"
+                          : "rounded-[14px] rounded-bl-[4px] border border-[#D4AF37]/12 bg-black/45 text-zinc-100"
+                      }`}
+                    >
+                      <p className="whitespace-pre-wrap break-words">{m.body}</p>
                       <p
-                        className={`mt-1.5 text-[10px] tabular-nums ${
-                          success ? "text-emerald-300/70" : "text-zinc-600"
+                        className={`mt-1 text-right text-[10.5px] tabular-nums ${
+                          m.mine ? "text-emerald-50/80" : "text-zinc-500"
                         }`}
                       >
                         {m.at.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
                       </p>
-                    ) : null}
+                    </div>
                   </div>
                 </div>
               );
-            }
-            return (
-              <div key={m.id} className={`flex ${m.mine ? "justify-end" : "justify-start"}`}>
-                <div
-                  className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed sm:max-w-[70%] ${
-                    m.mine
-                      ? "rounded-br-md bg-emerald-600/[0.88] text-white ring-1 ring-[#D4AF37]/25 shadow-lg shadow-black/25"
-                      : "rounded-bl-md border border-white/[0.06] bg-zinc-900/40 text-zinc-100 backdrop-blur-sm"
-                  }`}
-                >
-                  <p className="whitespace-pre-wrap break-words">{m.body}</p>
-                  <p
-                    className={`mt-1 text-[10px] tabular-nums ${
-                      m.mine ? "text-emerald-200/85" : "text-zinc-500"
-                    }`}
-                  >
-                    {m.at.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
-                  </p>
-                </div>
-              </div>
-            );
-          })
-        )}
-        {messages.length > 0 && userMessages.length === 0 ? (
-          <p className="pb-2 text-center text-[11px] text-zinc-600">No replies yet — add a note below.</p>
-        ) : null}
-        <div ref={endRef} />
+            })
+          )}
+          <div ref={endRef} className="h-1 shrink-0" aria-hidden />
+        </div>
       </div>
 
-      <div
-        className={`border-t border-white/[0.05] px-3 py-2.5 backdrop-blur-sm ${embedded ? "bg-transparent" : "bg-black/[0.12]"}`}
-      >
-        <div className="flex gap-2">
+      <div className="shrink-0 border-t border-[#D4AF37]/12 bg-black/55 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md sm:px-6">
+        <div className="mx-auto flex max-w-3xl items-center gap-2">
           <button
             type="button"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-black/25 text-zinc-500 transition hover:border-white/15 hover:text-zinc-300 disabled:opacity-40"
+            className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-md border border-[#D4AF37]/20 bg-black/40 text-[#D4AF37] transition hover:border-[#D4AF37]/45 hover:text-[#F5E6B3] disabled:opacity-40 sm:flex"
             aria-label="Attach file"
             disabled={disabled}
-            onClick={() => {
-              /* UI only — attachments not wired */
-            }}
+            onClick={() => {}}
           >
-            <Paperclip className="h-5 w-5" />
+            <Paperclip className="h-4 w-4" />
           </button>
           <input
             type="text"
@@ -156,16 +156,17 @@ export function TradeChat({
             }}
             placeholder={placeholder}
             disabled={disabled}
-            className="min-w-0 flex-1 rounded-xl border border-white/[0.06] bg-black/30 px-4 py-2 text-sm text-white outline-none backdrop-blur-sm placeholder:text-zinc-600 focus:border-[#D4AF37]/35 focus:ring-1 focus:ring-[#D4AF37]/10 disabled:opacity-50"
+            enterKeyHint="send"
+            className="min-h-[44px] min-w-0 flex-1 rounded-md border border-[#D4AF37]/15 bg-black/45 px-4 py-2.5 text-[16px] text-white outline-none transition placeholder:text-zinc-500 focus:border-[#D4AF37]/45 focus:bg-black/55 focus:ring-2 focus:ring-[#D4AF37]/20 disabled:opacity-50 sm:text-[14px]"
           />
           <button
             type="button"
             disabled={disabled || !text.trim()}
             onClick={submit}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-600/90 text-white shadow-inner shadow-black/40 ring-1 ring-[#D4AF37]/25 transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-emerald-600 text-white ring-1 ring-[#D4AF37]/30 transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
             aria-label="Send message"
           >
-            <Send className="h-5 w-5" />
+            <Send className="h-4 w-4" />
           </button>
         </div>
       </div>

@@ -241,7 +241,6 @@ export default function DepositExchangePage() {
           >
             <option>USDT</option>
             <option>Bitcoin</option>
-            <option>Ethereum</option>
           </select>
         </div>
 

@@ -35,6 +35,10 @@ function normalizeMerchantOfferRows(raw: unknown): MerchantOfferHorizontalRow[] 
       payment_methods: Array.isArray(row.payment_methods) ? [...(row.payment_methods as string[])] : [],
       advert_message:
         typeof row.advert_message === "string" && row.advert_message.trim() ? row.advert_message.trim() : null,
+      fiat_currency_code:
+        typeof row.fiat_currency_code === "string" && row.fiat_currency_code.trim()
+          ? row.fiat_currency_code.toUpperCase()
+          : null,
     };
   });
 }

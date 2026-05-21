@@ -8,17 +8,38 @@ import {
   displayPlanName,
   formatDepositRangeDescription,
 } from "@/lib/investmentPlans";
+import {
+  EMPTY_PLATFORM_CONTACT,
+  PLATFORM_CONTACT_ID,
+  normalizePlatformContactRow,
+  type PlatformContact,
+} from "@/lib/platformContact";
 import { useSupabase } from "@/lib/supabase";
+import { AdminContactSettingsForm } from "@/components/admin/AdminContactSettingsForm";
 
 export default function AdminSettingsPage() {
   const supabase = useSupabase();
   const [sessionEmail, setSessionEmail] = useState<string | null>(null);
+  const [contact, setContact] = useState<PlatformContact>(EMPTY_PLATFORM_CONTACT);
+  const [contactLoading, setContactLoading] = useState(true);
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => {
       setSessionEmail(data.session?.user?.email ?? null);
     });
   }, [supabase.auth]);
+
+  useEffect(() => {
+    void supabase
+      .from("platform_contact_settings")
+      .select("support_email, support_phone, whatsapp, telegram, updated_at")
+      .eq("id", PLATFORM_CONTACT_ID)
+      .maybeSingle()
+      .then(({ data }) => {
+        setContact(normalizePlatformContactRow(data ?? undefined));
+        setContactLoading(false);
+      });
+  }, [supabase]);
 
   return (
     <div className="p-10 text-white min-h-screen max-w-4xl">
@@ -27,6 +48,21 @@ export default function AdminSettingsPage() {
         Reference for how the platform is configured today and what admins can
         change from this dashboard.
       </p>
+
+      <section className="mb-10 rounded-2xl border border-[#D4AF37]/25 bg-zinc-950 px-6 py-5">
+        <h2 className="text-lg font-semibold text-[#F5E6B3] mb-2">
+          Platform contact information
+        </h2>
+        <p className="text-zinc-400 text-sm mb-6 leading-relaxed">
+          Shown on the public contact page, investor dashboard support card, and
+          transactional email footers. Only these values are used site-wide.
+        </p>
+        {contactLoading ? (
+          <p className="text-sm text-zinc-500">Loading…</p>
+        ) : (
+          <AdminContactSettingsForm initial={contact} />
+        )}
+      </section>
 
       {sessionEmail ? (
         <section className="mb-10 rounded-2xl border border-zinc-800 bg-zinc-950 px-6 py-5">
@@ -45,6 +81,10 @@ export default function AdminSettingsPage() {
           What admins can edit here
         </h2>
         <ul className="list-disc list-inside text-zinc-300 text-sm space-y-2">
+          <li>
+            <strong>Contact information</strong> (email, phone, WhatsApp, Telegram) in the
+            section above.
+          </li>
           <li>
             Investor <strong>tier / plan</strong> and{" "}
             <strong>automatic vs paused daily profit accrual</strong> (per

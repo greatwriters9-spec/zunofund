@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { ArrowUpRight, ExternalLink, TrendingDown, TrendingUp } from "lucide-react";
 
-const COIN_IDS = ["bitcoin", "ethereum", "tether", "ripple"] as const;
+const COIN_IDS = ["bitcoin", "tether", "ripple"] as const;
 type CoinId = (typeof COIN_IDS)[number];
 
 interface CoinDisplay {
@@ -16,7 +16,6 @@ interface CoinDisplay {
 
 const COINS: CoinDisplay[] = [
   { id: "bitcoin", symbol: "BTC", name: "Bitcoin", badgeBg: "#F7931A", badgeFg: "#fff" },
-  { id: "ethereum", symbol: "ETH", name: "Ethereum", badgeBg: "#627EEA", badgeFg: "#fff" },
   { id: "tether", symbol: "USDT", name: "Tether", badgeBg: "#26A17B", badgeFg: "#fff" },
   { id: "ripple", symbol: "XRP", name: "XRP", badgeBg: "#23292F", badgeFg: "#fff" },
 ];

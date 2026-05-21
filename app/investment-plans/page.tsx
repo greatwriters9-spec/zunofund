@@ -248,6 +248,18 @@ export default function InvestmentPlansPage() {
     });
   };
 
+  // Seed expansion based on viewport: desktop (≥ lg, 1024px) shows every plan
+  // open by default so the full ladder is visible; phones/tablets keep cards
+  // collapsed so the page stays scannable. Runs once on mount to avoid SSR
+  // hydration mismatches and to not fight user toggles on subsequent resizes.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
+    if (isDesktop) {
+      setExpandedSlugs(new Set(plans.map((p) => p.slug)));
+    }
+  }, []);
+
   useEffect(() => {
     async function loadSessionAndPlan() {
       const {

@@ -2,4 +2,4 @@
 
 export type P2pMarketTab = "buy" | "sell";
 
-export type P2pAssetCode = "USDT" | "BTC" | "ETH";
+export type { P2pAssetCode } from "@/lib/p2pAssets";

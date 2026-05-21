@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 
 import { paymentMethodLabel } from "@/components/p2p/utils";
+import { getFiatCurrency } from "@/lib/currencies";
 
 export type MerchantOfferHorizontalRow = {
   id: string;
@@ -13,6 +14,7 @@ export type MerchantOfferHorizontalRow = {
   rate_percentage: number;
   payment_methods: string[];
   advert_message: string | null;
+  fiat_currency_code: string | null;
 };
 
 type MerchantOfferHorizontalCardProps = {
@@ -99,6 +101,14 @@ export function MerchantOfferHorizontalCard({ offer, onToggleActive, onDelete }:
           >
             {offer.status}
           </span>
+          {offer.fiat_currency_code ? (
+            <span
+              className="inline-flex rounded-full bg-[#D4AF37]/15 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-[#F5E6B3] ring-1 ring-[#D4AF37]/40"
+              title={`Settles in ${getFiatCurrency(offer.fiat_currency_code).name}`}
+            >
+              {getFiatCurrency(offer.fiat_currency_code).flag} {offer.fiat_currency_code}
+            </span>
+          ) : null}
         </div>
         <p className="bg-gradient-to-r from-[#FFF8E7] via-[#F5E6B3] to-[#E8CF7A] bg-clip-text text-sm font-extrabold uppercase tracking-wide text-transparent drop-shadow-[0_0_14px_rgba(245,230,179,0.25)]">
           {sideLabel(offer.side)}
@@ -111,11 +121,11 @@ export function MerchantOfferHorizontalCard({ offer, onToggleActive, onDelete }:
         </p>
       </Zone>
 
-      <Zone label="Limits" aria-label={`Limits ${offer.min_limit} to ${offer.max_limit} USDT`}>
+      <Zone label="Limits" aria-label={`Limits ${Number(offer.min_limit).toFixed(2)} to ${Number(offer.max_limit).toFixed(2)} USDT`}>
         <p className="truncate text-[15px] font-extrabold tabular-nums tracking-tight text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.45)]">
-          {offer.min_limit}
+          {Number(offer.min_limit).toFixed(2)}
           <span className="text-zinc-500"> — </span>
-          {offer.max_limit}
+          {Number(offer.max_limit).toFixed(2)}
           <span className="text-[11px] font-semibold uppercase text-emerald-200/55"> USDT</span>
         </p>
       </Zone>

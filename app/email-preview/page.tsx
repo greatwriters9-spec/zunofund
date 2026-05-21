@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import type { EmailBrandConfig } from "@/lib/email/brand";
-import { getEmailBrandConfig } from "@/lib/email/brand";
+import { getEmailBrandWithPlatformContact } from "@/lib/email/brandWithPlatformContact";
 import { DEFAULT_STAY_CONNECTED_LINKS } from "@/lib/email/default-stay-connected-links";
 import { isEmailPreviewAllowed } from "@/lib/email/preview-access";
 import { buildZunoEmailHtml } from "@/lib/email/zuno-layout";
@@ -65,7 +65,7 @@ export default async function EmailPreviewPage({
     );
   }
 
-  const brand = previewBrand(getEmailBrandConfig());
+  const brand = previewBrand(await getEmailBrandWithPlatformContact());
 
   const investorHtml = buildZunoEmailHtml({
     variant: "investor",

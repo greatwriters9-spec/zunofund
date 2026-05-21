@@ -1,0 +1,94 @@
+import { timingSafeEqual } from "node:crypto";
+
+import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+
+import {
+  type RateRow,
+  fetchCryptoRates,
+  fetchFiatRates,
+  withBaselines,
+} from "@/lib/exchangeRates";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+function bearerMatchesSecret(authHeader: string | null, secret: string): boolean {
+  const prefix = "Bearer ";
+  if (typeof authHeader !== "string" || !authHeader.startsWith(prefix)) {
+    return false;
+  }
+  const token = authHeader.slice(prefix.length).trim();
+  const a = Buffer.from(token, "utf8");
+  const b = Buffer.from(secret, "utf8");
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
+
+/**
+ * Refresh `exchange_rates` from upstream APIs.
+ *
+ * Auth: Bearer CRON_SECRET (matches the existing P2P-expiry cron).
+ * Vercel cron handler signs requests with this secret automatically when
+ * the bypass header is configured; otherwise hit it manually:
+ *   curl -H "Authorization: Bearer $CRON_SECRET" https://.../api/cron/refresh-fx-rates
+ */
+export async function GET(request: Request) {
+  const secret = process.env.CRON_SECRET;
+  const authHeader = request.headers.get("authorization");
+  if (!secret || !bearerMatchesSecret(authHeader, secret)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL ?? "";
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+  if (!url || !serviceKey) {
+    return NextResponse.json(
+      { error: "Missing Supabase URL or service role key" },
+      { status: 500 },
+    );
+  }
+
+  const supabase = createClient(url, serviceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
+  const fetched: RateRow[] = [];
+  const errors: string[] = [];
+  const settled = await Promise.allSettled([fetchCryptoRates(), fetchFiatRates()]);
+  for (const r of settled) {
+    if (r.status === "fulfilled") fetched.push(...r.value);
+    else errors.push(String(r.reason?.message ?? r.reason ?? "unknown"));
+  }
+
+  if (fetched.length === 0) {
+    return NextResponse.json(
+      { ok: false, refreshed: 0, errors },
+      { status: errors.length ? 502 : 200 },
+    );
+  }
+
+  const now = new Date().toISOString();
+  const payload = withBaselines(fetched).map((r) => ({
+    code: r.code,
+    usd_value: r.usd_value,
+    source: r.source,
+    fetched_at: now,
+  }));
+
+  const { error: upsertErr } = await supabase
+    .from("exchange_rates")
+    .upsert(payload, { onConflict: "code" });
+
+  if (upsertErr) {
+    return NextResponse.json({ ok: false, error: upsertErr.message, errors }, { status: 500 });
+  }
+
+  return NextResponse.json({
+    ok: true,
+    refreshed: payload.length,
+    fetched_at: now,
+    sources: Array.from(new Set(payload.map((p) => p.source))),
+    upstream_errors: errors,
+  });
+}

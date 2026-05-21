@@ -22,6 +22,8 @@ export async function fetchMerchantOrdersWithInvestors(
       amount_requested,
       usdt_credit_amount,
       usdt_escrow_amount,
+      fiat_currency_code,
+      fiat_amount,
       investor_user_id,
       created_at,
       expires_at
@@ -68,6 +70,8 @@ export async function fetchMerchantOrdersWithInvestors(
     amount_requested: Number(r.amount_requested),
     usdt_credit_amount: r.usdt_credit_amount != null ? Number(r.usdt_credit_amount) : null,
     usdt_escrow_amount: r.usdt_escrow_amount != null ? Number(r.usdt_escrow_amount) : null,
+    fiat_currency_code: (r.fiat_currency_code as string | null) ?? null,
+    fiat_amount: r.fiat_amount != null ? Number(r.fiat_amount) : null,
     created_at: r.created_at as string,
     expires_at: r.expires_at as string,
     investor:

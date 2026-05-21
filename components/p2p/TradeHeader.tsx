@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Clock } from "lucide-react";
+import { Clock, Lock } from "lucide-react";
 
 import { formatHMS, orderStatusHeadline } from "./utils";
 
@@ -14,14 +14,19 @@ type TradeHeaderProps = {
 export function TradeHeader({ status, countdownSeconds, className = "" }: TradeHeaderProps) {
   const showTimer = countdownSeconds > 0;
 
+  const startedCopy =
+    status === "completed" ? "Trade finished" : status === "cancelled" ? "Trade closed" : "Trade started";
+  const showEscrowLock = status === "pending_payment" || status === "paid";
+
   return (
     <header
       className={`shrink-0 space-y-2 border-b border-white/[0.06] bg-black/[0.12] px-4 py-3 backdrop-blur-sm sm:px-5 ${className}`}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-[#D4AF37]/85">
-            Live trade
+          <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#D4AF37]/85">
+            {showEscrowLock ? <Lock className="h-3 w-3 text-[#D4AF37]/80" aria-hidden /> : null}
+            {startedCopy}
           </p>
           <h1 className="mt-0.5 text-lg font-semibold tracking-tight text-white sm:text-xl">
             {orderStatusHeadline(status)}
@@ -38,14 +43,6 @@ export function TradeHeader({ status, countdownSeconds, className = "" }: TradeH
             </div>
           </div>
         ) : null}
-      </div>
-
-      <div className="flex gap-2 rounded-lg border border-amber-500/20 bg-amber-500/[0.07] px-3 py-2 text-[11px] leading-snug text-amber-100/95">
-        <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400/90" aria-hidden />
-        <p>
-          <span className="font-medium text-amber-50/95">Stay in-app.</span> Use only escrow + chat here; ignore new
-          account numbers or apps pushed off-platform.
-        </p>
       </div>
     </header>
   );

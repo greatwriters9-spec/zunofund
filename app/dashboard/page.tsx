@@ -30,6 +30,13 @@ import {
 } from "@/lib/investmentPlans";
 import { fetchInvestorNotificationSnapshot } from "@/lib/dashboardInvestorAlerts";
 import { notificationsOwnerOrFilter } from "@/lib/notificationQuery";
+import { fromUsd } from "@/lib/exchangeRates";
+import { fmtAssetAmount } from "@/lib/p2pAssets";
+import { formatFiat, getFiatCurrency } from "@/lib/currencies";
+import { useDisplayCryptoUnit, useDisplayCurrency, useFxRates } from "@/lib/useFx";
+import { CryptoUnitPicker } from "@/components/currency/CryptoUnitPicker";
+import { CurrencyPicker } from "@/components/currency/CurrencyPicker";
+import { PlatformContactDisplay } from "@/components/contact/PlatformContactDisplay";
 
 const PROFIT_FEED_COLUMNS =
   "id, amount, status, created_at, profit_origin, investment_plan_snapshot";
@@ -57,6 +64,7 @@ interface Investor {
   email: string;
   avatar_url?: string | null;
   balance: number;
+  btc_balance?: number | null;
   total_profit: number;
   investment_plan: string;
   status: string;
@@ -124,9 +132,15 @@ export default function DashboardPage() {
     null,
   );
   const balance = Number(investor?.balance || 0);
+  const btcBalance = Number(investor?.btc_balance ?? 0);
   const withdrawable = Number(investor?.withdrawable_balance ?? balance);
   const lockedPrincipal = Number(investor?.locked_principal_balance ?? 0);
   const planKey = normalizeInvestmentPlan(investor?.investment_plan);
+
+  const [displayCurrency, setDisplayCurrency] = useDisplayCurrency();
+  const [displayCrypto, setDisplayCrypto] = useDisplayCryptoUnit();
+  const { rates: fxRates } = useFxRates();
+  const displayCurrencyMeta = getFiatCurrency(displayCurrency);
 
   const router = useRouter();
   const pathname = usePathname();
@@ -413,29 +427,38 @@ export default function DashboardPage() {
 
   function walletMoneyLabel(value: number): string {
     if (!showBalance) return "••••••";
-    return `$${value.toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
+    if (displayCrypto === "BTC") {
+      return fmtAssetAmount("BTC", fromUsd(value, "BTC", fxRates));
+    }
+    const native = fromUsd(value, displayCurrency, fxRates);
+    return formatFiat(native, displayCurrency);
   }
 
-  function formatBalanceUsdt(value: number): string {
+  function formatBalanceHeadline(): string {
     if (!showBalance) return "••••••";
-    const maxFrac = value > 0 && value < 1 ? 6 : 2;
-    return `${value.toLocaleString("en-US", {
+    if (displayCrypto === "BTC") {
+      const btc =
+        btcBalance > 0 ? btcBalance : fromUsd(balance, "BTC", fxRates);
+      return fmtAssetAmount("BTC", btc);
+    }
+    const maxFrac = balance > 0 && balance < 1 ? 6 : 2;
+    return `${balance.toLocaleString("en-US", {
       minimumFractionDigits: 2,
       maximumFractionDigits: maxFrac,
     })} USDT`;
   }
 
-  function formatBalanceUsdLine(value: number): string {
+  function formatBalanceSubline(): string {
     if (!showBalance) return "••••••";
-    return `≈ ${value.toLocaleString("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
+    if (displayCrypto === "BTC") {
+      const usdt =
+        balance > 0
+          ? `${balance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT`
+          : null;
+      const fiat = `≈ ${formatFiat(fromUsd(balance, displayCurrency, fxRates), displayCurrency)}`;
+      return usdt ? `≈ ${usdt} · ${fiat}` : fiat;
+    }
+    return `≈ ${formatFiat(fromUsd(balance, displayCurrency, fxRates), displayCurrency)}`;
   }
 
   function formatMarketCapUsd(value: number): string {
@@ -652,50 +675,63 @@ export default function DashboardPage() {
         >
           <p className="text-sm font-medium text-zinc-500">Total balance</p>
 
-          <div className="mt-2 flex items-start justify-between gap-4">
-            <div className="min-w-0 flex-1">
-              <p className="text-4xl font-bold tabular-nums tracking-tight text-white sm:text-5xl md:text-[3.25rem]">
-                {formatBalanceUsdt(balance)}
-              </p>
-              <p className="mt-2 text-base tabular-nums text-zinc-500">
-                {formatBalanceUsdLine(balance)}
-              </p>
-              <p className="mt-4 text-xs text-zinc-600">
-                Global crypto market cap{" "}
-                <span className="font-medium text-zinc-400">
-                  {globalMarketCapUsd != null
-                    ? formatMarketCapUsd(globalMarketCapUsd)
-                    : "—"}
-                </span>
-                <span className="text-zinc-600"> · CoinGecko</span>
-              </p>
-              <div
-                className={`mt-4 inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium ${
-                  (investor?.status ?? "").toLowerCase() === "active"
-                    ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-400"
-                    : "border-amber-500/25 bg-amber-500/10 text-amber-300"
-                }`}
-              >
-                Account {(investor?.status ?? "unknown").toUpperCase()}
-              </div>
-            </div>
+          <p className="mt-2 text-4xl font-bold tabular-nums tracking-tight text-white sm:text-5xl md:text-[3.25rem]">
+            {formatBalanceHeadline()}
+          </p>
 
+          <div className="mt-2 flex flex-wrap items-center gap-2 sm:gap-3">
+            <p
+              className="text-base tabular-nums text-zinc-500"
+              title={
+                displayCrypto === "BTC"
+                  ? "Investment balance in USDT and fiat"
+                  : `${displayCurrencyMeta.name} · ${displayCurrencyMeta.code}`
+              }
+            >
+              {formatBalanceSubline()}
+            </p>
+            <CryptoUnitPicker value={displayCrypto} onChange={setDisplayCrypto} size="sm" />
+            <CurrencyPicker
+              value={displayCurrency}
+              onChange={setDisplayCurrency}
+              size="sm"
+              align="start"
+            />
             <button
               type="button"
               onClick={() => setShowBalance(!showBalance)}
-              className="flex shrink-0 items-center gap-2 rounded-lg border border-zinc-700/80 bg-transparent px-3 py-2 text-sm text-zinc-300 transition hover:border-yellow-500/50 hover:text-white sm:mt-1"
+              className="flex shrink-0 items-center gap-1.5 rounded-lg border border-zinc-700/80 bg-transparent px-2.5 py-1.5 text-sm text-zinc-300 transition hover:border-yellow-500/50 hover:text-white"
               aria-pressed={showBalance}
               aria-label={showBalance ? "Hide balance" : "Show balance"}
             >
               {showBalance ? (
-                <EyeOff size={18} aria-hidden />
+                <EyeOff size={16} aria-hidden />
               ) : (
-                <Eye size={18} aria-hidden />
+                <Eye size={16} aria-hidden />
               )}
-              <span className="hidden min-[380px]:inline">
+              <span className="hidden min-[380px]:inline text-xs">
                 {showBalance ? "Hide" : "Show"}
               </span>
             </button>
+          </div>
+
+          <p className="mt-4 text-xs text-zinc-600">
+            Global crypto market cap{" "}
+            <span className="font-medium text-zinc-400">
+              {globalMarketCapUsd != null
+                ? formatMarketCapUsd(globalMarketCapUsd)
+                : "—"}
+            </span>
+            <span className="text-zinc-600"> · CoinGecko</span>
+          </p>
+          <div
+            className={`mt-4 inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium ${
+              (investor?.status ?? "").toLowerCase() === "active"
+                ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-400"
+                : "border-amber-500/25 bg-amber-500/10 text-amber-300"
+            }`}
+          >
+            Account {(investor?.status ?? "unknown").toUpperCase()}
           </div>
         </motion.div>
 
@@ -713,13 +749,13 @@ export default function DashboardPage() {
   </div>
 
   <p className="text-lg font-bold tabular-nums text-white sm:text-xl">
-    {showBalance ? `$${balance.toLocaleString()}` : "••••"}
+    {walletMoneyLabel(balance)}
   </p>
   <p className="mt-1 text-[11px] leading-snug text-emerald-400/90">
-    Withdrawable {showBalance ? `$${withdrawable.toFixed(2)}` : "••••"}
+    Withdrawable {walletMoneyLabel(withdrawable)}
   </p>
   <p className="text-[11px] leading-snug text-zinc-500">
-    Locked {showBalance ? `$${lockedPrincipal.toFixed(2)}` : "••••"}
+    Locked {walletMoneyLabel(lockedPrincipal)}
   </p>
 
   <p className="mt-3 line-clamp-2 text-[11px] leading-snug text-zinc-600">
@@ -749,7 +785,7 @@ export default function DashboardPage() {
   </div>
 
   <p className="text-lg font-bold tabular-nums text-emerald-400 sm:text-xl">
-    ${Number(investor?.total_profit || 0).toFixed(2)}
+    {walletMoneyLabel(Number(investor?.total_profit || 0))}
   </p>
   <p className="mt-2 text-[11px] leading-snug text-zinc-600">
     Cumulative earnings from daily ROI.
@@ -785,7 +821,7 @@ export default function DashboardPage() {
     <div className="flex justify-between gap-2 text-zinc-500">
       <span>Capital</span>
       <span className="tabular-nums text-zinc-300">
-        {showBalance ? `$${balance.toLocaleString()}` : "••••"}
+        {walletMoneyLabel(balance)}
       </span>
     </div>
     <div className="flex justify-between gap-2 text-zinc-500">
@@ -817,10 +853,7 @@ export default function DashboardPage() {
   </div>
 
   <p className="text-base font-bold text-white">24/7</p>
-  <div className="mt-2 space-y-0.5 text-[11px] text-zinc-500">
-    <p className="truncate">support@zunofund.com</p>
-    <p>+254 797 674 560</p>
-  </div>
+  <PlatformContactDisplay variant="compact" />
 
 <Link
   href="/support"
@@ -833,39 +866,40 @@ export default function DashboardPage() {
           
         </div>
 
-        <div className="mb-7 flex snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:snap-none md:grid-cols-2 md:gap-3 xl:grid-cols-5 xl:gap-4 md:overflow-visible md:pb-0">
+        <div className="mb-7 grid grid-cols-5 gap-1.5 md:grid-cols-2 md:gap-3 xl:grid-cols-5 xl:gap-4">
 
           <Link
             href="/deposit"
-            className="min-w-[calc(50%-4px)] shrink-0 snap-start rounded-xl bg-yellow-500 px-4 py-3 text-center text-sm font-bold text-black transition hover:bg-yellow-600 md:min-w-0"
+            className="rounded-xl bg-yellow-500 px-1.5 py-3 text-center text-[11px] font-bold text-black transition hover:bg-yellow-600 sm:text-[13px] md:px-4 md:text-sm"
           >
             Deposit
           </Link>
 
           <Link
             href="/withdraw"
-            className="min-w-[calc(50%-4px)] shrink-0 snap-start rounded-xl border border-zinc-800 bg-zinc-950/50 px-4 py-3 text-center text-sm font-semibold text-white transition hover:border-yellow-500/50 md:min-w-0"
+            className="rounded-xl border border-zinc-800 bg-zinc-950/50 px-1.5 py-3 text-center text-[11px] font-semibold text-white transition hover:border-yellow-500/50 sm:text-[13px] md:px-4 md:text-sm"
           >
             Withdraw
           </Link>
 
           <Link
             href="/p2p"
-            className="min-w-[calc(50%-4px)] shrink-0 snap-start rounded-xl border border-yellow-500/25 bg-yellow-500/5 px-4 py-3 text-center text-sm font-semibold text-yellow-400 transition hover:border-yellow-500/50 md:min-w-0"
+            className="relative overflow-hidden rounded-xl border border-emerald-500/35 bg-gradient-to-br from-emerald-500/15 via-emerald-500/8 to-yellow-500/10 px-1.5 py-3 text-center text-[11px] font-bold text-emerald-300 shadow-[0_0_20px_-8px_rgba(16,185,129,0.55)] transition hover:border-emerald-400/70 hover:shadow-[0_0_28px_-6px_rgba(16,185,129,0.7)] sm:text-[13px] md:px-4 md:text-sm"
           >
-            P2P
+            <span aria-hidden className="pointer-events-none absolute -right-2 -top-2 h-10 w-10 rounded-full bg-emerald-500/20 blur-2xl" />
+            <span className="relative">P2P</span>
           </Link>
 
           <Link
             href="/investment-plans"
-            className="min-w-[calc(50%-4px)] shrink-0 snap-start rounded-xl border border-zinc-800 bg-zinc-950/50 px-4 py-3 text-center text-sm font-semibold text-white transition hover:border-yellow-500/50 md:min-w-0"
+            className="rounded-xl border border-zinc-800 bg-zinc-950/50 px-1.5 py-3 text-center text-[11px] font-semibold text-white transition hover:border-yellow-500/50 sm:text-[13px] md:px-4 md:text-sm"
           >
             Plans
           </Link>
 
           <Link
             href="/support"
-            className="min-w-[calc(50%-4px)] shrink-0 snap-start rounded-xl border border-zinc-800 bg-zinc-950/50 px-4 py-3 text-center text-sm font-semibold text-white transition hover:border-yellow-500/50 md:min-w-0"
+            className="rounded-xl border border-zinc-800 bg-zinc-950/50 px-1.5 py-3 text-center text-[11px] font-semibold text-white transition hover:border-yellow-500/50 sm:text-[13px] md:px-4 md:text-sm"
           >
             Support
           </Link>

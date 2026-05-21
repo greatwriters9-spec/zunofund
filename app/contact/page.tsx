@@ -2,15 +2,9 @@
 
 import Link from "next/link"
 import { motion } from "framer-motion"
-import {
-  Headset,
-  Mail,
-  Phone,
-  MessageCircle,
-  Send,
-  ArrowLeft,
-  ShieldCheck,
-} from "lucide-react"
+import { Headset, ArrowLeft, ShieldCheck } from "lucide-react"
+
+import { PlatformContactDisplay } from "@/components/contact/PlatformContactDisplay"
 
 export default function SupportPage() {
   return (
@@ -84,82 +78,7 @@ export default function SupportPage() {
               withdrawal concerns, and platform navigation anytime you need help.
             </p>
 
-            {/* CONTACT METHODS */}
-            <div className="space-y-5 mt-12">
-
-              <div className="flex items-center gap-5 p-5 rounded-3xl border border-zinc-200 bg-white shadow-sm">
-
-                <div className="w-14 h-14 rounded-2xl bg-yellow-500/10 flex items-center justify-center">
-                  <Mail className="text-yellow-600 w-6 h-6" />
-                </div>
-
-                <div>
-                  <p className="text-sm text-zinc-500">
-                    Email Support
-                  </p>
-
-                  <h3 className="font-bold text-lg">
-                    support@zunofund.com
-                  </h3>
-                </div>
-
-              </div>
-
-              <div className="flex items-center gap-5 p-5 rounded-3xl border border-zinc-200 bg-white shadow-sm">
-
-                <div className="w-14 h-14 rounded-2xl bg-yellow-500/10 flex items-center justify-center">
-                  <Phone className="text-yellow-600 w-6 h-6" />
-                </div>
-
-                <div>
-                  <p className="text-sm text-zinc-500">
-                    Direct Phone Line
-                  </p>
-
-                  <h3 className="font-bold text-lg">
-                    +254 700 000 000
-                  </h3>
-                </div>
-
-              </div>
-
-              <div className="flex items-center gap-5 p-5 rounded-3xl border border-zinc-200 bg-white shadow-sm">
-
-                <div className="w-14 h-14 rounded-2xl bg-yellow-500/10 flex items-center justify-center">
-                  <Send className="text-yellow-600 w-6 h-6" />
-                </div>
-
-                <div>
-                  <p className="text-sm text-zinc-500">
-                    Telegram Support
-                  </p>
-
-                  <h3 className="font-bold text-lg">
-                    @ZUNO_SUPPORT
-                  </h3>
-                </div>
-
-              </div>
-
-              <div className="flex items-center gap-5 p-5 rounded-3xl border border-zinc-200 bg-white shadow-sm">
-
-                <div className="w-14 h-14 rounded-2xl bg-yellow-500/10 flex items-center justify-center">
-                  <MessageCircle className="text-yellow-600 w-6 h-6" />
-                </div>
-
-                <div>
-                  <p className="text-sm text-zinc-500">
-                    WhatsApp Assistance
-                  </p>
-
-                  <h3 className="font-bold text-lg">
-                    +254 700 000 000
-                  </h3>
-                </div>
-
-              </div>
-
-            </div>
+            <PlatformContactDisplay variant="cards" />
 
           </motion.div>
 

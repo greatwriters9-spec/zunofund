@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
-/** CoinGecko BTC + ETH USD spot — informational for P2P reference display only (cached). */
+/** CoinGecko BTC USD spot — informational for P2P reference display only (cached). */
 export async function GET() {
   try {
     const qs = new URLSearchParams({
-      ids: "bitcoin,ethereum",
+      ids: "bitcoin",
       vs_currencies: "usd",
     });
     const res = await fetch(
@@ -16,7 +16,7 @@ export async function GET() {
 
     if (!res.ok) {
       return NextResponse.json(
-        { btcUsd: null, ethUsd: null },
+        { btcUsd: null },
         {
           status: 200,
           headers: {
@@ -34,10 +34,9 @@ export async function GET() {
       | undefined
     >;
     const btcUsd = typeof payload?.bitcoin?.usd === "number" ? payload.bitcoin.usd : null;
-    const ethUsd = typeof payload?.ethereum?.usd === "number" ? payload.ethereum.usd : null;
 
     return NextResponse.json(
-      { btcUsd, ethUsd },
+      { btcUsd },
       {
         status: 200,
         headers: {
@@ -47,7 +46,7 @@ export async function GET() {
     );
   } catch {
     return NextResponse.json(
-      { btcUsd: null, ethUsd: null },
+      { btcUsd: null },
       { status: 200, headers: { "Cache-Control": "public, s-maxage=60" } },
     );
   }

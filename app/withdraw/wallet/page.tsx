@@ -229,7 +229,6 @@ export default function WithdrawWalletPage() {
               className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none focus:border-yellow-500"
             >
               <option value="BTC">Bitcoin (BTC)</option>
-              <option value="ETH">Ethereum (ETH)</option>
               <option value="USDT">USDT</option>
             </select>
           </div>

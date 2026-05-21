@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 
-import { getEmailBrandConfig } from "@/lib/email/brand";
+import { getEmailBrandWithPlatformContact } from "@/lib/email/brandWithPlatformContact";
 import { siteOriginFromRequest } from "@/lib/email/request-origin";
 import { buildZunoEmailHtml } from "@/lib/email/zuno-layout";
 import { getSupabaseUrl } from "@/lib/supabase/env";
@@ -156,7 +156,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const brand = getEmailBrandConfig({
+  const brand = await getEmailBrandWithPlatformContact({
     preferSiteUrl: siteOriginFromRequest(request),
   });
 

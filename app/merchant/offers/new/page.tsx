@@ -6,23 +6,38 @@ import { useEffect, useState } from "react";
 import { MerchantAppShell } from "@/components/merchant/MerchantAppShell";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 import { P2P_PAYMENT_METHOD_OPTIONS } from "@/lib/p2pPaymentMethods";
+import {
+  DEFAULT_FIAT_CURRENCY,
+  FIAT_CURRENCIES,
+  type FiatCurrencyCode,
+} from "@/lib/currencies";
+import type { P2pAssetCode } from "@/lib/p2pAssets";
+import { p2pOfferSide } from "@/lib/p2pAssets";
+import type { P2pMarketTab } from "@/components/p2p/p2pTypes";
 
 export default function MerchantNewOfferPage() {
   const supabase = useSupabase();
-  const [side, setSide] = useState<"sell_usdt" | "buy_usdt">("sell_usdt");
+  const [listingAsset, setListingAsset] = useState<P2pAssetCode>("USDT");
+  const [listingTab, setListingTab] = useState<P2pMarketTab>("sell");
+  const side = p2pOfferSide(listingTab, listingAsset);
   const [methods, setMethods] = useState<string[]>(["mpesa"]);
   const [minL, setMinL] = useState("100");
   const [maxL, setMaxL] = useState("50000");
   const [rate, setRate] = useState("5");
   const [instructions, setInstructions] = useState("");
   const [advertMessage, setAdvertMessage] = useState("");
+  const [fiatCurrency, setFiatCurrency] = useState<FiatCurrencyCode>(DEFAULT_FIAT_CURRENCY);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     const q = new URLSearchParams(window.location.search).get("side");
     if (q === "buy_usdt" || q === "sell_usdt") {
-      setSide(q);
+      setListingAsset("USDT");
+      setListingTab(q.startsWith("buy") ? "buy" : "sell");
+    } else if (q === "buy_btc" || q === "sell_btc") {
+      setListingAsset("BTC");
+      setListingTab(q.startsWith("buy") ? "buy" : "sell");
     }
   }, []);
 
@@ -30,49 +45,23 @@ export default function MerchantNewOfferPage() {
     setMethods((prev) => (prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]));
   }
 
-  function merchantCreateOfferMissingAdvertMigration(err: unknown): boolean {
-    const msg = typeof err === "object" && err !== null && "message" in err ? String((err as { message: unknown }).message) : "";
-    const code =
-      typeof err === "object" && err !== null && "code" in err ? String((err as { code: unknown }).code) : "";
-    /** Supabase REST when PostgREST has no overload with p_advert_message (migration not pushed). */
-    return (
-      code === "PGRST202" ||
-      msg.includes("schema cache") ||
-      msg.includes("Could not find the function") ||
-      (msg.includes("merchant_create_offer") && msg.includes("p_advert_message"))
-    );
-  }
-
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setBusy(true);
 
-    const baseArgs = {
+    const advertTrim = advertMessage.trim() ? advertMessage.trim().slice(0, 500) : null;
+
+    const res = await supabase.rpc("merchant_create_offer", {
       p_side: side,
       p_payment_methods: methods.length ? methods : ["other"],
       p_min_limit: Number(minL),
       p_max_limit: Number(maxL),
       p_rate_percentage: Number(rate),
-      p_payment_instructions: side === "sell_usdt" ? instructions.trim() || null : null,
-    };
-
-    const advertTrim = advertMessage.trim() ? advertMessage.trim().slice(0, 500) : null;
-
-    let res =
-      advertTrim !== null
-        ? await supabase.rpc("merchant_create_offer", {
-            ...baseArgs,
-            p_advert_message: advertTrim,
-          })
-        : await supabase.rpc("merchant_create_offer", baseArgs);
-
-    let droppedAdvertForLegacy = false;
-
-    if (res.error && merchantCreateOfferMissingAdvertMigration(res.error)) {
-      res = await supabase.rpc("merchant_create_offer", baseArgs);
-      droppedAdvertForLegacy = Boolean(advertTrim);
-    }
+      p_payment_instructions: listingTab === "sell" ? instructions.trim() || null : null,
+      p_advert_message: advertTrim,
+      p_fiat_currency_code: fiatCurrency,
+    });
 
     setBusy(false);
 
@@ -82,7 +71,6 @@ export default function MerchantNewOfferPage() {
     }
 
     const qs = new URLSearchParams({ created: String(res.data ?? "") });
-    if (droppedAdvertForLegacy) qs.set("adv_migration", "1");
     window.location.href = `/merchant?${qs.toString()}`;
   }
 
@@ -110,6 +98,26 @@ export default function MerchantNewOfferPage() {
       <div className="max-w-4xl rounded-2xl border border-[#D4AF37]/18 bg-black/35 p-5 backdrop-blur-sm sm:p-6">
         <form onSubmit={submit} className="space-y-6">
           <div>
+            <p className={label}>Asset</p>
+            <div className="mt-2 flex gap-2">
+              {(["USDT", "BTC"] as const).map((a) => (
+                <button
+                  key={a}
+                  type="button"
+                  onClick={() => setListingAsset(a)}
+                  className={`flex-1 rounded-lg border px-3 py-2.5 text-sm font-bold ${
+                    listingAsset === a
+                      ? "border-[#D4AF37]/50 bg-[#D4AF37]/12 text-[#F5E6B3]"
+                      : "border-white/10 text-zinc-400"
+                  }`}
+                >
+                  {a}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
             <p className={label}>Listing side</p>
             <div
               className="mt-2 flex flex-row gap-2 rounded-xl border border-white/10 bg-black/30 p-1"
@@ -119,31 +127,31 @@ export default function MerchantNewOfferPage() {
               <button
                 type="button"
                 role="tab"
-                aria-selected={side === "sell_usdt"}
-                onClick={() => setSide("sell_usdt")}
+                aria-selected={listingTab === "sell"}
+                onClick={() => setListingTab("sell")}
                 className={`min-w-0 flex-1 rounded-lg px-3 py-2.5 text-center text-[11px] font-bold uppercase leading-snug tracking-wide sm:text-xs sm:leading-tight md:py-3 ${
-                  side === "sell_usdt"
+                  listingTab === "sell"
                     ? "bg-red-600/90 text-white ring-1 ring-red-400/40"
                     : "text-zinc-400 hover:text-[#F5E6B3]"
                 }`}
               >
-                Sell USDT{" "}
+                Sell {listingAsset}{" "}
                 <span className="block font-medium normal-case text-[10px] text-zinc-500 sm:inline sm:font-normal sm:text-zinc-400">
-                  (buyers get USDT)
+                  (buyers get {listingAsset})
                 </span>
               </button>
               <button
                 type="button"
                 role="tab"
-                aria-selected={side === "buy_usdt"}
-                onClick={() => setSide("buy_usdt")}
+                aria-selected={listingTab === "buy"}
+                onClick={() => setListingTab("buy")}
                 className={`min-w-0 flex-1 rounded-lg px-3 py-2.5 text-center text-[11px] font-bold uppercase leading-snug tracking-wide sm:text-xs sm:leading-tight md:py-3 ${
-                  side === "buy_usdt"
+                  listingTab === "buy"
                     ? "bg-emerald-700 text-white ring-1 ring-emerald-400/40"
                     : "text-zinc-400 hover:text-[#F5E6B3]"
                 }`}
               >
-                Buy USDT{" "}
+                Buy {listingAsset}{" "}
                 <span className="block font-medium normal-case text-[10px] text-zinc-500 sm:inline sm:font-normal sm:text-zinc-400">
                   (you pay fiat)
                 </span>
@@ -174,17 +182,36 @@ export default function MerchantNewOfferPage() {
             </div>
           </div>
 
+          <div>
+            <p className={label}>Fiat settlement currency</p>
+            <p className="mt-1 text-[11px] text-zinc-600">
+              Off-platform leg pays / receives in this currency. USDT escrow stays the same; investors see the
+              price converted into their preferred currency on the marketplace.
+            </p>
+            <select
+              value={fiatCurrency}
+              onChange={(e) => setFiatCurrency(e.target.value as FiatCurrencyCode)}
+              className={`mt-2 ${inp} appearance-none bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 20 20%22 fill=%22%23D4AF37%22><path d=%22M5 8l5 5 5-5z%22/></svg>')] bg-[right_0.75rem_center] bg-no-repeat pr-10`}
+            >
+              {FIAT_CURRENCIES.map((c) => (
+                <option key={c.code} value={c.code} className="bg-[#0c1018] text-white">
+                  {c.flag} {c.code} — {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
             <label className="min-w-0 sm:col-span-1">
-              <span className={label}>Min USDT</span>
+              <span className={label}>Min {listingAsset}</span>
               <input type="number" value={minL} onChange={(e) => setMinL(e.target.value)} className={`mt-2 ${inp}`} />
             </label>
             <label className="min-w-0 sm:col-span-1">
-              <span className={label}>Max USDT</span>
+              <span className={label}>Max {listingAsset}</span>
               <input type="number" value={maxL} onChange={(e) => setMaxL(e.target.value)} className={`mt-2 ${inp}`} />
             </label>
             <label className="min-w-0 sm:col-span-2">
-              <span className={label}>{side === "sell_usdt" ? "Buyer fee %" : "Fee % / margin"}</span>
+              <span className={label}>{listingTab === "sell" ? "Buyer fee %" : "Fee % / margin"}</span>
               <input type="number" value={rate} onChange={(e) => setRate(e.target.value)} className={`mt-2 ${inp}`} />
             </label>
           </div>
@@ -202,7 +229,7 @@ export default function MerchantNewOfferPage() {
             <span className="mt-1 block text-right text-[10px] text-zinc-600">{advertMessage.length}/500</span>
           </label>
 
-          {side === "sell_usdt" ? (
+          {listingTab === "sell" ? (
             <label className="block">
               <span className={label}>Fiat payout instructions</span>
               <p className="mb-2 text-[11px] text-zinc-600">
@@ -219,7 +246,7 @@ export default function MerchantNewOfferPage() {
             </label>
           ) : (
             <p className="rounded-xl border border-white/10 bg-black/25 px-3 py-3 text-[11px] text-zinc-500">
-              <span className="font-semibold text-zinc-400">Buy-USDT listings:</span> pick chips above — investors paste
+              <span className="font-semibold text-zinc-400">Buy listings:</span> pick chips above — investors paste
               their payout details inside each trade ticket.
             </p>
           )}

@@ -1,4 +1,4 @@
-import { getEmailBrandConfig } from "@/lib/email/brand";
+import { getEmailBrandWithPlatformContact } from "@/lib/email/brandWithPlatformContact";
 import { siteOriginFromRequest } from "@/lib/email/request-origin";
 import { buildZunoEmailHtml } from "@/lib/email/zuno-layout";
 
@@ -94,7 +94,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const brand = getEmailBrandConfig({
+  const brand = await getEmailBrandWithPlatformContact({
     preferSiteUrl: siteOriginFromRequest(request),
   });
 

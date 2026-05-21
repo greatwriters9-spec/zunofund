@@ -24,10 +24,10 @@ export function TradeDetails({
 }: TradeDetailsProps) {
   const shell =
     embedded && compact
-      ? "rounded-xl border border-white/[0.06] bg-black/[0.14] p-3 backdrop-blur-sm"
+      ? "border border-white/[0.08] bg-black/20 p-3"
       : embedded
-        ? "rounded-2xl border border-white/10 bg-black/35 p-4 backdrop-blur-sm"
-        : "mx-4 rounded-2xl border border-white/10 bg-black/35 p-4 shadow-lg shadow-black/25 backdrop-blur-sm sm:mx-5";
+        ? "border border-white/10 bg-black/35 p-4 backdrop-blur-sm"
+        : "mx-4 border border-white/10 bg-black/35 p-4 shadow-lg shadow-black/25 backdrop-blur-sm sm:mx-5";
 
   const titleCls =
     compact === true

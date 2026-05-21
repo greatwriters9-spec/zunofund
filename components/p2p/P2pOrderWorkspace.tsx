@@ -3,45 +3,25 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { ChevronDown, Lock } from "lucide-react";
+
 import { CancelModal } from "@/components/p2p/CancelModal";
-import { TradeActions } from "@/components/p2p/TradeActions";
 import type { ChatMessage } from "@/components/p2p/TradeChat";
 import { TradeChat } from "@/components/p2p/TradeChat";
-import { TradeDetails } from "@/components/p2p/TradeDetails";
-import { TradeHeader } from "@/components/p2p/TradeHeader";
-import { zunoGlassCard, zunoGoldGradientOverlay } from "@/components/p2p/zunoTheme";
+import { TradeOrderBrief } from "@/components/p2p/TradeOrderBrief";
+import {
+  formatHMS,
+  merchantInitials,
+  orderStatusHeadline,
+  paymentMethodLabel,
+} from "@/components/p2p/utils";
+import { deriveTradePanels } from "@/components/p2p/deriveTradePanels";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
-import { getP2pPaymentMethodLabel } from "@/lib/p2pPaymentMethods";
+import { formatFiat } from "@/lib/currencies";
+import { assetFromOfferSide, fmtAssetAmount } from "@/lib/p2pAssets";
+import type { WorkspaceOrderRow } from "@/components/p2p/workspaceTypes";
 
-type OrderMessageRow = {
-  id: string;
-  sender_user_id: string;
-  body: string;
-  created_at: string;
-};
-
-export type WorkspaceOrderRow = {
-  id: string;
-  investor_user_id: string;
-  merchant_user_id: string;
-  offer_id: string | null;
-  side: "sell_usdt" | "buy_usdt";
-  amount_requested: number;
-  rate_percentage: number;
-  fee_amount: number;
-  usdt_credit_amount: number | null;
-  usdt_escrow_amount: number | null;
-  payment_method: string;
-  proof_of_payment: string | null;
-  investor_payout_instructions?: string | null;
-  status: string;
-  expires_at: string;
-  deposit_id: string | null;
-  merchant_offers: {
-    payment_instructions: string | null;
-  } | null;
-  created_at?: string;
-};
+export type { WorkspaceOrderRow } from "@/components/p2p/workspaceTypes";
 
 export type P2pOrderWorkspaceProps = {
   orderId: string;
@@ -54,15 +34,14 @@ export type P2pOrderWorkspaceProps = {
   backHref?: string;
 };
 
-/** Trim very long pasted instructions inside auto-generated bubbles. */
-function clampTradeText(raw: string, max = 1100): string {
-  const t = raw.trim();
-  if (!t.length) return t;
-  if (t.length <= max) return t;
-  return `${t.slice(0, max).trimEnd()}…`;
-}
+type OrderMessageRow = {
+  id: string;
+  sender_user_id: string;
+  body: string;
+  created_at: string;
+};
 
-const linkCls = "text-sm font-medium text-[#D4AF37] transition hover:text-[#F5E6B3]";
+const linkCls = "text-[13px] font-medium text-[#D4AF37] transition hover:text-[#F5E6B3]";
 
 export function P2pOrderWorkspace({
   orderId: id,
@@ -84,6 +63,13 @@ export function P2pOrderWorkspace({
   const [serverMessages, setServerMessages] = useState<OrderMessageRow[]>([]);
   const [chatSyncError, setChatSyncError] = useState<string | null>(null);
   const [chatSending, setChatSending] = useState(false);
+  const [merchantListingName, setMerchantListingName] = useState<string | null>(null);
+
+  const tradePanelsDerived = useMemo(() => {
+    if (!order) return null;
+    const merchantView = userId !== null && order.merchant_user_id === userId;
+    return deriveTradePanels(order, merchantView);
+  }, [order, userId]);
 
   const chatDisplayMessages: ChatMessage[] = useMemo(
     () =>
@@ -99,11 +85,6 @@ export function P2pOrderWorkspace({
 
   const tradeTimelineMessages = useMemo((): ChatMessage[] => {
     if (!order) return [];
-    const payLabel = getP2pPaymentMethodLabel(order.payment_method);
-    const rate = Number(order.rate_percentage).toLocaleString(undefined, {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-    });
     const isMerchView = Boolean(userId && order.merchant_user_id === userId);
     const anchor = order.created_at ? new Date(order.created_at) : new Date();
 
@@ -122,76 +103,35 @@ export function P2pOrderWorkspace({
     });
 
     const out: ChatMessage[] = [];
-
-    if (order.side === "sell_usdt") {
-      const amt = Number(order.amount_requested).toFixed(2);
-      const cred = Number(order.usdt_credit_amount ?? 0).toFixed(2);
-      const summary = isMerchView
-        ? `This investor is buying $${amt} USDT from your listing.\n\nOnce their fiat settles off-platform and you release escrow, roughly $${cred} USDT will land in their wallet here.\n\nMerchant fee baked into your rate: ${rate}%. Coordinating channel: ${payLabel}.`
-        : `You are buying $${amt} USDT in this escrow.\n\nAfter you’ve sent fiat as agreed and the merchant verifies it, approximately $${cred} USDT will be credited to your on-platform balance.\n\nMerchant fee: ${rate}%. Coordinating channel: ${payLabel}.`;
-
-      out.push(sys("sys-trade-summary-sell", summary, "default"));
-
-      const bespoke = clampTradeText(order.merchant_offers?.payment_instructions ?? "");
-      const core = bespoke.length
-        ? bespoke
-        : `No custom bank/till/account lines were stored on this offer. Nail down the precise pay-in destination together in chat; still route through ${payLabel} unless you both clearly agree otherwise here.`;
-
-      const instructionBlock = isMerchView
-        ? `Fiat payout reference for you (merchant):\nHow the investor should compensate you mirrors what appears below unless you amend it openly in-thread.\n\n${core}`
-        : `Merchant payment instructions:\nTransmit fiat only according to these details.\nDo not blindly trust SMS, WhatsApp forwards, or e-mail that contradict this escrow.\n\n${core}`;
-
-      out.push(sys("sys-trade-instructions-sell", instructionBlock, "default"));
-    } else {
-      const esc = Number(order.usdt_escrow_amount ?? 0).toFixed(2);
-      const payout = clampTradeText(order.investor_payout_instructions ?? "");
-
-      const summary = isMerchView
-        ? `$${esc} USDT is escrowed until you complete your fiat payout.\nCheck the payout coordinates in this ticket, send funds through ${payLabel}, then hit Mark as Paid once the payment is dispatched.\nYour quoted merchant fee tier: ${rate}%.`
-        : `You are selling $${esc} USDT that is escrowed here.\n\nYou will collect fiat externally using the payout mandate in this conversation; release USDT to the merchant only after funds have cleared.\n\nFee quoted on their listing: ${rate}%. Coordinating channel: ${payLabel}.`;
-
-      out.push(sys("sys-trade-summary-buy", summary, "default"));
-
-      const payoutLines =
-        payout.length > 0
-          ? payout
-          : "(Payout specifics were blank when the trade opened — clarify bank / mobile-money handles here before fiat moves.)";
-
-      const payoutBlock = isMerchView
-        ? `Seller payout instructions:\nTransmit fiat ONLY to these coordinates unless the investor posts an updated version here:\n\n${payoutLines}`
-        : `Your fiat payout mandate (merchant must honour this verbatim):\n\n${payoutLines}`;
-
-      out.push(sys("sys-trade-instructions-buy", payoutBlock, "default"));
-    }
-
     const st = order.status;
+
     if (st === "cancelled") {
-      out.push(sys("sys-cancelled", "This trade has been cancelled.", "default"));
+      out.push(
+        sys(
+          "sys-cancelled",
+          "Trade cancelled — do not send new funds unless you jointly coordinate here.",
+          "default",
+        ),
+      );
       return out;
     }
 
     if (st === "paid" || st === "completed") {
       let paidBody: string;
-      if (order.side === "sell_usdt") {
+      if (order.side === "sell_usdt" || order.side === "sell_btc") {
         paidBody = isMerchView
-          ? "The buyer marked this trade as paid. Confirm their fiat, then release USDT when satisfied."
-          : "Payment marked successfully. The merchant is confirming your payment.";
+          ? "Buyer marked paid. Confirm fiat, then release when satisfied."
+          : "Marked paid — merchant verifying.";
       } else {
         paidBody = isMerchView
-          ? "You marked fiat as sent. Waiting for the seller to verify receipt and release USDT."
-          : "The merchant marked the fiat payment as sent. Confirm you received funds, then release USDT when satisfied.";
+          ? "Fiat payout marked sent; seller confirms before escrow release."
+          : "Merchant marked payout sent — verify before releasing.";
       }
       out.push(sys("sys-milestone-paid", paidBody, "success"));
     }
 
     if (st === "completed") {
-      out.push(
-        sys(
-          "sys-milestone-complete",
-          "Trade completed successfully.",
-          "success",
-        ),
-      );
+      out.push(sys("sys-milestone-complete", "Trade completed — balances refreshed.", "success"));
     }
 
     return out;
@@ -221,12 +161,14 @@ export function P2pOrderWorkspace({
     if (qErr) {
       setError(formatSupabaseError(qErr));
       setOrder(null);
+      setMerchantListingName(null);
       return;
     }
 
     if (!ord) {
       setOrder(null);
       setError(null);
+      setMerchantListingName(null);
       return;
     }
 
@@ -239,6 +181,14 @@ export function P2pOrderWorkspace({
             .eq("id", oid)
             .maybeSingle()
         : { data: null };
+
+    const { data: mpRow } = await supabase
+      .from("merchant_profiles")
+      .select("display_name")
+      .eq("user_id", ord.merchant_user_id)
+      .maybeSingle();
+
+    setMerchantListingName((mpRow as { display_name: string | null } | null)?.display_name ?? null);
 
     setOrder({
       ...(ord as WorkspaceOrderRow),
@@ -398,56 +348,84 @@ export function P2pOrderWorkspace({
 
   const detailRows = useMemo(() => {
     if (!order) return [];
-    if (order.side === "sell_usdt") {
+
+    // Phase 3 fiat snapshot — locked at order open. NULL on legacy rows.
+    const fiatCcy = (order.fiat_currency_code ?? "USD") || "USD";
+    const fiatAmt = Number(order.fiat_amount ?? 0);
+    const fxRate = Number(order.fx_rate_usd_at_open ?? 1);
+    const showFiatRow = fiatCcy !== "USD" && fiatAmt > 0;
+    const fiatLine = showFiatRow ? formatFiat(fiatAmt, fiatCcy, { showCode: true }) : null;
+    const rateLine = showFiatRow
+      ? `1 ${fiatCcy} = ${fxRate.toPrecision(4)} USD (locked at open)`
+      : null;
+
+    const orderAsset = assetFromOfferSide(order.side);
+    const creditAmt = order.usdt_credit_amount ?? order.btc_credit_amount ?? 0;
+
+    if (order.side === "sell_usdt" || order.side === "sell_btc") {
       return [
-        { label: "Amount (USDT)", value: `$${Number(order.amount_requested).toFixed(2)}` },
+        { label: `Amount (${orderAsset})`, value: fmtAssetAmount(orderAsset, order.amount_requested) },
         { label: "Merchant fee", value: `${Number(order.rate_percentage)}%` },
         {
           label: "You receive (on-platform)",
-          value: `~$${Number(order.usdt_credit_amount ?? 0).toFixed(2)} USDT`,
+          value: `≈ ${fmtAssetAmount(orderAsset, creditAmt)}`,
           emphasize: true,
         },
-        { label: "Fiat settlement", value: "Off-platform — coordinated in chat / listing" },
+        ...(showFiatRow
+          ? [
+              {
+                label: "You pay (fiat)",
+                value: `${fiatLine} — settle via ${paymentMethodLabel(order.payment_method)}`,
+                emphasize: true,
+              },
+              { label: "FX snapshot", value: rateLine ?? "" },
+            ]
+          : [{ label: "Fiat settlement", value: "Off-platform — coordinated in chat / listing" }]),
       ];
     }
+    const escrowAmt = order.usdt_escrow_amount ?? order.btc_escrow_amount ?? 0;
     return [
-      { label: "USDT locked", value: `$${Number(order.usdt_escrow_amount ?? 0).toFixed(2)}` },
+      { label: `${orderAsset} locked`, value: fmtAssetAmount(orderAsset, escrowAmt) },
       { label: "Merchant fee", value: `${Number(order.rate_percentage)}%` },
-      {
-        label: "You receive (fiat)",
-        value: "Use your payout details below — the merchant sends there",
-        emphasize: true,
-      },
+      ...(showFiatRow
+        ? [
+            {
+              label: "You receive (fiat)",
+              value: `${fiatLine} via ${paymentMethodLabel(order.payment_method)}`,
+              emphasize: true,
+            },
+            { label: "FX snapshot", value: rateLine ?? "" },
+          ]
+        : [
+            {
+              label: "You receive (fiat)",
+              value: "Use your payout details below — the merchant sends there",
+              emphasize: true,
+            },
+          ]),
     ];
   }, [order]);
 
   if (!id?.trim()) {
-    return embedded ? (
-      <div className="rounded-2xl border border-red-500/35 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+    return (
+      <div className="rounded-md border border-red-500/35 bg-red-500/10 px-4 py-3 text-sm text-red-200">
         Invalid order.
       </div>
-    ) : (
-      <p className="text-red-400">Invalid order.</p>
     );
   }
 
   if (loading && !order) {
-    return embedded ? (
-      <div className="flex min-h-[12rem] flex-col items-center justify-center gap-3 rounded-xl border border-white/10 bg-black/20 text-zinc-400">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[#D4AF37] border-t-transparent" />
-        <p className="text-sm text-zinc-500">Loading trade…</p>
-      </div>
-    ) : (
-      <div className="flex min-h-[50vh] flex-col items-center justify-center text-zinc-400">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[#D4AF37] border-t-transparent" />
-        <p className="mt-4 text-sm text-zinc-500">Loading trade…</p>
+    return (
+      <div className="flex min-h-[18rem] flex-col items-center justify-center gap-3 rounded-md border border-[#D4AF37]/15 bg-black/40 text-zinc-400">
+        <div className="h-9 w-9 animate-spin rounded-full border-2 border-[#D4AF37] border-t-transparent" />
+        <p className="text-sm">Loading trade…</p>
       </div>
     );
   }
 
   if (!order) {
-    return embedded ? (
-      <div className="rounded-2xl border border-white/12 bg-black/25 px-4 py-6 text-center backdrop-blur-sm">
+    return (
+      <div className="rounded-md border border-[#D4AF37]/15 bg-black/40 px-4 py-8 text-center">
         <p className="text-zinc-400">Order not found.</p>
         {onBack ? (
           <button type="button" onClick={onBack} className={`mt-4 inline-block ${linkCls}`}>
@@ -458,13 +436,6 @@ export function P2pOrderWorkspace({
             {backLabel}
           </Link>
         )}
-      </div>
-    ) : (
-      <div>
-        <p className="text-zinc-400">Order not found.</p>
-        <Link href="/dashboard" className="mt-4 inline-block text-[#D4AF37] hover:text-[#F5E6B3] hover:underline">
-          Dashboard
-        </Link>
       </div>
     );
   }
@@ -477,134 +448,168 @@ export function P2pOrderWorkspace({
     order.status === "pending_payment" ? Math.max(0, Math.floor((expires - Date.now()) / 1000)) : 0;
   void tick;
 
+  // Only the party paying fiat may cancel (pending or after they marked paid, before release).
+  const payerMayCancel =
+    order.status === "pending_payment" || order.status === "paid";
+
   const showInvestorCancel =
     isInvestor &&
-    order.status === "pending_payment" &&
-    (order.side === "sell_usdt" || order.side === "buy_usdt");
+    payerMayCancel &&
+    (order.side === "sell_usdt" || order.side === "sell_btc");
 
-  const showMerchantCancel = isMerchant && order.status === "pending_payment";
+  const showMerchantCancel =
+    isMerchant &&
+    payerMayCancel &&
+    (order.side === "buy_usdt" || order.side === "buy_btc");
 
   const btnPrimary =
-    "w-full rounded-xl bg-emerald-600/90 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-black/30 ring-1 ring-[#D4AF37]/28 transition hover:bg-emerald-500 disabled:opacity-50";
+    "inline-flex h-10 w-full items-center justify-center rounded-md bg-emerald-600 px-4 text-[14px] font-semibold text-white shadow-sm ring-1 ring-[#D4AF37]/30 transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50";
 
-  const btnPrimaryInline =
-    "min-h-[42px] flex-1 rounded-xl bg-emerald-600/90 px-3 py-2.5 text-center text-sm font-semibold text-white shadow-sm shadow-black/30 ring-1 ring-[#D4AF37]/28 transition hover:bg-emerald-500 disabled:opacity-50 sm:min-w-0";
+  const btnReleaseSell =
+    "inline-flex h-10 w-full items-center justify-center rounded-md bg-red-600 px-4 text-[14px] font-semibold text-white shadow-sm ring-1 ring-red-400/35 transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50";
 
-  const btnSellPrimary =
-    "w-full rounded-xl bg-red-600/90 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-red-900/35 ring-1 ring-red-400/30 transition hover:bg-red-500 disabled:opacity-50";
+  const btnCancel =
+    "inline-flex h-10 w-full items-center justify-center rounded-md border border-red-500/40 bg-black/35 px-4 text-[14px] font-medium text-red-300 transition hover:border-red-500/60 hover:bg-red-500/10 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-50";
 
-  const btnCancelOutline =
-    "min-h-[42px] w-full rounded-xl border border-red-500/45 bg-transparent px-3 py-2.5 text-sm font-semibold text-red-400/95 transition hover:bg-red-500/10 disabled:opacity-50 sm:w-auto sm:flex-1";
+  const counterpartName = isMerchant ? "Investor" : merchantListingName ?? "Merchant";
 
-  const shellHeight =
-    embedded
-      ? "min-h-0 max-lg:min-h-[min(520px,82dvh)] lg:h-[min(680px,calc(100vh-13rem))] lg:min-h-[420px]"
-      : "min-h-0 max-lg:min-h-[min(560px,85dvh)] lg:h-[min(860px,calc(100dvh-7rem))] lg:min-h-[520px]";
+  const shellHeight = embedded
+    ? "min-h-0 max-lg:min-h-[min(560px,82dvh)] lg:h-[min(720px,calc(100vh-13rem))] lg:min-h-[480px]"
+    : "min-h-0 max-lg:min-h-[calc(100dvh-5.25rem)] lg:h-[calc(100dvh-2.5rem)] lg:min-h-[640px]";
+
+  const effectiveBackHref = isMerchant ? "/merchant" : backHref;
+  const effectiveBackLabel = isMerchant ? "← Merchant dashboard" : backLabel;
 
   const backControl =
     onBack != null ? (
       <button type="button" onClick={onBack} className={linkCls}>
-        {backLabel}
+        {effectiveBackLabel}
       </button>
     ) : (
-      <Link href={backHref} className={linkCls}>
-        {backLabel}
+      <Link href={effectiveBackHref} className={linkCls}>
+        {effectiveBackLabel}
       </Link>
     );
 
+  const showTimer = leftSec > 0;
+  const payLabel = paymentMethodLabel(order.payment_method);
+  // Whoever is sending fiat (investor in sell_usdt, merchant in buy_usdt)
+  // needs the fiat amount — not the USDT side. Snapshot was locked at open.
+  const orderFiatCcy = (order.fiat_currency_code ?? "USD") || "USD";
+  const orderFiatAmt = Number(order.fiat_amount ?? 0);
+  const hasFiatSnapshot = orderFiatCcy !== "USD" && orderFiatAmt > 0;
+  const fiatTradeAmount = hasFiatSnapshot ? formatFiat(orderFiatAmt, orderFiatCcy) : null;
+  const orderAsset = assetFromOfferSide(order.side);
+  const cryptoTradeAmount =
+    order.side === "sell_usdt" || order.side === "sell_btc"
+      ? fmtAssetAmount(orderAsset, order.amount_requested)
+      : fmtAssetAmount(orderAsset, order.usdt_escrow_amount ?? order.btc_escrow_amount ?? 0);
+  const tradeAmount = fiatTradeAmount ?? cryptoTradeAmount;
+
+  const canMarkPaidInvestor =
+    isInvestor &&
+    (order.side === "sell_usdt" || order.side === "sell_btc") &&
+    order.status === "pending_payment";
+  const canMarkPaidMerchant =
+    isMerchant &&
+    (order.side === "buy_usdt" || order.side === "buy_btc") &&
+    order.status === "pending_payment";
+  const canReleaseMerchant =
+    isMerchant &&
+    (order.side === "sell_usdt" || order.side === "sell_btc") &&
+    order.status === "paid";
+  const canReleaseInvestor =
+    isInvestor &&
+    (order.side === "buy_usdt" || order.side === "buy_btc") &&
+    order.status === "paid";
+
   return (
     <>
-      <div className={`relative flex w-full min-w-0 flex-col overflow-hidden ${zunoGlassCard}`}>
-        <div className={zunoGoldGradientOverlay} />
-
+      <div className="relative flex w-full min-w-0 flex-col overflow-hidden rounded-md border border-[#D4AF37]/15 bg-[#070b12]/95 text-white shadow-[0_0_0_1px_rgba(212,175,55,0.05)] backdrop-blur-md">
         <div className={`relative flex w-full min-h-0 flex-col ${shellHeight}`}>
-            <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-white/[0.06] bg-black/[0.12] px-4 py-2 backdrop-blur-sm sm:px-5">
-              {backControl}
-              <span className="font-mono text-[11px] text-zinc-500">
-                Order #{order.id.slice(0, 8)}…
-              </span>
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[#D4AF37]/12 bg-black/40 px-5 py-3 sm:px-6">
+            {backControl}
+            <div className="flex flex-wrap items-center gap-2 text-[12px] text-zinc-400">
+              <span className="font-mono">#{order.id.slice(0, 8)}</span>
+              <span className="text-zinc-600">·</span>
+              <span>{orderStatusHeadline(order.status)}</span>
+              {showTimer ? (
+                <>
+                  <span className="text-zinc-600">·</span>
+                  <span className="font-mono tabular-nums text-[#F5E6B3]">{formatHMS(leftSec)}</span>
+                </>
+              ) : null}
             </div>
+          </div>
 
-            <TradeHeader status={order.status} countdownSeconds={leftSec} />
-
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
-              <aside className="w-full shrink-0 border-b border-white/[0.06] lg:flex lg:w-[min(360px,34%)] lg:flex-col lg:border-b-0 lg:border-r lg:border-white/[0.06]">
-                <div className="space-y-3 overflow-y-auto px-4 py-3 max-lg:max-h-[min(52dvh,340px)] lg:max-h-none lg:flex-1 lg:px-4 lg:py-4">
-                  {error ? (
-                    <div className="rounded-2xl border border-red-500/35 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-                      {error}
-                    </div>
-                  ) : null}
-
-                  <TradeDetails
-                    embedded
-                    compact
-                    showMethodFooter={false}
-                    paymentMethodCode={order.payment_method}
-                    rows={detailRows}
-                  />
-
-                  {order.side === "buy_usdt" ? (
-                    <section className="rounded-xl border border-white/[0.07] bg-emerald-500/[0.06] px-3 py-3 backdrop-blur-sm">
-                      <h2 className="text-[10px] font-semibold uppercase tracking-wider text-emerald-300/85">
-                        {isMerchant ? "Pay investor (fiat)" : "Your payout lane"}
-                      </h2>
-                      <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-zinc-200/95">
-                        {(order.investor_payout_instructions ?? "").trim() || "—"}
-                      </p>
-                      {!isMerchant ? (
-                        <p className="mt-1.5 text-[10px] leading-snug text-zinc-500">
-                          Fiat lands here — release crypto only once funds cleared.
-                        </p>
-                      ) : (
-                        <p className="mt-1.5 text-[10px] leading-snug text-zinc-500">
-                          Match verbatim, press Mark when dispatched.
-                        </p>
-                      )}
-                    </section>
-                  ) : null}
-
-                  {order.proof_of_payment ? (
-                    <div className="rounded-lg border border-white/[0.06] bg-black/25 px-3 py-2 text-[11px] text-zinc-500">
-                      <span className="text-zinc-600">Recorded reference:</span>{" "}
-                      <span className="break-all font-mono text-zinc-300">{order.proof_of_payment}</span>
-                    </div>
-                  ) : null}
-
-                  {order.status === "completed" && order.deposit_id ? (
-                    <p className="text-center text-xs text-zinc-500 lg:text-left">
-                      Completed. Linked deposit: <span className="font-mono text-zinc-400">{order.deposit_id}</span>
-                    </p>
-                  ) : null}
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
+            <aside className="flex w-full shrink-0 flex-col gap-3 overflow-y-auto border-b border-[#D4AF37]/12 bg-black/35 px-4 py-3 max-lg:max-h-[42dvh] sm:gap-4 sm:py-4 lg:w-[280px] lg:max-h-none lg:border-b-0 lg:border-r [scrollbar-width:thin]">
+              <div className="hidden rounded-md border border-[#D4AF37]/18 bg-black/40 p-4 lg:block">
+                <div className="flex items-center gap-2 text-[13px] font-semibold text-[#F5E6B3]">
+                  <Lock className="h-3.5 w-3.5 text-[#D4AF37]" aria-hidden />
+                  {orderStatusHeadline(order.status)}
                 </div>
-              </aside>
-
-              <div className="flex min-h-[min(38dvh,320px)] min-w-0 flex-1 flex-col bg-transparent max-lg:flex-1 lg:min-h-0">
-                {chatSyncError ? (
-                  <div className="shrink-0 border-b border-red-500/30 bg-red-500/10 px-4 py-2 text-xs text-red-200 sm:px-5">
-                    {chatSyncError}
-                  </div>
+                {showTimer ? (
+                  <p className="mt-2 text-[12px] text-zinc-500">
+                    Time left:{" "}
+                    <span className="font-mono font-semibold text-[#F5E6B3]">{formatHMS(leftSec)}</span>
+                  </p>
                 ) : null}
-                <TradeChat
-                  embedded
-                  messages={combinedChatMessages}
-                  onSend={(t) => void sendTradeMessage(t)}
-                  disabled={chatInputDisabled}
-                  placeholder={chatSending ? "Sending…" : "Type a message…"}
-                />
               </div>
-            </div>
 
-            {!userId ? (
-              <div className="shrink-0 border-t border-white/[0.06] bg-black/[0.06] px-4 py-3 text-center text-xs text-zinc-500 backdrop-blur-sm">
-                Sign in to take actions on this trade.
-              </div>
-            ) : null}
+              {error ? (
+                <div className="rounded-md border border-red-500/35 bg-red-500/10 px-3 py-2 text-[12.5px] text-red-200">
+                  {error}
+                </div>
+              ) : null}
 
-            {userId ? (
-              <TradeActions variant="embedded">
-                {isInvestor && order.side === "sell_usdt" && order.status === "pending_payment" ? (
-                  <div className="flex w-full gap-3">
+              <details
+                open
+                className="group rounded-md border border-[#D4AF37]/18 bg-black/40 p-4 [&_summary::-webkit-details-marker]:hidden lg:open"
+              >
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-wide text-[#D4AF37]/85 lg:cursor-default">
+                  Offer terms
+                  <ChevronDown
+                    className="h-4 w-4 text-[#D4AF37]/70 transition-transform group-open:rotate-180 lg:hidden"
+                    aria-hidden
+                  />
+                </summary>
+                <p className="mt-2 rounded-md border border-white/[0.08] bg-black/45 px-3 py-2 text-[12.5px] text-zinc-300">
+                  Instant release · {payLabel}
+                </p>
+                {canMarkPaidInvestor || canMarkPaidMerchant ? (
+                  <p className="mt-3 text-[12.5px] leading-relaxed text-zinc-400">
+                    {canMarkPaidInvestor ? (
+                      <>
+                        Make a payment of{" "}
+                        <span className="font-semibold text-white">{tradeAmount}</span>
+                        {hasFiatSnapshot ? (
+                          <span className="text-zinc-500">
+                            {" "}
+                            (~{cryptoTradeAmount})
+                          </span>
+                        ) : null}{" "}
+                        using <span className="font-semibold text-white">{payLabel}</span> and press{" "}
+                        <span className="font-semibold text-emerald-300">“Mark as Paid”</span> below.
+                      </>
+                    ) : (
+                      <>
+                        Send{" "}
+                        <span className="font-semibold text-white">{tradeAmount}</span>
+                        {hasFiatSnapshot ? (
+                          <span className="text-zinc-500"> (~{cryptoTradeAmount} escrow)</span>
+                        ) : null}{" "}
+                        to the seller&apos;s payout details, then press{" "}
+                        <span className="font-semibold text-emerald-300">“Mark as Paid”</span>.
+                      </>
+                    )}
+                  </p>
+                ) : null}
+              </details>
+
+              {userId ? (
+                <div className="space-y-2">
+                  {canMarkPaidInvestor ? (
                     <button
                       type="button"
                       disabled={busy !== null}
@@ -616,42 +621,13 @@ export function P2pOrderWorkspace({
                           }),
                         )
                       }
-                      className={btnPrimaryInline}
+                      className={btnPrimary}
                     >
                       {busy === "paid" ? "Saving…" : "Mark as Paid"}
                     </button>
-                    {showInvestorCancel ? (
-                      <button
-                        type="button"
-                        disabled={busy !== null}
-                        onClick={() => setCancelOpen(true)}
-                        className={`${btnCancelOutline} shrink-0 sm:flex-1`}
-                      >
-                        Cancel
-                      </button>
-                    ) : null}
-                  </div>
-                ) : null}
+                  ) : null}
 
-                {isMerchant && order.side === "sell_usdt" && order.status === "paid" ? (
-                  <button
-                    type="button"
-                    disabled={busy !== null}
-                    onClick={() =>
-                      void run("release", async () =>
-                        supabase.rpc("merchant_release_buy_order", {
-                          p_order_id: order.id,
-                        }),
-                      )
-                    }
-                    className={btnPrimary}
-                  >
-                    {busy === "release" ? "Releasing…" : "Release USDT (credit investor)"}
-                  </button>
-                ) : null}
-
-                {isMerchant && order.side === "buy_usdt" && order.status === "pending_payment" ? (
-                  <div className="flex w-full gap-3">
+                  {canMarkPaidMerchant ? (
                     <button
                       type="button"
                       disabled={busy !== null}
@@ -663,64 +639,150 @@ export function P2pOrderWorkspace({
                           }),
                         )
                       }
-                      className={btnPrimaryInline}
+                      className={btnPrimary}
                     >
                       {busy === "mc_mark_paid" ? "Saving…" : "Mark as Paid"}
                     </button>
+                  ) : null}
+
+                  {canReleaseMerchant ? (
+                    <button
+                      type="button"
+                      disabled={busy !== null}
+                      onClick={() =>
+                        void run("release", async () =>
+                          supabase.rpc("merchant_release_buy_order", { p_order_id: order.id }),
+                        )
+                      }
+                      className={btnPrimary}
+                    >
+                      {busy === "release" ? "Releasing…" : `Release ${orderAsset}`}
+                    </button>
+                  ) : null}
+
+                  {canReleaseInvestor ? (
+                    <button
+                      type="button"
+                      disabled={busy !== null}
+                      onClick={() =>
+                        void run("release_sell", async () =>
+                          supabase.rpc("investor_release_merchant_buy_order", {
+                            p_order_id: order.id,
+                          }),
+                        )
+                      }
+                      className={btnReleaseSell}
+                    >
+                      {busy === "release_sell" ? "Releasing…" : `Release ${orderAsset}`}
+                    </button>
+                  ) : null}
+
+                  {showInvestorCancel || showMerchantCancel ? (
                     <button
                       type="button"
                       disabled={busy !== null}
                       onClick={() => setCancelOpen(true)}
-                      className={`${btnCancelOutline} shrink-0 sm:flex-1`}
+                      className={btnCancel}
                     >
                       Cancel
                     </button>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="rounded-md border border-[#D4AF37]/15 bg-black/40 px-3 py-2 text-[12.5px] text-zinc-500">
+                  Sign in to mark paid or cancel.
+                </p>
+              )}
+
+              <details className="group rounded-md border border-[#D4AF37]/18 bg-black/40 [&_summary::-webkit-details-marker]:hidden">
+                <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-[13px] font-semibold text-[#F5E6B3]">
+                  Trade actions
+                  <ChevronDown
+                    className="h-4 w-4 text-[#D4AF37]/70 transition-transform group-open:rotate-0 -rotate-90"
+                    aria-hidden
+                  />
+                </summary>
+                <div className="space-y-2 border-t border-[#D4AF37]/12 px-4 py-3 text-[12.5px] text-zinc-400">
+                  <p>Open a dispute or report an issue from chat once milestones complete.</p>
+                  {order.proof_of_payment ? (
+                    <p className="break-all">
+                      Ref:{" "}
+                      <span className="font-mono text-zinc-300">{order.proof_of_payment}</span>
+                    </p>
+                  ) : null}
+                </div>
+              </details>
+
+              <details className="group rounded-md border border-[#D4AF37]/18 bg-black/40 [&_summary::-webkit-details-marker]:hidden">
+                <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-[13px] font-semibold text-[#F5E6B3]">
+                  Trade information
+                  <ChevronDown
+                    className="h-4 w-4 text-[#D4AF37]/70 transition-transform group-open:rotate-0 -rotate-90"
+                    aria-hidden
+                  />
+                </summary>
+                <dl className="divide-y divide-[#D4AF37]/10 border-t border-[#D4AF37]/12 text-[12.5px]">
+                  {detailRows.map(({ label, value }) => (
+                    <div key={label} className="flex items-start justify-between gap-3 px-4 py-2.5">
+                      <dt className="text-zinc-500">{label}</dt>
+                      <dd className="text-right font-medium text-white">{value}</dd>
+                    </div>
+                  ))}
+                  <div className="flex items-start justify-between gap-3 px-4 py-2.5">
+                    <dt className="text-zinc-500">Payment method</dt>
+                    <dd className="text-right font-medium text-white">{payLabel}</dd>
                   </div>
-                ) : null}
+                </dl>
+              </details>
+            </aside>
 
-                {isInvestor && order.side === "buy_usdt" && order.status === "paid" ? (
-                  <button
-                    type="button"
-                    disabled={busy !== null}
-                    onClick={() =>
-                      void run("release_sell", async () =>
-                        supabase.rpc("investor_release_merchant_buy_order", {
-                          p_order_id: order.id,
-                        }),
-                      )
-                    }
-                    className={btnSellPrimary}
-                  >
-                    {busy === "release_sell" ? "Releasing…" : "Release USDT to merchant"}
-                  </button>
-                ) : null}
+            <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[#05080F]">
+              <div className="flex shrink-0 items-center gap-3 border-b border-[#D4AF37]/12 bg-black/40 px-5 py-3 sm:px-6">
+                <div
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#D4AF37]/15 text-[12px] font-semibold text-[#F5E6B3] ring-1 ring-[#D4AF37]/35"
+                  aria-hidden
+                >
+                  {merchantInitials(counterpartName)}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-[15px] font-semibold text-white">{counterpartName}</p>
+                  <p className="text-[11px] text-zinc-500">{payLabel}</p>
+                </div>
+              </div>
 
-                {isInvestor && order.side === "buy_usdt" && order.status === "pending_payment" && showInvestorCancel ? (
-                  <div className="flex justify-stretch">
-                    <button
-                      type="button"
-                      disabled={busy !== null}
-                      onClick={() => setCancelOpen(true)}
-                      className={`${btnCancelOutline} w-full`}
-                    >
-                      Cancel trade
-                    </button>
-                  </div>
-                ) : null}
+              {tradePanelsDerived ? (
+                <div className="shrink-0 border-b border-[#D4AF37]/10 bg-[#05080F]">
+                  <TradeOrderBrief
+                    panels={tradePanelsDerived}
+                    orderSide={order.side}
+                    investorPayoutInstructions={order.investor_payout_instructions}
+                    isMerchant={isMerchant}
+                  />
+                </div>
+              ) : (
+                <div className="border-b border-[#D4AF37]/10 px-5 py-3 text-[12.5px] text-zinc-500 sm:px-6">
+                  Loading trade context…
+                </div>
+              )}
 
-                {showMerchantCancel && !(isMerchant && order.side === "buy_usdt") ? (
-                  <button
-                    type="button"
-                    disabled={busy !== null}
-                    onClick={() => setCancelOpen(true)}
-                    className={`${btnCancelOutline} w-full`}
-                  >
-                    Cancel trade
-                  </button>
-                ) : null}
-              </TradeActions>
-            ) : null}
+              {chatSyncError ? (
+                <div className="shrink-0 border-b border-red-500/30 bg-red-500/10 px-5 py-2 text-[12.5px] text-red-200 sm:px-6">
+                  {chatSyncError}
+                </div>
+              ) : null}
+
+              <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+                <TradeChat
+                  counterpartLabel={counterpartName}
+                  messages={combinedChatMessages}
+                  onSend={(t) => void sendTradeMessage(t)}
+                  disabled={chatInputDisabled}
+                  placeholder={chatSending ? "Sending…" : "Write a message…"}
+                />
+              </div>
+            </section>
           </div>
+        </div>
       </div>
 
       <CancelModal

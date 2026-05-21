@@ -45,3 +45,9 @@ export function paymentMethodLabel(code: string): string {
 export function paymentMethodLabelCaps(code: string): string {
   return paymentMethodLabel(code).toUpperCase();
 }
+
+export function fmtUsdt(value: number | string | null | undefined): string {
+  const n = Number(value ?? 0);
+  if (!Number.isFinite(n)) return "0.00";
+  return n.toFixed(2);
+}

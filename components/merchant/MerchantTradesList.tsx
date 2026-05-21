@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+
+import { formatFiat } from "@/lib/currencies";
+
 import type { MerchantOrderCard } from "./merchantOrderTypes";
 
 function sideLabel(side: string) {
@@ -10,13 +13,19 @@ function sideLabel(side: string) {
 }
 
 function amountLine(o: MerchantOrderCard) {
+  // Append the snapshotted fiat amount when present so merchants see exactly
+  // what their counterparty must send / they must dispatch off-platform.
+  const fiatTail =
+    o.fiat_currency_code && o.fiat_currency_code !== "USD" && o.fiat_amount && o.fiat_amount > 0
+      ? ` · ${formatFiat(Number(o.fiat_amount), o.fiat_currency_code)}`
+      : "";
   if (o.side === "sell_usdt" && o.usdt_credit_amount != null) {
-    return `$${Number(o.usdt_credit_amount).toFixed(2)} credited (net of fee)`;
+    return `$${Number(o.usdt_credit_amount).toFixed(2)} credited (net of fee)${fiatTail}`;
   }
   if (o.side === "buy_usdt" && o.usdt_escrow_amount != null) {
-    return `$${Number(o.usdt_escrow_amount).toFixed(2)} escrow`;
+    return `$${Number(o.usdt_escrow_amount).toFixed(2)} escrow${fiatTail}`;
   }
-  return `$${Number(o.amount_requested).toFixed(2)}`;
+  return `$${Number(o.amount_requested).toFixed(2)}${fiatTail}`;
 }
 
 function investorLabel(inv: MerchantOrderCard["investor"]) {

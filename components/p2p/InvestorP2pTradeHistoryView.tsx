@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { merchantInitials, orderStatusHeadline, paymentMethodLabel } from "@/components/p2p/utils";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
+import { formatFiat } from "@/lib/currencies";
 
 type InvestorTradeRow = {
   id: string;
@@ -17,6 +18,8 @@ type InvestorTradeRow = {
   expires_at: string;
   merchant_user_id: string;
   merchant_display_name: string | null;
+  fiat_currency_code: string | null;
+  fiat_amount: number | null;
 };
 
 function investorFlowLabel(side: string): string {
@@ -70,7 +73,15 @@ function TradeRows({ rows }: { rows: InvestorTradeRow[] }) {
               <p className="mt-1 text-[11px] text-zinc-500">
                 {investorFlowLabel(r.side)}
                 {" · "}
-                <span className="font-semibold text-zinc-300 tabular-nums">{r.amount_requested} USDT</span>
+                <span className="font-semibold text-zinc-300 tabular-nums">
+                  {Number(r.amount_requested).toFixed(2)} USDT
+                </span>
+                {r.fiat_currency_code && r.fiat_currency_code !== "USD" && r.fiat_amount && r.fiat_amount > 0 ? (
+                  <span className="text-zinc-500">
+                    {" · "}
+                    <span className="tabular-nums">{formatFiat(Number(r.fiat_amount), r.fiat_currency_code)}</span>
+                  </span>
+                ) : null}
                 {" · "}
                 {paymentMethodLabel(r.payment_method)}
                 {Number.isFinite(r.fee_amount) && r.fee_amount > 0 ? (
@@ -80,7 +91,11 @@ function TradeRows({ rows }: { rows: InvestorTradeRow[] }) {
                 ) : null}
               </p>
               <p className="mt-1 text-[10px] uppercase tracking-wide text-zinc-600">
-                Started {new Date(r.created_at).toLocaleString()}
+                Started{" "}
+                {new Date(r.created_at).toLocaleString(undefined, {
+                  dateStyle: "short",
+                  timeStyle: "short",
+                })}
               </p>
             </div>
           </Link>
@@ -149,7 +164,7 @@ export function InvestorP2pTradeHistoryView() {
     const { data: ord, error: qErr } = await supabase
       .from("merchant_orders")
       .select(
-        "id, side, status, amount_requested, payment_method, fee_amount, created_at, expires_at, merchant_user_id",
+        "id, side, status, amount_requested, payment_method, fee_amount, created_at, expires_at, merchant_user_id, fiat_currency_code, fiat_amount",
       )
       .eq("investor_user_id", user.id)
       .order("created_at", { ascending: false });
@@ -189,6 +204,7 @@ export function InvestorP2pTradeHistoryView() {
       ...r,
       amount_requested: Number(r.amount_requested),
       fee_amount: Number(r.fee_amount ?? 0),
+      fiat_amount: r.fiat_amount == null ? null : Number(r.fiat_amount),
       merchant_display_name: nameMap.get(r.merchant_user_id) ?? null,
     }));
 

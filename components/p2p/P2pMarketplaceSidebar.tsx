@@ -44,26 +44,19 @@ export function P2pMarketplaceSidebar({
       <div>
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">Asset</p>
         <div className="mt-2 flex flex-row gap-2">
-          {(["USDT", "BTC", "ETH"] as const satisfies readonly P2pAssetCode[]).map((a) => {
-            const live = a === "USDT";
+          {(["USDT", "BTC"] as const satisfies readonly P2pAssetCode[]).map((a) => {
             return (
               <button
                 key={a}
                 type="button"
-                disabled={!live}
-                onClick={() => live && onAssetChange(a)}
+                onClick={() => onAssetChange(a)}
                 className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl border px-2 py-3 text-sm font-bold transition ${
                   asset === a
                     ? "border-[#D4AF37]/50 bg-black/45 text-[#F5E6B3] ring-1 ring-[#D4AF37]/35"
-                    : live
-                      ? "border-white/10 bg-black/25 text-zinc-300 hover:border-[#D4AF37]/25"
-                      : "cursor-not-allowed border-white/5 bg-black/15 text-zinc-600 opacity-55"
+                    : "border-white/10 bg-black/25 text-zinc-300 hover:border-[#D4AF37]/25"
                 }`}
               >
                 <span>{a}</span>
-                {!live ? (
-                  <span className="text-[9px] font-medium uppercase tracking-wider text-zinc-600">Soon</span>
-                ) : null}
               </button>
             );
           })}
