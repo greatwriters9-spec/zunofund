@@ -12,14 +12,14 @@ import {
   type FiatCurrencyCode,
 } from "@/lib/currencies";
 import type { P2pAssetCode } from "@/lib/p2pAssets";
-import { p2pOfferSide } from "@/lib/p2pAssets";
+import { merchantOfferSide } from "@/lib/p2pAssets";
 import type { P2pMarketTab } from "@/components/p2p/p2pTypes";
 
 export default function MerchantNewOfferPage() {
   const supabase = useSupabase();
   const [listingAsset, setListingAsset] = useState<P2pAssetCode>("USDT");
   const [listingTab, setListingTab] = useState<P2pMarketTab>("sell");
-  const side = p2pOfferSide(listingTab, listingAsset);
+  const side = merchantOfferSide(listingTab, listingAsset);
   const [methods, setMethods] = useState<string[]>(["mpesa"]);
   const [minL, setMinL] = useState("100");
   const [maxL, setMaxL] = useState("50000");

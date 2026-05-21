@@ -9,6 +9,8 @@ import type { MerchantOrderCard } from "./merchantOrderTypes";
 function sideLabel(side: string) {
   if (side === "sell_usdt") return "Merchant sells USDT (you deliver)";
   if (side === "buy_usdt") return "Merchant buys USDT (counterparty sells)";
+  if (side === "sell_btc") return "Merchant sells BTC (you deliver)";
+  if (side === "buy_btc") return "Merchant buys BTC (counterparty sells)";
   return side;
 }
 

@@ -26,6 +26,8 @@ type MerchantOfferHorizontalCardProps = {
 function sideLabel(side: string): string {
   if (side === "sell_usdt") return "Sell USDT";
   if (side === "buy_usdt") return "Buy USDT";
+  if (side === "sell_btc") return "Sell BTC";
+  if (side === "buy_btc") return "Buy BTC";
   return side;
 }
 

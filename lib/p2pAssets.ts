@@ -7,6 +7,11 @@ export type P2pAssetCode = "USDT" | "BTC";
 
 export type P2pOfferSide = "sell_usdt" | "buy_usdt" | "sell_btc" | "buy_btc";
 
+export function merchantOfferSide(tab: P2pMarketTab, asset: P2pAssetCode): P2pOfferSide {
+  if (tab === "sell") return asset === "BTC" ? "sell_btc" : "sell_usdt";
+  return asset === "BTC" ? "buy_btc" : "buy_usdt";
+}
+
 export function p2pOfferSide(tab: P2pMarketTab, asset: P2pAssetCode): P2pOfferSide {
   if (tab === "buy") return asset === "BTC" ? "sell_btc" : "sell_usdt";
   return asset === "BTC" ? "buy_btc" : "buy_usdt";
