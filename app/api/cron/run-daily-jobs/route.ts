@@ -44,10 +44,15 @@ export async function GET(request: Request) {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  const { error } = await supabase.rpc("run_daily_investment_jobs");
+  const { data, error } = await supabase.rpc("run_daily_investment_jobs");
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true });
+  const report =
+    data && typeof data === "object" && !Array.isArray(data)
+      ? (data as Record<string, unknown>)
+      : { ok: true };
+
+  return NextResponse.json({ ok: true, ...report });
 }

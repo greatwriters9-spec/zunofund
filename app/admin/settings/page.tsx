@@ -164,10 +164,14 @@ export default function AdminSettingsPage() {
             <strong>Daily automated profit</strong> uses the tier percentage on
             current <strong>balance</strong>, credits{" "}
             <strong>withdrawable profit</strong>, and runs at most about{" "}
-            <strong>once per ~24 hours</strong> per investor (sliding window via{" "}
+            <strong>at most once per ~23 hours</strong> per investor (sliding
+            window via{" "}
             <code className="text-yellow-400/90">last_compound_at</code>
-            ). Turn it off per investor on the Investors page when you need to
-            credit profits manually instead.
+            ). Vercel Cron hits{" "}
+            <code className="text-yellow-400/90">/api/cron/run-daily-jobs</code>{" "}
+            <strong>every hour</strong> so eligible accounts are not missed if
+            one run fails. Turn auto accrual off per investor on the Investors
+            page when crediting manually instead.
           </li>
         </ul>
       </section>
