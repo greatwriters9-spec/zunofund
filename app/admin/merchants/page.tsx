@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Fragment, useCallback, useEffect, useState } from "react";
 
+import { formatMoneyAmount, formatUsdLocale } from "@/lib/formatMoney";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 
 type MerchantRow = {
@@ -28,10 +29,6 @@ type MerchantOrderRow = {
   created_at: string;
   updated_at: string;
 };
-
-function fmtUsd(n: number): string {
-  return `$${Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
 
 export default function AdminMerchantsPage() {
   const supabase = useSupabase();
@@ -214,7 +211,7 @@ export default function AdminMerchantsPage() {
           per-merchant trade volume.
         </p>
         <p className="mt-3 text-sm tabular-nums text-[#F5E6B3]">
-          Platform volume (completed + paid): {fmtUsd(totalPlatformVolume)}
+          Platform volume (completed + paid): {formatUsdLocale(totalPlatformVolume)}
         </p>
       </div>
 
@@ -376,7 +373,7 @@ export default function AdminMerchantsPage() {
                       {Number(r.order_count)} ({Number(r.completed_count)} done)
                     </td>
                     <td className="p-4 tabular-nums font-semibold text-emerald-300/90">
-                      {fmtUsd(Number(r.total_volume_usd))}
+                      {formatUsdLocale(Number(r.total_volume_usd))}
                     </td>
                     <td className="p-4">
                       <div className="flex flex-wrap gap-2">
@@ -439,11 +436,11 @@ export default function AdminMerchantsPage() {
                                     <td className="p-3 capitalize text-zinc-400">{o.status}</td>
                                     <td className="p-3 tabular-nums text-zinc-400">
                                       {o.fiat_amount != null && o.fiat_currency_code
-                                        ? `${Number(o.fiat_amount).toFixed(2)} ${o.fiat_currency_code}`
+                                        ? `${formatMoneyAmount(o.fiat_amount)} ${o.fiat_currency_code}`
                                         : "—"}
                                     </td>
                                     <td className="p-3 tabular-nums text-emerald-300/80">
-                                      {fmtUsd(Number(o.volume_usd))}
+                                      {formatUsdLocale(Number(o.volume_usd))}
                                     </td>
                                   </tr>
                                 ))}

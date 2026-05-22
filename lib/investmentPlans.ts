@@ -1,3 +1,5 @@
+import { formatUsdAmount } from "@/lib/formatMoney";
+
 /** Canonical tiers — must align with Postgres `daily_compound_percent_for_plan` matching order (elite→growth→pro→starter). */
 export const CANONICAL_INVESTMENT_PLANS = [
   "Starter",
@@ -90,8 +92,8 @@ export function formatDepositRangeDescription(
   key: CanonicalInvestmentPlan,
 ): string {
   const { min, max } = PLAN_DEPOSIT_RANGE_USD[key];
-  if (max === null) return `$${min.toLocaleString()}+`;
-  return `$${min.toLocaleString()} — $${max.toLocaleString()}`;
+  if (max === null) return `${formatUsdAmount(min)}+`;
+  return `${formatUsdAmount(min)} — ${formatUsdAmount(max)}`;
 }
 
 /** Client-side guard for deposit amount; DB trigger enforces minimum only (no per-tier max). */
@@ -100,7 +102,7 @@ export function validateMinimumDeposit(amount: number): string | null {
     return "Enter a valid positive amount.";
   }
   if (amount < MIN_PLATFORM_DEPOSIT_USD) {
-    return `The minimum deposit is $${MIN_PLATFORM_DEPOSIT_USD.toLocaleString()}.`;
+    return `The minimum deposit is ${formatUsdAmount(MIN_PLATFORM_DEPOSIT_USD)}.`;
   }
   return null;
 }

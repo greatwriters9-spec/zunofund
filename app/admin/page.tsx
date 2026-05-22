@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { formatSignedUsdAmount, formatUsdAmount } from "@/lib/formatMoney";
 import { displayPlanName, normalizeInvestmentPlan } from "@/lib/investmentPlans";
 import { useSupabase } from "@/lib/supabase";
 
@@ -159,11 +160,11 @@ export default function AdminPage() {
                     </td>
 
                     <td className="p-5 font-semibold tabular-nums text-white">
-                      ${Number(investor.balance || 0).toFixed(2)}
+                      {formatUsdAmount(investor.balance)}
                     </td>
 
                     <td className="p-5 font-semibold tabular-nums text-emerald-400">
-                      +${Number(investor.total_profit || 0).toFixed(2)}
+                      {formatSignedUsdAmount(investor.total_profit)}
                     </td>
 
                     <td className="p-5 font-semibold text-[#D4AF37]">

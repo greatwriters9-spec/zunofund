@@ -10,6 +10,7 @@ import {
   formatDepositRangeDescription,
   type CanonicalInvestmentPlan,
 } from "@/lib/investmentPlans";
+import { formatUsdAmount } from "@/lib/formatMoney";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 
 import {
@@ -381,11 +382,7 @@ export default function InvestmentPlansPage() {
                 {qualifyingPrincipal !== null ? (
                   <>
                     {" "}
-                    Qualifying principal ≈ $
-                    {qualifyingPrincipal.toLocaleString(undefined, {
-                      minimumFractionDigits: 0,
-                      maximumFractionDigits: 2,
-                    })}
+                    Qualifying principal ≈ {formatUsdAmount(qualifyingPrincipal)}
                     .
                   </>
                 ) : null}{" "}

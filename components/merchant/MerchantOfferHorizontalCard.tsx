@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import { paymentMethodLabel } from "@/components/p2p/utils";
 import { getFiatCurrency } from "@/lib/currencies";
+import { formatMoneyAmount } from "@/lib/formatMoney";
 
 export type MerchantOfferHorizontalRow = {
   id: string;
@@ -125,12 +126,12 @@ export function MerchantOfferHorizontalCard({ offer, onToggleActive, onDelete }:
 
       <Zone
         label="Limits"
-        aria-label={`Limits ${Number(offer.min_limit).toFixed(2)} to ${Number(offer.max_limit).toFixed(2)} ${offer.fiat_currency_code ?? "USD"}`}
+        aria-label={`Limits ${formatMoneyAmount(offer.min_limit)} to ${formatMoneyAmount(offer.max_limit)} ${offer.fiat_currency_code ?? "USD"}`}
       >
         <p className="truncate text-[15px] font-extrabold tabular-nums tracking-tight text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.45)]">
-          {Number(offer.min_limit).toFixed(2)}
+          {formatMoneyAmount(offer.min_limit)}
           <span className="text-zinc-500"> — </span>
-          {Number(offer.max_limit).toFixed(2)}
+          {formatMoneyAmount(offer.max_limit)}
           <span className="text-[11px] font-semibold uppercase text-emerald-200/55">
             {" "}
             {offer.fiat_currency_code ?? "USD"}

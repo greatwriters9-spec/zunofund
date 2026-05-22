@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { formatSignedUsdAmount } from "@/lib/formatMoney";
 import { useSupabase, formatSupabaseError } from "@/lib/supabase";
 import {
   TrendingUp,
@@ -326,7 +327,7 @@ export default function AdminProfitsPage() {
                     </td>
 
                     <td className="px-6 py-5 text-green-500 font-bold">
-                      +${Number(profit.amount).toFixed(2)}
+                      {formatSignedUsdAmount(profit.amount)}
                     </td>
 
                     <td className="px-6 py-5 text-gray-300">

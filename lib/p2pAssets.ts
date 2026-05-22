@@ -1,5 +1,7 @@
 import type { P2pMarketTab } from "@/components/p2p/p2pTypes";
 import type { FxRateMap } from "@/lib/exchangeRates";
+import { formatMoneyAmount } from "@/lib/formatMoney";
+import { formatMoneyAmount } from "@/lib/formatMoney";
 import {
   clampFiatToLimits,
   cryptoToFiat,
@@ -32,7 +34,7 @@ export function fmtAssetAmount(
 ): string {
   const n = Number(value ?? 0);
   if (!Number.isFinite(n)) return asset === "BTC" ? "0.00000000 BTC" : "0.00 USDT";
-  return asset === "BTC" ? `${n.toFixed(8)} BTC` : `${n.toFixed(2)} USDT`;
+  return asset === "BTC" ? `${n.toFixed(8)} BTC` : `${formatMoneyAmount(n)} USDT`;
 }
 
 export function inputAmountToCrypto(

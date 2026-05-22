@@ -9,6 +9,7 @@ import {
   normalizeInvestmentPlan,
   type CanonicalInvestmentPlan,
 } from "@/lib/investmentPlans";
+import { formatUsdAmount } from "@/lib/formatMoney";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 
 interface InvestorRow {
@@ -180,11 +181,11 @@ export default function InvestorsPage() {
             >
               <p className="font-semibold">{inv.email}</p>
               <p className="text-gray-400">
-                Balance: ${Number(inv.balance || 0).toFixed(2)}
+                Balance: {formatUsdAmount(inv.balance)}
               </p>
               <p className="text-zinc-400 text-sm">
-                Qualifying principal (tier basis): $
-                {Number(inv.tier_qualifying_principal ?? 0).toFixed(2)}
+                Qualifying principal (tier basis):{" "}
+                {formatUsdAmount(inv.tier_qualifying_principal)}
                 {inv.tier_manual_override ? (
                   <span className="ml-2 text-amber-400">
                     · manual tier override
@@ -194,7 +195,7 @@ export default function InvestorsPage() {
                 )}
               </p>
               <p className="text-green-500">
-                Profit: ${Number(inv.total_profit || 0).toFixed(2)}
+                Profit: {formatUsdAmount(inv.total_profit)}
               </p>
               <p className="text-blue-400">Status: {inv.status}</p>
 

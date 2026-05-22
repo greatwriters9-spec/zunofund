@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatUsdAmount } from "@/lib/formatMoney";
 import { useSupabase, formatSupabaseError } from "@/lib/supabase";
 
 interface Withdrawal {
@@ -98,7 +99,7 @@ export default function AdminWithdrawalsPage() {
                 </p>
 
                 <p className="text-gray-400 mt-1">
-                  Amount: ${withdrawal.amount}
+                  Amount: {formatUsdAmount(withdrawal.amount)}
                 </p>
 
                 <p className="text-gray-400">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatUsdAmount } from "@/lib/formatMoney";
 import { useSupabase, formatSupabaseError } from "@/lib/supabase";
 
 interface Deposit {
@@ -90,7 +91,7 @@ export default function AdminDepositsPage() {
                 </p>
 
                 <p className="text-gray-400 mt-1">
-                  Amount: ${deposit.amount}
+                  Amount: {formatUsdAmount(deposit.amount)}
                 </p>
 
                 <p className="text-gray-400">

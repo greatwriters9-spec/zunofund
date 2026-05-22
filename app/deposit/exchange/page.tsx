@@ -8,6 +8,7 @@ import {
   validateMinimumDeposit,
   type CanonicalInvestmentPlan,
 } from "@/lib/investmentPlans";
+import { formatUsdAmount } from "@/lib/formatMoney";
 import { useSupabase, formatSupabaseError } from "@/lib/supabase";
 
 export default function DepositExchangePage() {
@@ -205,11 +206,7 @@ export default function DepositExchangePage() {
             {qualifyingPrincipal !== null ? (
               <>
                 {" "}
-                (currently about $
-                {qualifyingPrincipal.toLocaleString(undefined, {
-                  minimumFractionDigits: 0,
-                  maximumFractionDigits: 2,
-                })}{" "}
+                (currently about {formatUsdAmount(qualifyingPrincipal)}{" "}
                 qualifying principal: locked deposits plus matured principal not
                 yet withdrawn).
               </>

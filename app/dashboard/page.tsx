@@ -22,6 +22,11 @@ import {
 } from "lucide-react";
 
 import type { ProfitChartDatum } from "@/components/dashboard/ProfitGrowthChart";
+import {
+  formatMoneyAmount,
+  formatSignedUsdAmount,
+  formatUsdLocale,
+} from "@/lib/formatMoney";
 import { coerceRpcBigint, formatSupabaseError, useSupabase } from "@/lib/supabase";
 import {
   dailyCompoundLabel,
@@ -437,20 +442,14 @@ export default function DashboardPage() {
     if (displayCrypto === "BTC") {
       return fmtAssetAmount("BTC", fromUsd(balance, "BTC", fxRates));
     }
-    const maxFrac = balance > 0 && balance < 1 ? 6 : 2;
-    return `${balance.toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: maxFrac,
-    })} USDT`;
+    return `${formatMoneyAmount(balance)} USDT`;
   }
 
   function formatBalanceSubline(): string {
     if (!showBalance) return "••••••";
     if (displayCrypto === "BTC") {
       const usdt =
-        balance > 0
-          ? `${balance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT`
-          : null;
+        balance > 0 ? `${formatMoneyAmount(balance)} USDT` : null;
       const fiat = `≈ ${formatFiat(fromUsd(balance, displayCurrency, fxRates), displayCurrency)}`;
       return usdt ? `≈ ${usdt} · ${fiat}` : fiat;
     }
@@ -462,7 +461,7 @@ export default function DashboardPage() {
       return `$${(value / 1e12).toFixed(2)}T`;
     if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
     if (value >= 1e6) return `$${(value / 1e6).toFixed(2)}M`;
-    return `$${value.toLocaleString()}`;
+    return formatUsdLocale(value);
   }
 
   if (loading) {
@@ -1061,8 +1060,9 @@ export default function DashboardPage() {
                         : "text-emerald-400"
                     }`}
                   >
-                    {activity.type === "withdrawal" ? "-" : "+"}$
-                    {Number(activity.amount).toFixed(2)}
+                    {activity.type === "withdrawal"
+                      ? formatSignedUsdAmount(-Math.abs(Number(activity.amount)))
+                      : formatSignedUsdAmount(activity.amount)}
                   </div>
                 </div>
               ))

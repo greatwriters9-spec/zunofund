@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { formatUsdAmount } from "@/lib/formatMoney";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 import { fromUsd, toUsd } from "@/lib/exchangeRates";
 import { useFxRates } from "@/lib/useFx";
@@ -160,7 +161,7 @@ export default function WithdrawWalletPage() {
             <span className="font-semibold text-white">
               {isBtc
                 ? `${displayTotal.toFixed(8)} BTC`
-                : `$${displayTotal.toFixed(2)}`}
+                : formatUsdAmount(displayTotal)}
             </span>
           </p>
           <p>
@@ -168,14 +169,14 @@ export default function WithdrawWalletPage() {
               Available to withdraw now:{" "}
               {isBtc
                 ? `${displayWithdrawable.toFixed(8)} BTC`
-                : `$${displayWithdrawable.toFixed(2)}`}
+                : formatUsdAmount(displayWithdrawable)}
             </span>
           </p>
           {!isBtc && (
             <p>
               Locked principal (30-day rule per deposit):{" "}
               <span className="font-semibold text-yellow-500/90">
-                ${lockedPrincipal.toFixed(2)}
+                {formatUsdAmount(lockedPrincipal)}
               </span>
             </p>
           )}

@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { formatFiat } from "@/lib/currencies";
+import { formatUsdAmount } from "@/lib/formatMoney";
 
 import type { MerchantOrderCard } from "./merchantOrderTypes";
 
@@ -22,12 +23,12 @@ function amountLine(o: MerchantOrderCard) {
       ? ` · ${formatFiat(Number(o.fiat_amount), o.fiat_currency_code)}`
       : "";
   if (o.side === "sell_usdt" && o.usdt_credit_amount != null) {
-    return `$${Number(o.usdt_credit_amount).toFixed(2)} credited (net of fee)${fiatTail}`;
+    return `${formatUsdAmount(o.usdt_credit_amount)} credited (net of fee)${fiatTail}`;
   }
   if (o.side === "buy_usdt" && o.usdt_escrow_amount != null) {
-    return `$${Number(o.usdt_escrow_amount).toFixed(2)} escrow${fiatTail}`;
+    return `${formatUsdAmount(o.usdt_escrow_amount)} escrow${fiatTail}`;
   }
-  return `$${Number(o.amount_requested).toFixed(2)}${fiatTail}`;
+  return `${formatUsdAmount(o.amount_requested)}${fiatTail}`;
 }
 
 function investorLabel(inv: MerchantOrderCard["investor"]) {

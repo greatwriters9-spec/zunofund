@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { merchantInitials, orderStatusHeadline, paymentMethodLabel } from "@/components/p2p/utils";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 import { formatFiat } from "@/lib/currencies";
+import { formatMoneyAmount } from "@/lib/formatMoney";
 
 type InvestorTradeRow = {
   id: string;
@@ -74,7 +75,7 @@ function TradeRows({ rows }: { rows: InvestorTradeRow[] }) {
                 {investorFlowLabel(r.side)}
                 {" · "}
                 <span className="font-semibold text-zinc-300 tabular-nums">
-                  {Number(r.amount_requested).toFixed(2)} USDT
+                  {formatMoneyAmount(r.amount_requested)} USDT
                 </span>
                 {r.fiat_currency_code && r.fiat_currency_code !== "USD" && r.fiat_amount && r.fiat_amount > 0 ? (
                   <span className="text-zinc-500">
@@ -86,7 +87,7 @@ function TradeRows({ rows }: { rows: InvestorTradeRow[] }) {
                 {paymentMethodLabel(r.payment_method)}
                 {Number.isFinite(r.fee_amount) && r.fee_amount > 0 ? (
                   <>
-                    {" · "}Fee {Number(r.fee_amount).toFixed(2)}
+                    {" · "}Fee {formatMoneyAmount(r.fee_amount)}
                   </>
                 ) : null}
               </p>

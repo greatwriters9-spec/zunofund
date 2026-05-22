@@ -107,14 +107,14 @@ export function formatFiat(
     const fmt = new Intl.NumberFormat(cur.locale, {
       style: "currency",
       currency: cur.code,
-      maximumFractionDigits: cur.decimals,
-      minimumFractionDigits: cur.decimals,
+      maximumFractionDigits: 2,
+      minimumFractionDigits: 2,
       notation: options.compact ? "compact" : "standard",
     });
     const formatted = fmt.format(safeAmount);
     return options.showCode ? `${formatted} ${cur.code}` : formatted;
   } catch {
-    return `${cur.symbol} ${safeAmount.toFixed(cur.decimals)}${options.showCode ? ` ${cur.code}` : ""}`;
+    return `${cur.symbol} ${safeAmount.toFixed(2)}${options.showCode ? ` ${cur.code}` : ""}`;
   }
 }
 

@@ -76,8 +76,8 @@ export function deriveTradePanels(order: WorkspaceOrderRow, viewerIsMerchant: bo
       : "";
 
     const summary = viewerIsMerchant
-      ? `This investor is buying $${amt} USDT from your listing.\n\nOnce their fiat settles off-platform and you release escrow, roughly $${cred} USDT lands in their on-platform wallet.${fiatLockedLine}\n\nMerchant fee tier: ${rate}%. Coordinating channel: ${payLabel}.`
-      : `You are buying $${amt} USDT in this escrow.\n\nAfter you’ve sent fiat as agreed and the merchant verifies it, approximately $${cred} USDT will credit your balance.${fiatLockedLine}\n\nMerchant fee: ${rate}%. Coordinating channel: ${payLabel}.`;
+      ? `This investor is buying ${amt} from your listing.\n\nOnce their fiat settles off-platform and you release escrow, roughly ${cred} lands in their on-platform wallet.${fiatLockedLine}\n\nMerchant fee tier: ${rate}%. Coordinating channel: ${payLabel}.`
+      : `You are buying ${amt} in this escrow.\n\nAfter you’ve sent fiat as agreed and the merchant verifies it, approximately ${cred} will credit your balance.${fiatLockedLine}\n\nMerchant fee: ${rate}%. Coordinating channel: ${payLabel}.`;
 
     const bespoke = clampTradeCopy(order.merchant_offers?.payment_instructions ?? "");
     const core = bespoke.length
@@ -131,8 +131,8 @@ export function deriveTradePanels(order: WorkspaceOrderRow, viewerIsMerchant: bo
     : "";
 
   const summary = viewerIsMerchant
-    ? `$${esc} USDT is escrowed until you fulfil your fiat leg.\nCheck the payout coordinates in-thread, disburse through ${payLabel}, then use Mark as Paid once funds are dispatched.${fiatLockedLine}\nMerchant fee tier: ${rate}%.`
-    : `$${esc} USDT is escrowed.\nYou'll collect fiat externally using your payout mandate; release USDT once funds have cleared.${fiatLockedLine}\nFee on their listing: ${rate}%. Coordinating rail: ${payLabel}.`;
+    ? `${esc} is escrowed until you fulfil your fiat leg.\nCheck the payout coordinates in-thread, disburse through ${payLabel}, then use Mark as Paid once funds are dispatched.${fiatLockedLine}\nMerchant fee tier: ${rate}%.`
+    : `${esc} is escrowed.\nYou'll collect fiat externally using your payout mandate; release USDT once funds have cleared.${fiatLockedLine}\nFee on their listing: ${rate}%. Coordinating rail: ${payLabel}.`;
 
   const payoutLines =
     payout.length > 0

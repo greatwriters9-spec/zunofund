@@ -1,5 +1,6 @@
 /** Shared P2P UI helpers — presentation only. */
 
+import { formatMoneyAmount } from "@/lib/formatMoney";
 import { P2P_PAYMENT_METHOD_OPTIONS } from "@/lib/p2pPaymentMethods";
 
 export function merchantInitials(displayName: string | null | undefined): string {
@@ -49,7 +50,5 @@ export function paymentMethodLabelCaps(code: string): string {
 }
 
 export function fmtUsdt(value: number | string | null | undefined): string {
-  const n = Number(value ?? 0);
-  if (!Number.isFinite(n)) return "0.00";
-  return n.toFixed(2);
+  return formatMoneyAmount(value);
 }

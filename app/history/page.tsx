@@ -11,6 +11,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 
+import { formatMoneyAmount, formatUsdAmount } from "@/lib/formatMoney";
 import { useSupabase } from "@/lib/supabase";
 
 interface Transaction {
@@ -249,7 +250,8 @@ export default function HistoryPage() {
                         transaction.type,
                       )}`}
                     >
-                      {amountPrefix}${Number(transaction.amount).toFixed(2)}
+                      {amountPrefix}
+                      {formatUsdAmount(transaction.amount)}
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 border-t border-zinc-800/40 px-4 py-2 md:hidden sm:px-5">
@@ -294,8 +296,8 @@ export default function HistoryPage() {
                         transaction.type,
                       )}`}
                     >
-                      {amountPrefix}$
-                      {Number(transaction.amount).toFixed(2)}
+                      {amountPrefix}
+                      {formatUsdAmount(transaction.amount)}
                     </div>
                   </div>
                 </div>
