@@ -1,7 +1,6 @@
 import type { P2pMarketTab } from "@/components/p2p/p2pTypes";
 import type { FxRateMap } from "@/lib/exchangeRates";
 import { formatMoneyAmount } from "@/lib/formatMoney";
-import { formatMoneyAmount } from "@/lib/formatMoney";
 import {
   clampFiatToLimits,
   cryptoToFiat,
