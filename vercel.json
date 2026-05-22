@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/run-daily-jobs",
-      "schedule": "*/10 * * * *"
+      "schedule": "0 * * * *"
     },
     {
       "path": "/api/cron/run-p2p-expiry",
