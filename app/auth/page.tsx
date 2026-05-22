@@ -5,7 +5,9 @@ import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
+import { PhoneInput } from "@/components/auth/PhoneInput";
 import { sanitizeNextParam } from "@/lib/authLinks";
+import { isValidPhoneE164 } from "@/lib/phoneCountries";
 import { authRedirectToUrl } from "@/lib/site-url";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 
@@ -97,7 +99,7 @@ const newErrors = {
   firstName: !firstName,
   surname: !surname,
   dob: !dob,
-  phone: !phone,
+  phone: !phone || !isValidPhoneE164(phone),
   email: !email,
   password: !password,
   confirmPassword: !confirmPassword,
@@ -198,7 +200,7 @@ setLoading(true)
   // SUCCESS SCREEN
 
   return (
-    <main className="relative min-h-[100svh] text-white overflow-hidden">
+    <main className="relative min-h-[100svh] overflow-x-hidden text-white">
 
       {/* Ambient Background */}
       <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-yellow-500/10 blur-[140px] rounded-full pointer-events-none" />
@@ -320,43 +322,29 @@ setLoading(true)
               />
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6 mb-6">
+            <div className="mb-6">
+              <label className="block mb-3 text-zinc-400 text-sm">
+                Date of Birth
+              </label>
 
-              <div>
-                <label className="block mb-3 text-zinc-400 text-sm">
-                  Date of Birth
-                </label>
+              <input
+                type="date"
+                value={dob}
+                onChange={(e) => setDob(e.target.value)}
+                className={`w-full bg-zinc-900 border rounded-2xl px-5 py-4 text-white outline-none transition-all duration-300 ${
+                  errors.dob
+                    ? "border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.35)]"
+                    : "border-zinc-700 focus:border-yellow-500"
+                }`}
+              />
+            </div>
 
-                <input
-                  type="date"
-                  value={dob}
-                  onChange={(e) => setDob(e.target.value)}
-                 className={`w-full bg-zinc-900 border rounded-2xl px-5 py-4 text-white outline-none transition-all duration-300 ${
-  errors.dob
-    ? "border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.35)]"
-    : "border-zinc-700 focus:border-yellow-500"
-}`}
-                />
-              </div>
+            <div className="mb-6">
+              <label className="block mb-3 text-zinc-400 text-sm">
+                Phone Number
+              </label>
 
-              <div>
-                <label className="block mb-3 text-zinc-400 text-sm">
-                  Phone Number
-                </label>
-
-                <input
-                  type="tel"
-                  placeholder="+254 700 000 000"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className={`w-full bg-zinc-900 border rounded-2xl px-5 py-4 text-white outline-none transition-all duration-300 ${
-  errors.phone
-    ? "border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.35)]"
-    : "border-zinc-700 focus:border-yellow-500"
-}`}
-                />
-              </div>
-
+              <PhoneInput value={phone} onChange={setPhone} error={errors.phone} />
             </div>
 
           </>
