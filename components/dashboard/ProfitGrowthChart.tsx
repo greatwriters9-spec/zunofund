@@ -40,7 +40,7 @@ export function ProfitGrowthChart(props: { data: ProfitChartDatum[] }) {
           <YAxis stroke="#71717a" tick={{ fontSize: 11 }} width={44} />
 
           <Tooltip
-            formatter={(value) => formatUsdAmount(Number(value ?? 0))}
+            formatter={(value: any) => formatUsdAmount(Number(value ?? 0))}
             contentStyle={{
               backgroundColor: "#09090b",
               border: "1px solid #3f3f46",
