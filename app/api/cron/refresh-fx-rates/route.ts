@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+import { isVercelCronRequest } from "@/lib/cronAuth";
 import {
   type RateRow,
   fetchCryptoRates,
@@ -11,13 +12,9 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/**
- * Refresh `exchange_rates` from upstream APIs.
- * Requires x-vercel-cron header (set automatically by Vercel Cron).
- */
+/** Refresh `exchange_rates` from upstream APIs. */
 export async function GET(request: Request) {
-  const isCron = request.headers.get("x-vercel-cron");
-  if (!isCron) {
+  if (!isVercelCronRequest(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

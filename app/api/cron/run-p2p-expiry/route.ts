@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+import { isVercelCronRequest } from "@/lib/cronAuth";
+
 export const runtime = "nodejs";
 
-/** Expire stale P2P merchant_orders (30m timeout). Requires x-vercel-cron header. */
+/** Expire stale P2P merchant_orders (30m timeout). */
 export async function GET(request: Request) {
-  const isCron = request.headers.get("x-vercel-cron");
-  if (!isCron) {
+  if (!isVercelCronRequest(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

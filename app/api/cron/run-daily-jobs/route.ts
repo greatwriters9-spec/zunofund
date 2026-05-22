@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+import { isVercelCronRequest } from "@/lib/cronAuth";
+
 export const runtime = "nodejs";
 
 /**
  * Vercel Cron (UTC): unlocks matured principal + daily tier profit accrual for all active investors.
- * Requires x-vercel-cron header (set automatically by Vercel Cron).
  */
 export async function GET(request: Request) {
-  const isCron = request.headers.get("x-vercel-cron");
-  if (!isCron) {
+  if (!isVercelCronRequest(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
