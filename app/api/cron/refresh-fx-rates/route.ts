@@ -1,5 +1,3 @@
-import { timingSafeEqual } from "node:crypto";
-
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
@@ -13,30 +11,13 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function bearerMatchesSecret(authHeader: string | null, secret: string): boolean {
-  const prefix = "Bearer ";
-  if (typeof authHeader !== "string" || !authHeader.startsWith(prefix)) {
-    return false;
-  }
-  const token = authHeader.slice(prefix.length).trim();
-  const a = Buffer.from(token, "utf8");
-  const b = Buffer.from(secret, "utf8");
-  if (a.length !== b.length) return false;
-  return timingSafeEqual(a, b);
-}
-
 /**
  * Refresh `exchange_rates` from upstream APIs.
- *
- * Auth: Bearer CRON_SECRET (matches the existing P2P-expiry cron).
- * Vercel cron handler signs requests with this secret automatically when
- * the bypass header is configured; otherwise hit it manually:
- *   curl -H "Authorization: Bearer $CRON_SECRET" https://.../api/cron/refresh-fx-rates
+ * Requires x-vercel-cron header (set automatically by Vercel Cron).
  */
 export async function GET(request: Request) {
-  const secret = process.env.CRON_SECRET;
-  const authHeader = request.headers.get("authorization");
-  if (!secret || !bearerMatchesSecret(authHeader, secret)) {
+  const isCron = request.headers.get("x-vercel-cron");
+  if (!isCron) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

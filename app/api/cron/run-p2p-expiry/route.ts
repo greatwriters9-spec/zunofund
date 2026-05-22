@@ -1,29 +1,12 @@
-import { timingSafeEqual } from "node:crypto";
-
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
 
-function bearerMatchesSecret(authHeader: string | null, secret: string): boolean {
-  const prefix = "Bearer ";
-  if (typeof authHeader !== "string" || !authHeader.startsWith(prefix)) {
-    return false;
-  }
-  const token = authHeader.slice(prefix.length).trim();
-  const a = Buffer.from(token, "utf8");
-  const b = Buffer.from(secret, "utf8");
-  if (a.length !== b.length) {
-    return false;
-  }
-  return timingSafeEqual(a, b);
-}
-
-/** Expire stale P2P merchant_orders (30m timeout). Uses service role; authorize with CRON_SECRET. */
+/** Expire stale P2P merchant_orders (30m timeout). Requires x-vercel-cron header. */
 export async function GET(request: Request) {
-  const secret = process.env.CRON_SECRET;
-  const authHeader = request.headers.get("authorization");
-  if (!secret || !bearerMatchesSecret(authHeader, secret)) {
+  const isCron = request.headers.get("x-vercel-cron");
+  if (!isCron) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
