@@ -1,14 +1,21 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-import { isVercelCronRequest } from "@/lib/cronAuth";
+import { cronAuthDebug, isVercelCronRequest } from "@/lib/cronAuth";
 
 export const runtime = "nodejs";
 
 /** Expire stale P2P merchant_orders (30m timeout). */
 export async function GET(request: Request) {
   if (!isVercelCronRequest(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json(
+      {
+        error: "Unauthorized",
+        hint: "Set CRON_SECRET in Vercel Production env, or disable Deployment Protection for cron. See cronAuth debug.",
+        debug: cronAuthDebug(request),
+      },
+      { status: 401 },
+    );
   }
 
   const url =
