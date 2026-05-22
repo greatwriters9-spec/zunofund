@@ -12,5 +12,19 @@
       "path": "/api/cron/refresh-fx-rates",
       "schedule": "*/10 * * * *"
     }
+  ],
+  "redirects": [
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "zunofund.com" }],
+      "destination": "https://www.zunofund.com/",
+      "permanent": true
+    },
+    {
+      "source": "/:path((?!api/cron).*)",
+      "has": [{ "type": "host", "value": "zunofund.com" }],
+      "destination": "https://www.zunofund.com/:path*",
+      "permanent": true
+    }
   ]
 }
