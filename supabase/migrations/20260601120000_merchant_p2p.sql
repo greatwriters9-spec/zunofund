@@ -1,6 +1,6 @@
 -- P2P merchant marketplace (separate from exchange deposits / wallet withdrawals).
 -- Merchants: merchant_profiles (admin-approved). Offers + orders + RPC state machine.
--- Deposits: skip_plan_amount_validation bypasses the $200 minimum for synthetic P2P credits.
+-- Deposits: skip_plan_amount_validation bypasses the $20 minimum for synthetic P2P credits.
 
 -- ---------------------------------------------------------------------------
 -- Tables
@@ -85,7 +85,7 @@ ALTER TABLE public.deposits
   ADD COLUMN IF NOT EXISTS skip_plan_amount_validation boolean NOT NULL DEFAULT false;
 
 -- ---------------------------------------------------------------------------
--- Deposit validation: allow P2P synthetic rows to bypass $200 minimum
+-- Deposit validation: allow P2P synthetic rows to bypass $20 minimum
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.deposits_before_insert_validate_plan_range()
 RETURNS trigger
@@ -116,9 +116,9 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  IF NEW.amount::numeric < 200 THEN
+  IF NEW.amount::numeric < 20 THEN
     RAISE EXCEPTION
-      'deposit amount must be at least 200 USD'
+      'deposit amount must be at least 20 USD'
       USING ERRCODE = '23514';
   END IF;
 

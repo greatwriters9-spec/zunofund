@@ -114,7 +114,7 @@ export default function AdminSettingsPage() {
           Daily percentages and USD principal brackets drive automatic tier and
           mirror{" "}
           <code className="text-yellow-400/90">lib/investmentPlans.ts</code>.
-          Deposits enforce a global minimum ($200) only. Changing rates or
+          Deposits enforce a global minimum ($20) only. Changing rates or
           brackets requires a migration or deploy.
         </p>
         <div className="overflow-x-auto">

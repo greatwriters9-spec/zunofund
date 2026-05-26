@@ -68,14 +68,14 @@ export const PLAN_DEPOSIT_RANGE_USD: Record<
   CanonicalInvestmentPlan,
   { min: number; max: number | null }
 > = {
-  Starter: { min: 200, max: 500 },
+  Starter: { min: 20, max: 500 },
   Growth: { min: 500, max: 1500 },
   Pro: { min: 1500, max: 5000 },
   Elite: { min: 5000, max: null },
 };
 
 /** Minimum single deposit request (global); DB trigger enforces the same floor. */
-export const MIN_PLATFORM_DEPOSIT_USD = 200;
+export const MIN_PLATFORM_DEPOSIT_USD = 20;
 
 /** Highest tier whose bracket contains `usd` (matches SQL Elite→Pro→Growth→Starter scan). */
 export function canonicalTierFromQualifyingPrincipalUsd(

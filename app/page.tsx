@@ -40,7 +40,7 @@ export default function HomePage() {
   const plans = [
     {
       name: "Starter",
-      range: "$200 - $500",
+      range: "$20 - $500",
       roi: "Up to 7% Daily",
       description:
         "Perfect for investors beginning their portfolio growth journey with manageable capital exposure.",

@@ -227,7 +227,7 @@ SET investment_plan = public.investment_plan_slug_for_principal(inv.tier_qualify
 WHERE coalesce(inv.tier_manual_override, false) = false;
 
 -- ---------------------------------------------------------------------------
--- 8) Deposit validation: minimum $200 only (matches Starter floor)
+-- 8) Deposit validation: minimum $20 only (matches Starter floor)
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.deposits_before_insert_validate_plan_range()
 RETURNS trigger
@@ -246,9 +246,9 @@ BEGIN
     RAISE EXCEPTION 'deposit amount must be positive';
   END IF;
 
-  IF NEW.amount::numeric < 200 THEN
+  IF NEW.amount::numeric < 20 THEN
     RAISE EXCEPTION
-      'deposit amount must be at least 200 USD'
+      'deposit amount must be at least 20 USD'
       USING ERRCODE = '23514';
   END IF;
 
