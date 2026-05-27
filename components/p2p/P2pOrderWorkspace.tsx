@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronDown, Lock } from "lucide-react";
 
 import { CancelModal } from "@/components/p2p/CancelModal";
+import { DisputeModal } from "@/components/p2p/DisputeModal";
 import type { ChatMessage } from "@/components/p2p/TradeChat";
 import { TradeChat } from "@/components/p2p/TradeChat";
 import { TradeOrderBrief } from "@/components/p2p/TradeOrderBrief";
@@ -37,11 +38,14 @@ export type P2pOrderWorkspaceProps = {
   backLabel?: string;
   /** Used when `onBack` is not provided (standalone order page). */
   backHref?: string;
+  /** Admin dispute console — chat + resolve controls, no party trade actions. */
+  adminMode?: boolean;
 };
 
 type OrderMessageRow = {
   id: string;
   sender_user_id: string;
+  sender_role?: string | null;
   body: string;
   attachment_path: string | null;
   attachment_mime_type: string | null;
@@ -57,10 +61,12 @@ export function P2pOrderWorkspace({
   onBack,
   backLabel = "← Marketplace",
   backHref = "/p2p",
+  adminMode = false,
 }: P2pOrderWorkspaceProps) {
   const supabase = useSupabase();
 
   const [userId, setUserId] = useState<string | null>(null);
+  const [isAdminUser, setIsAdminUser] = useState(adminMode);
   const [order, setOrder] = useState<WorkspaceOrderRow | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -68,6 +74,9 @@ export function P2pOrderWorkspace({
   const [tick, setTick] = useState(0);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelBusy, setCancelBusy] = useState(false);
+  const [disputeOpen, setDisputeOpen] = useState(false);
+  const [disputeBusy, setDisputeBusy] = useState(false);
+  const [resolveNote, setResolveNote] = useState("");
   const [serverMessages, setServerMessages] = useState<OrderMessageRow[]>([]);
   const [chatSyncError, setChatSyncError] = useState<string | null>(null);
   const [chatSending, setChatSending] = useState(false);
@@ -85,16 +94,20 @@ export function P2pOrderWorkspace({
 
   const chatDisplayMessages: ChatMessage[] = useMemo(
     () =>
-      serverMessages.map((r) => ({
-        id: r.id,
-        kind: "user" as const,
-        mine: Boolean(userId && r.sender_user_id === userId),
-        body: r.body,
-        at: new Date(r.created_at),
-        attachmentUrl: r.attachment_path,
-        attachmentMimeType: r.attachment_mime_type,
-        attachmentName: r.attachment_name,
-      })),
+      serverMessages.map((r) => {
+        const isAdminMsg = r.sender_role === "admin";
+        return {
+          id: r.id,
+          kind: "user" as const,
+          senderRole: isAdminMsg ? ("admin" as const) : ("party" as const),
+          mine: Boolean(userId && r.sender_user_id === userId && !isAdminMsg),
+          body: r.body,
+          at: new Date(r.created_at),
+          attachmentUrl: r.attachment_path,
+          attachmentMimeType: r.attachment_mime_type,
+          attachmentName: r.attachment_name,
+        };
+      }),
     [serverMessages, userId],
   );
 
@@ -131,7 +144,17 @@ export function P2pOrderWorkspace({
       return out;
     }
 
-    if (st === "paid" || st === "completed") {
+    if (st === "disputed") {
+      out.push(
+        sys(
+          "sys-disputed",
+          "Dispute open — an admin is reviewing this trade. Release and cancel are paused.",
+          "default",
+        ),
+      );
+    }
+
+    if (st === "paid" || st === "completed" || st === "disputed") {
       let paidBody: string;
       if (order.side === "sell_usdt" || order.side === "sell_btc") {
         paidBody = isMerchView
@@ -164,6 +187,13 @@ export function P2pOrderWorkspace({
       data: { user },
     } = await supabase.auth.getUser();
     setUserId(user?.id ?? null);
+
+    if (user?.id) {
+      const { data: adminFlag } = await supabase.rpc("is_admin", { check_uid: user.id });
+      setIsAdminUser(Boolean(adminMode || adminFlag));
+    } else {
+      setIsAdminUser(adminMode);
+    }
 
     const { data: ord, error: qErr } = await supabase
       .from("merchant_orders")
@@ -244,7 +274,9 @@ export function P2pOrderWorkspace({
     void (async () => {
       const { data, error: mErr } = await supabase
         .from("merchant_order_messages")
-        .select("id, sender_user_id, body, attachment_path, attachment_mime_type, attachment_name, created_at")
+        .select(
+          "id, sender_user_id, sender_role, body, attachment_path, attachment_mime_type, attachment_name, created_at",
+        )
         .eq("order_id", id)
         .order("created_at", { ascending: true });
 
@@ -332,7 +364,9 @@ export function P2pOrderWorkspace({
     const { data: inserted, error: insErr } = await supabase
       .from("merchant_order_messages")
       .insert({ order_id: order.id, body: trimmed })
-      .select("id, sender_user_id, body, attachment_path, attachment_mime_type, attachment_name, created_at")
+      .select(
+        "id, sender_user_id, sender_role, body, attachment_path, attachment_mime_type, attachment_name, created_at",
+      )
       .single();
 
     setChatSending(false);
@@ -374,7 +408,9 @@ export function P2pOrderWorkspace({
         attachment_mime_type: uploaded.mimeType,
         attachment_name: uploaded.fileName,
       })
-      .select("id, sender_user_id, body, attachment_path, attachment_mime_type, attachment_name, created_at")
+      .select(
+        "id, sender_user_id, sender_role, body, attachment_path, attachment_mime_type, attachment_name, created_at",
+      )
       .single();
 
     setChatSending(false);
@@ -415,6 +451,39 @@ export function P2pOrderWorkspace({
     await load();
   }
 
+  async function confirmOpenDispute(reason: string) {
+    setDisputeBusy(true);
+    setError(null);
+    const { error: e } = await supabase.rpc("open_merchant_order_dispute", {
+      p_order_id: id,
+      p_reason: reason,
+    });
+    setDisputeBusy(false);
+    setDisputeOpen(false);
+    if (e) {
+      setError(formatSupabaseError(e));
+      return;
+    }
+    await load();
+  }
+
+  async function adminResolveDispute(winner: "investor" | "merchant") {
+    setBusy(`resolve_${winner}`);
+    setError(null);
+    const { error: e } = await supabase.rpc("admin_resolve_merchant_order_dispute", {
+      p_order_id: id,
+      p_winner: winner,
+      p_admin_note: resolveNote.trim() || null,
+    });
+    setBusy(null);
+    if (e) {
+      setError(formatSupabaseError(e));
+      return;
+    }
+    setResolveNote("");
+    await load();
+  }
+
   async function confirmMerchantCancel() {
     setCancelBusy(true);
     setError(null);
@@ -430,8 +499,21 @@ export function P2pOrderWorkspace({
     await load();
   }
 
+  const partyOnOrder =
+    Boolean(
+      userId &&
+        order &&
+        (order.investor_user_id === userId || order.merchant_user_id === userId),
+    );
+  const canUseChat =
+    partyOnOrder || (isAdminUser && order?.status === "disputed");
   const chatDisabled =
-    !userId || !order || order.status === "completed" || order.status === "cancelled";
+    !userId ||
+    !order ||
+    order.status === "completed" ||
+    order.status === "cancelled" ||
+    order.status === "completed_expired" ||
+    !canUseChat;
   const chatInputDisabled = chatDisabled || chatSending;
 
   const detailRows = useMemo(() => {
@@ -537,8 +619,10 @@ export function P2pOrderWorkspace({
   void tick;
 
   // Only the party paying fiat may cancel (pending or after they marked paid, before release).
+  const isDisputed = order.status === "disputed";
+
   const payerMayCancel =
-    order.status === "pending_payment" || order.status === "paid";
+    !isDisputed && (order.status === "pending_payment" || order.status === "paid");
 
   const showInvestorCancel =
     isInvestor &&
@@ -599,21 +683,30 @@ export function P2pOrderWorkspace({
   const tradeAmount = fiatTradeAmount ?? cryptoTradeAmount;
 
   const canMarkPaidInvestor =
+    !adminMode &&
     isInvestor &&
     (order.side === "sell_usdt" || order.side === "sell_btc") &&
     order.status === "pending_payment";
   const canMarkPaidMerchant =
+    !adminMode &&
     isMerchant &&
     (order.side === "buy_usdt" || order.side === "buy_btc") &&
     order.status === "pending_payment";
   const canReleaseMerchant =
+    !adminMode &&
+    !isDisputed &&
     isMerchant &&
     (order.side === "sell_usdt" || order.side === "sell_btc") &&
     order.status === "paid";
   const canReleaseInvestor =
+    !adminMode &&
+    !isDisputed &&
     isInvestor &&
     (order.side === "buy_usdt" || order.side === "buy_btc") &&
     order.status === "paid";
+  const canOpenDispute =
+    !adminMode && !isDisputed && order.status === "paid" && (isInvestor || isMerchant);
+  const canAdminResolve = (adminMode || isAdminUser) && isDisputed;
 
   return (
     <>
@@ -769,6 +862,17 @@ export function P2pOrderWorkspace({
                     </button>
                   ) : null}
 
+                  {canOpenDispute ? (
+                    <button
+                      type="button"
+                      disabled={busy !== null}
+                      onClick={() => setDisputeOpen(true)}
+                      className="inline-flex h-10 w-full items-center justify-center rounded-md border border-amber-500/45 bg-amber-500/10 px-4 text-[14px] font-semibold text-amber-200 transition hover:border-amber-400/60 hover:bg-amber-500/15 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Open dispute
+                    </button>
+                  ) : null}
+
                   {showInvestorCancel || showMerchantCancel ? (
                     <button
                       type="button"
@@ -778,6 +882,36 @@ export function P2pOrderWorkspace({
                     >
                       Cancel
                     </button>
+                  ) : null}
+
+                  {canAdminResolve ? (
+                    <div className="mt-2 space-y-2 rounded-md border border-violet-500/30 bg-violet-500/[0.08] p-3">
+                      <p className="text-[12px] font-semibold text-violet-200">Admin resolution</p>
+                      <textarea
+                        value={resolveNote}
+                        onChange={(e) => setResolveNote(e.target.value)}
+                        rows={2}
+                        maxLength={500}
+                        placeholder="Optional note to both parties…"
+                        className="w-full resize-none rounded-md border border-violet-500/25 bg-black/40 px-3 py-2 text-[12px] text-white outline-none focus:border-violet-400/50"
+                      />
+                      <button
+                        type="button"
+                        disabled={busy !== null}
+                        onClick={() => void adminResolveDispute("investor")}
+                        className={btnPrimary}
+                      >
+                        {busy === "resolve_investor" ? "Awarding…" : "Award crypto to investor"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy !== null}
+                        onClick={() => void adminResolveDispute("merchant")}
+                        className={btnCancel}
+                      >
+                        {busy === "resolve_merchant" ? "Awarding…" : "Award crypto to merchant"}
+                      </button>
+                    </div>
                   ) : null}
                 </div>
               ) : (
@@ -795,7 +929,10 @@ export function P2pOrderWorkspace({
                   />
                 </summary>
                 <div className="space-y-2 border-t border-[#D4AF37]/12 px-4 py-3 text-[12.5px] text-zinc-400">
-                  <p>Open a dispute or report an issue from chat once milestones complete.</p>
+                  <p>
+                    After marking paid, either party can open a dispute so an admin can review chat proof
+                    and award escrow.
+                  </p>
                   {order.proof_of_payment ? (
                     <p className="break-all">
                       Ref:{" "}
@@ -887,7 +1024,13 @@ export function P2pOrderWorkspace({
                   onSend={(t) => void sendTradeMessage(t)}
                   onAttach={(file) => void attachPaymentProof(file)}
                   disabled={chatInputDisabled}
-                  placeholder={chatSending ? "Sending…" : "Write a message or attach payment proof…"}
+                  placeholder={
+                    chatSending
+                      ? "Sending…"
+                      : isAdminUser && isDisputed
+                        ? "Write as admin mediator…"
+                        : "Write a message or attach payment proof…"
+                  }
                 />
               </div>
             </section>
@@ -905,6 +1048,15 @@ export function P2pOrderWorkspace({
           if (isInvestor) void confirmInvestorCancel();
           else if (isMerchant) void confirmMerchantCancel();
         }}
+      />
+
+      <DisputeModal
+        open={disputeOpen}
+        busy={disputeBusy}
+        onClose={() => {
+          if (!disputeBusy) setDisputeOpen(false);
+        }}
+        onConfirm={(reason) => void confirmOpenDispute(reason)}
       />
     </>
   );

@@ -218,7 +218,9 @@ export function InvestorP2pTradeHistoryView() {
   }, [load]);
 
   const { active, completed, cancelled } = useMemo(() => {
-    const activeRows = rows.filter((r) => r.status === "pending_payment" || r.status === "paid");
+    const activeRows = rows.filter(
+      (r) => r.status === "pending_payment" || r.status === "paid" || r.status === "disputed",
+    );
     const completedRows = rows.filter((r) => r.status === "completed");
     const cancelledRows = rows.filter((r) => r.status === "cancelled");
     return { active: activeRows, completed: completedRows, cancelled: cancelledRows };

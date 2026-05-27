@@ -82,7 +82,7 @@ export function InvestorMarketplaceActiveTrades({
       .eq("investor_user_id", user.id);
 
     if (bucket === "active") {
-      q = q.in("status", ["pending_payment", "paid"]);
+      q = q.in("status", ["pending_payment", "paid", "disputed"]);
     } else if (bucket === "completed") {
       q = q.eq("status", "completed");
     } else {

@@ -56,6 +56,7 @@ function investorEmailSubject(
   if (t.includes("referral_bonus")) return `${base} Referral bonus credited`;
   if (t.includes("profit_bonus")) return `${base} Profit recorded`;
   if (t.includes("profit_compound")) return `${base} Profit credited`;
+  if (t.includes("p2p_dispute")) return `${base} P2P dispute update`;
   if (t.includes("p2p_message")) return `${base} New P2P message`;
   if (t.includes("p2p_trade")) return `${base} New P2P trade`;
   if (t.includes("principal_unlocked")) return `${base} Principal unlocked`;

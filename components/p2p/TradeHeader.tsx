@@ -16,7 +16,8 @@ export function TradeHeader({ status, countdownSeconds, className = "" }: TradeH
 
   const startedCopy =
     status === "completed" ? "Trade finished" : status === "cancelled" ? "Trade closed" : "Trade started";
-  const showEscrowLock = status === "pending_payment" || status === "paid";
+  const showEscrowLock =
+    status === "pending_payment" || status === "paid" || status === "disputed";
 
   return (
     <header

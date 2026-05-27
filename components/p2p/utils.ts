@@ -28,6 +28,8 @@ export function orderStatusHeadline(status: string): string {
       return "Trade started";
     case "paid":
       return "Payment marked — follow up";
+    case "disputed":
+      return "Dispute under review";
     case "completed":
       return "Trade completed";
     case "cancelled":

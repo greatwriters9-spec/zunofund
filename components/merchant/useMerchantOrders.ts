@@ -9,7 +9,7 @@ export async function fetchMerchantOrdersWithInvestors(
   merchantUserId: string,
   statusFilter: "active" | "completed",
 ): Promise<{ orders: MerchantOrderCard[]; error: string | null }> {
-  const activeStatuses = ["pending_payment", "paid"];
+  const activeStatuses = ["pending_payment", "paid", "disputed"];
   const completedStatuses = ["completed", "cancelled"];
 
   let q = supabase

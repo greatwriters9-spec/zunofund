@@ -11,6 +11,8 @@ export type ChatMessage = {
   systemTone?: "default" | "success";
   hideTime?: boolean;
   mine: boolean;
+  /** Admin mediator messages use distinct styling. */
+  senderRole?: "party" | "admin";
   body: string;
   at: Date;
   attachmentUrl?: string | null;
@@ -108,17 +110,29 @@ export function TradeChat({
                   </div>
                 );
               }
+              const isAdminMsg = m.senderRole === "admin";
               return (
-                <div key={m.id} className={`flex ${m.mine ? "justify-end" : "justify-start"}`}>
-                  <div className="max-w-[80%] sm:max-w-[68%]">
-                    {!m.mine && counterpartLabel ? (
+                <div
+                  key={m.id}
+                  className={`flex ${
+                    m.mine && !isAdminMsg ? "justify-end" : isAdminMsg ? "justify-center" : "justify-start"
+                  }`}
+                >
+                  <div className={`max-w-[80%] sm:max-w-[68%] ${isAdminMsg ? "w-full max-w-[92%] sm:max-w-[85%]" : ""}`}>
+                    {isAdminMsg ? (
+                      <p className="mb-0.5 px-1 text-center text-[11px] font-semibold uppercase tracking-wide text-violet-300/90">
+                        Admin
+                      </p>
+                    ) : !m.mine && counterpartLabel ? (
                       <p className="mb-0.5 px-1 text-[11px] font-medium text-[#D4AF37]/80">{counterpartLabel}</p>
                     ) : null}
                     <div
                       className={`px-3.5 py-2.5 text-[14px] leading-relaxed ${
-                        m.mine
-                          ? "rounded-[14px] rounded-br-[4px] bg-emerald-600 text-white ring-1 ring-[#D4AF37]/25"
-                          : "rounded-[14px] rounded-bl-[4px] border border-[#D4AF37]/12 bg-black/45 text-zinc-100"
+                        isAdminMsg
+                          ? "rounded-[14px] border border-violet-400/35 bg-violet-950/70 text-violet-50 ring-1 ring-violet-500/25"
+                          : m.mine
+                            ? "rounded-[14px] rounded-br-[4px] bg-emerald-600 text-white ring-1 ring-[#D4AF37]/25"
+                            : "rounded-[14px] rounded-bl-[4px] border border-[#D4AF37]/12 bg-black/45 text-zinc-100"
                       }`}
                     >
                       {m.attachmentUrl ? (
@@ -144,7 +158,11 @@ export function TradeChat({
                       {m.body ? <p className="whitespace-pre-wrap break-words">{m.body}</p> : null}
                       <p
                         className={`mt-1 text-right text-[10.5px] tabular-nums ${
-                          m.mine ? "text-emerald-50/80" : "text-zinc-500"
+                          isAdminMsg
+                            ? "text-violet-200/70"
+                            : m.mine
+                              ? "text-emerald-50/80"
+                              : "text-zinc-500"
                         }`}
                       >
                         {m.at.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}

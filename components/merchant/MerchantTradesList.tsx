@@ -122,7 +122,9 @@ export function MerchantTradesList(props: {
                           ? "bg-zinc-500/15 text-zinc-400 ring-1 ring-zinc-500/25"
                           : o.status === "paid"
                             ? "bg-yellow-500/15 text-yellow-200 ring-1 ring-yellow-500/35"
-                            : "bg-blue-500/15 text-blue-200 ring-1 ring-blue-500/35")
+                            : o.status === "disputed"
+                              ? "bg-violet-500/15 text-violet-200 ring-1 ring-violet-500/35"
+                              : "bg-blue-500/15 text-blue-200 ring-1 ring-blue-500/35")
                     }
                   >
                     {o.status.replace("_", " ")}

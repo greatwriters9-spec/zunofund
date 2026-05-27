@@ -105,7 +105,7 @@ export default function MerchantDashboardPage() {
           .from("merchant_orders")
           .select("id", { count: "exact", head: true })
           .eq("merchant_user_id", user.id)
-          .in("status", ["pending_payment", "paid"]),
+          .in("status", ["pending_payment", "paid", "disputed"]),
         supabase
           .from("merchant_orders")
           .select("id", { count: "exact", head: true })

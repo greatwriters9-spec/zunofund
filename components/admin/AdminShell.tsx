@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   LogOut,
   MessageCircle,
+  Scale,
   Settings,
   ShieldCheck,
   Store,
@@ -77,6 +78,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <Link href="/admin/merchants" className={linkClass("/admin/merchants")}>
               <Store className={iconCls} aria-hidden />
               Merchants
+            </Link>
+            <Link href="/admin/p2p-disputes" className={linkClass("/admin/p2p-disputes")}>
+              <Scale className={iconCls} aria-hidden />
+              P2P disputes
             </Link>
             <Link href="/admin/profits" className={linkClass("/admin/profits")}>
               <TrendingUp className={iconCls} aria-hidden />
