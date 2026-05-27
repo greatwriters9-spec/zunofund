@@ -23,7 +23,10 @@ export const viewport: Viewport = {
   themeColor: "#05080F",
 };
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.zunofund.com";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
     default: "Zuno",
     template: "%s | Zuno",
@@ -39,9 +42,14 @@ export const metadata: Metadata = {
     "wealth growth",
   ],
   icons: {
-    icon: [{ url: "/logo.png", type: "image/png" }],
-    apple: "/logo.png",
+    icon: [
+      { url: "/favicon.ico", sizes: "48x48" },
+      { url: "/icon-192.png", type: "image/png", sizes: "192x192" },
+      { url: "/icon-512.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: [{ url: "/icon-192.png", sizes: "192x192", type: "image/png" }],
   },
+  manifest: "/site.webmanifest",
 };
 
 export default function RootLayout({
