@@ -7,6 +7,7 @@ import { useSupabase } from "@/lib/supabase";
 import {
   playAdminNotificationSound,
   playInvestorNotificationSound,
+  unlockNotificationAudio,
 } from "@/lib/notifications/sounds";
 
 type PostgresInsertPayload = {
@@ -30,6 +31,16 @@ export function RealtimeNotificationBridge() {
   const admChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const recentInvestorNotifIdsRef = useRef(new Set<string>());
   const lastInvestorSyncAtRef = useRef(0);
+
+  useEffect(() => {
+    const unlock = () => unlockNotificationAudio();
+    document.addEventListener("pointerdown", unlock, { once: true });
+    document.addEventListener("keydown", unlock, { once: true });
+    return () => {
+      document.removeEventListener("pointerdown", unlock);
+      document.removeEventListener("keydown", unlock);
+    };
+  }, []);
 
   useEffect(() => {
     let stopped = false;
