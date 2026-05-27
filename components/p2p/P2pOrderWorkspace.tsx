@@ -22,7 +22,10 @@ import {
   createP2pProofSignedUrl,
   uploadP2pPaymentProof,
 } from "@/lib/supabase/p2pProofs";
-import { formatMerchantPresence } from "@/lib/merchantPresence";
+import {
+  formatMerchantPresence,
+  isMerchantEffectivelyOnline,
+} from "@/lib/merchantPresence";
 import { formatFiat } from "@/lib/currencies";
 import { assetFromOfferSide, fmtAssetAmount } from "@/lib/p2pAssets";
 import type { WorkspaceOrderRow } from "@/components/p2p/workspaceTypes";
@@ -665,6 +668,10 @@ export function P2pOrderWorkspace({
 
   const showTimer = leftSec > 0;
   const payLabel = paymentMethodLabel(order.payment_method);
+  const merchantOnline = isMerchantEffectivelyOnline(
+    merchantPresence?.is_online,
+    merchantPresence?.last_seen_at,
+  );
   const merchantPresenceLabel = formatMerchantPresence(
     merchantPresence?.is_online,
     merchantPresence?.last_seen_at,
@@ -979,12 +986,12 @@ export function P2pOrderWorkspace({
                   {!isMerchant ? (
                     <p
                       className={`mt-0.5 flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wide ${
-                        merchantPresence?.is_online ? "text-emerald-300" : "text-yellow-300"
+                        merchantOnline ? "text-emerald-300" : "text-yellow-300"
                       }`}
                     >
                       <span
                         className={`h-2 w-2 rounded-full ${
-                          merchantPresence?.is_online
+                          merchantOnline
                             ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.75)]"
                             : "bg-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.65)]"
                         }`}

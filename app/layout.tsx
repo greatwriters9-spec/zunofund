@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
+import { MerchantPresenceBridge } from "@/components/MerchantPresenceBridge";
 import { RealtimeNotificationBridge } from "@/components/RealtimeNotificationBridge";
 
 import "./globals.css";
@@ -74,6 +75,7 @@ export default function RootLayout({
         />
 
         <RealtimeNotificationBridge />
+        <MerchantPresenceBridge />
         {children}
       </body>
     </html>

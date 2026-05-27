@@ -11,7 +11,7 @@ import {
   inputToOfferFiat,
 } from "@/lib/p2pValue";
 import { useFxRates } from "@/lib/useFx";
-import { formatMerchantPresence } from "@/lib/merchantPresence";
+import { formatInvestorMerchantPresence } from "@/lib/merchantPresence";
 import { paymentMethodLabelCaps, merchantInitials } from "./utils";
 
 export type OfferCardRow = {
@@ -68,7 +68,7 @@ export function OfferCard({
   onTrade,
 }: OfferCardProps) {
   const name = row.merchant_display_name || "Merchant";
-  const presenceLabel = formatMerchantPresence(
+  const presence = formatInvestorMerchantPresence(
     row.merchant_is_online,
     row.merchant_last_seen_at,
   );
@@ -131,21 +131,28 @@ export function OfferCard({
           <h3 className="truncate text-[15px] font-bold tracking-tight text-[#F5E6B3]" title={name}>
             {name}
           </h3>
-          <p
-            className={`mt-1 flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wide ${
-              row.merchant_is_online ? "text-emerald-300" : "text-yellow-300"
-            }`}
-          >
-            <span
-              className={`h-2 w-2 rounded-full ${
-                row.merchant_is_online
-                  ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.75)]"
-                  : "bg-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.65)]"
+          <div className="mt-1">
+            <p
+              className={`flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wide ${
+                presence.online ? "text-emerald-300" : "text-yellow-300"
               }`}
-              aria-hidden
-            />
-            {presenceLabel}
-          </p>
+            >
+              <span
+                className={`h-2 w-2 shrink-0 rounded-full ${
+                  presence.online
+                    ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.75)]"
+                    : "bg-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.65)]"
+                }`}
+                aria-hidden
+              />
+              {presence.primary}
+            </p>
+            {presence.secondary ? (
+              <p className="mt-0.5 pl-3.5 text-[10px] font-medium tabular-nums text-zinc-500">
+                {presence.secondary}
+              </p>
+            ) : null}
+          </div>
           <p className="mt-1 text-[11px] font-medium tabular-nums text-zinc-400">
             {formatFiat(minFiat, fiatCode)}–{formatFiat(maxFiat, fiatCode)}{" "}
             <span className="uppercase tracking-wide text-zinc-600">{fiatCode} · limits</span>

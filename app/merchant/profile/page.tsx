@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 
-import { formatMerchantPresence } from "@/lib/merchantPresence";
+import { useMerchantPresenceLive } from "@/hooks/useMerchantPresenceLive";
+import { merchantPresenceUi, syncMerchantPresence } from "@/lib/merchantPresence";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 
 type Mp = {
@@ -32,6 +33,7 @@ export default function MerchantProfilePage() {
   const [showPw2, setShowPw2] = useState(false);
   const [pwBusy, setPwBusy] = useState(false);
   const [pwMsg, setPwMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+  const liveOnPage = useMerchantPresenceLive();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -63,10 +65,21 @@ export default function MerchantProfilePage() {
       return;
     }
 
-    const row = mp as Mp | null;
+    let row = mp as Mp | null;
+
+    if (row?.status === "active" && liveOnPage && document.visibilityState === "visible") {
+      await syncMerchantPresence(supabase, true);
+      const { data: refreshed } = await supabase
+        .from("merchant_profiles")
+        .select("user_id, display_name, status, is_online, last_seen_at")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (refreshed) row = refreshed as Mp;
+    }
+
     setProfile(row);
     setUsername(row?.display_name ?? "");
-  }, [supabase]);
+  }, [supabase, liveOnPage]);
 
   useEffect(() => {
     void load();
@@ -95,27 +108,6 @@ export default function MerchantProfilePage() {
       kind: "ok",
       text: "Marketplace name updated. Investors see this on your offers.",
     });
-    await load();
-  }
-
-  async function setMerchantPresence(online: boolean) {
-    setUserMsg(null);
-    if (profile?.status !== "active") {
-      setUserMsg({ kind: "err", text: "Only active merchants can change online status." });
-      return;
-    }
-
-    setUserBusy(true);
-    const { error } = await supabase.rpc("merchant_set_presence", {
-      p_online: online,
-    });
-    setUserBusy(false);
-
-    if (error) {
-      setUserMsg({ kind: "err", text: formatSupabaseError(error) });
-      return;
-    }
-
     await load();
   }
 
@@ -168,6 +160,11 @@ export default function MerchantProfilePage() {
   }
 
   const canEditUsername = profile.status === "pending" || profile.status === "active";
+  const { showOnline: merchantOnline, label: presenceLabel } = merchantPresenceUi(
+    liveOnPage,
+    profile.is_online,
+    profile.last_seen_at,
+  );
 
   return (
     <main className="min-h-screen bg-zinc-950 p-6 text-white">
@@ -191,37 +188,23 @@ export default function MerchantProfilePage() {
             <h2 className="text-lg font-semibold">Online status</h2>
             <p
               className={`mt-3 flex items-center gap-2 text-sm font-bold ${
-                profile.is_online ? "text-emerald-300" : "text-yellow-300"
+                merchantOnline ? "text-emerald-300" : "text-yellow-300"
               }`}
             >
               <span
                 className={`h-2.5 w-2.5 rounded-full ${
-                  profile.is_online
+                  merchantOnline
                     ? "bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.75)]"
                     : "bg-yellow-400 shadow-[0_0_12px_rgba(250,204,21,0.65)]"
                 }`}
                 aria-hidden
               />
-              {formatMerchantPresence(profile.is_online, profile.last_seen_at)}
+              {presenceLabel}
             </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <button
-                type="button"
-                disabled={profile.is_online === true || userBusy}
-                onClick={() => void setMerchantPresence(true)}
-                className="rounded-xl bg-emerald-600 px-5 py-2 text-sm font-bold text-white hover:bg-emerald-500 disabled:opacity-50"
-              >
-                Go online
-              </button>
-              <button
-                type="button"
-                disabled={!profile.is_online || userBusy}
-                onClick={() => void setMerchantPresence(false)}
-                className="rounded-xl border border-yellow-400/45 px-5 py-2 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/10 disabled:opacity-50"
-              >
-                Go offline
-              </button>
-            </div>
+            <p className="mt-3 text-sm text-zinc-500">
+              Status updates automatically from browser activity on merchant and trade pages — no manual
+              toggle.
+            </p>
           </section>
         ) : null}
 

@@ -359,7 +359,7 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
                 </p>
               </div>
             ) : (
-              <OffersScrollList onRefresh={fetchOffers} loading={loading}>
+              <OffersScrollList>
                 {offersDisplayed.map((row) => (
                   <OfferCard
                     key={row.offer_id}

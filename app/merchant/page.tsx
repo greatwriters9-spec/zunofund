@@ -12,7 +12,8 @@ import {
 import type { MerchantOrderCard } from "@/components/merchant/merchantOrderTypes";
 import { MerchantTradesList } from "@/components/merchant/MerchantTradesList";
 import { fetchMerchantOrdersWithInvestors } from "@/components/merchant/useMerchantOrders";
-import { formatMerchantPresence } from "@/lib/merchantPresence";
+import { useMerchantPresenceLive } from "@/hooks/useMerchantPresenceLive";
+import { merchantPresenceUi, syncMerchantPresence } from "@/lib/merchantPresence";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 
 type MerchantMainTab = "offers" | "active";
@@ -73,6 +74,7 @@ export default function MerchantDashboardPage() {
   const [activeOrdersError, setActiveOrdersError] = useState<string | null>(null);
   const [mainTab, setMainTab] = useState<MerchantMainTab>("offers");
   const [error, setError] = useState<string | null>(null);
+  const liveOnPage = useMerchantPresenceLive();
 
   const load = useCallback(async () => {
     const {
@@ -86,15 +88,27 @@ export default function MerchantDashboardPage() {
 
     setSessionUserId(user.id);
 
-    const { data: prof } = await supabase
+    const profStatus = await supabase
       .from("merchant_profiles")
       .select("user_id, display_name, status, is_online, last_seen_at")
       .eq("user_id", user.id)
       .maybeSingle();
 
-    setProfile(prof as Profile | null);
+    let prof = profStatus.data as Profile | null;
 
-    if ((prof as Profile | null)?.status === "active") {
+    if (prof?.status === "active" && liveOnPage && document.visibilityState === "visible") {
+      await syncMerchantPresence(supabase, true);
+      const { data: refreshed } = await supabase
+        .from("merchant_profiles")
+        .select("user_id, display_name, status, is_online, last_seen_at")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (refreshed) prof = refreshed as Profile;
+    }
+
+    setProfile(prof);
+
+    if (prof?.status === "active") {
       const [offersRes, activeTradeHead, completedTradeHead, activeFull] = await Promise.all([
         supabase
           .from("merchant_offers")
@@ -132,11 +146,22 @@ export default function MerchantDashboardPage() {
       setActiveTradeCount(null);
       setCompletedTradeCount(null);
     }
-  }, [supabase]);
+  }, [supabase, liveOnPage]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!liveOnPage || profile?.status !== "active") return;
+    void load();
+  }, [liveOnPage, profile?.status, load]);
+
+  useEffect(() => {
+    if (profile?.status !== "active" || !liveOnPage) return;
+    const t = window.setInterval(() => void load(), 60_000);
+    return () => window.clearInterval(t);
+  }, [load, profile?.status, liveOnPage]);
 
   async function toggleOffer(offerId: string, active: boolean) {
     setError(null);
@@ -163,18 +188,6 @@ export default function MerchantDashboardPage() {
     setError(null);
     const { error: e } = await supabase.rpc("merchant_delete_offer", {
       p_offer_id: offerId,
-    });
-    if (e) {
-      setError(formatSupabaseError(e));
-      return;
-    }
-    await load();
-  }
-
-  async function setMerchantPresence(online: boolean) {
-    setError(null);
-    const { error: e } = await supabase.rpc("merchant_set_presence", {
-      p_online: online,
     });
     if (e) {
       setError(formatSupabaseError(e));
@@ -264,6 +277,12 @@ export default function MerchantDashboardPage() {
       </>
     ));
   } else {
+    const { showOnline: merchantOnline, label: presenceLabel } = merchantPresenceUi(
+      liveOnPage,
+      profile.is_online,
+      profile.last_seen_at,
+    );
+
     body = (
       <>
         <p className="mb-6 text-xs text-zinc-500 lg:hidden">
@@ -271,46 +290,28 @@ export default function MerchantDashboardPage() {
         </p>
 
         <div className="mb-6 rounded-2xl border border-[#D4AF37]/18 bg-black/35 p-5 backdrop-blur-sm">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
-                Merchant presence
-              </p>
-              <p
-                className={`mt-2 flex items-center gap-2 text-sm font-bold ${
-                  profile.is_online ? "text-emerald-300" : "text-yellow-300"
-                }`}
-              >
-                <span
-                  className={`h-2.5 w-2.5 rounded-full ${
-                    profile.is_online
-                      ? "bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.75)]"
-                      : "bg-yellow-400 shadow-[0_0_12px_rgba(250,204,21,0.65)]"
-                  }`}
-                  aria-hidden
-                />
-                {formatMerchantPresence(profile.is_online, profile.last_seen_at)}
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                disabled={profile.is_online === true}
-                onClick={() => void setMerchantPresence(true)}
-                className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-45"
-              >
-                Go online
-              </button>
-              <button
-                type="button"
-                disabled={!profile.is_online}
-                onClick={() => void setMerchantPresence(false)}
-                className="rounded-xl border border-yellow-400/45 bg-yellow-500/10 px-4 py-2 text-xs font-bold uppercase tracking-wide text-yellow-200 transition hover:border-yellow-300/70 hover:bg-yellow-500/15 disabled:cursor-not-allowed disabled:opacity-45"
-              >
-                Go offline
-              </button>
-            </div>
-          </div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
+            Your visibility
+          </p>
+          <p
+            className={`mt-2 flex items-center gap-2 text-sm font-bold ${
+              merchantOnline ? "text-emerald-300" : "text-yellow-300"
+            }`}
+          >
+            <span
+              className={`h-2.5 w-2.5 rounded-full ${
+                merchantOnline
+                  ? "bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.75)]"
+                  : "bg-yellow-400 shadow-[0_0_12px_rgba(250,204,21,0.65)]"
+              }`}
+              aria-hidden
+            />
+            {presenceLabel}
+          </p>
+          <p className="mt-2 text-xs text-zinc-500">
+            You show as online automatically while the merchant console or an active P2P trade is open in
+            this browser. Close the tab or leave those pages to go offline.
+          </p>
         </div>
 
         <div className="mb-8 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-3">
