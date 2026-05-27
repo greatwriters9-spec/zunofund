@@ -16,6 +16,7 @@ import {
   type DepositAssetCode,
   type PlatformDepositNetwork,
 } from "@/lib/platformDepositNetworks";
+import { normalizeReferralCodeInput } from "@/lib/referrals";
 import { useSupabase, formatSupabaseError } from "@/lib/supabase";
 
 export default function DepositExchangePage() {
@@ -40,6 +41,11 @@ export default function DepositExchangePage() {
     null,
   );
   const [planLoadError, setPlanLoadError] = useState<string | null>(null);
+  const [referralCode, setReferralCode] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return normalizeReferralCodeInput(new URL(window.location.href).searchParams.get("ref"));
+  });
+  const [hasReferralAttribution, setHasReferralAttribution] = useState(false);
 
   const activeDepositNetworks = useMemo(
     () => depositNetworks.filter((network) => network.is_active),
@@ -118,7 +124,7 @@ export default function DepositExchangePage() {
       }
       const { data, error } = await supabase
         .from("investors")
-        .select("investment_plan, tier_qualifying_principal")
+        .select("investment_plan, tier_qualifying_principal, referred_by_user_id")
         .eq("user_id", user.id)
         .maybeSingle();
       if (cancelled) return;
@@ -128,6 +134,7 @@ export default function DepositExchangePage() {
       }
       setPlanLoadError(null);
       setPlanSlug(normalizeInvestmentPlan(data?.investment_plan));
+      setHasReferralAttribution(Boolean((data as { referred_by_user_id?: unknown } | null)?.referred_by_user_id));
       const tqp = (data as { tier_qualifying_principal?: unknown })
         ?.tier_qualifying_principal;
       setQualifyingPrincipal(
@@ -190,6 +197,10 @@ export default function DepositExchangePage() {
         payment_method: selectedDepositNetwork.asset,
         deposit_network: selectedDepositNetwork.network_name,
         deposit_wallet_address: selectedDepositNetwork.wallet_address,
+        referral_code:
+          !hasReferralAttribution && referralCode.trim()
+            ? normalizeReferralCodeInput(referralCode)
+            : null,
         status: "pending",
       },
     ]);
@@ -204,6 +215,7 @@ export default function DepositExchangePage() {
 
     setAmount("");
     setTxid("");
+    if (!hasReferralAttribution) setReferralCode("");
     setLoading(false);
   }
 
@@ -405,6 +417,29 @@ export default function DepositExchangePage() {
             className="w-full bg-black border border-zinc-800 rounded-xl px-4 py-3 outline-none focus:border-yellow-500"
           />
         </div>
+
+        {!hasReferralAttribution ? (
+          <div className="mb-4">
+            <label className="block mb-3 text-zinc-400">
+              Referral Code <span className="text-zinc-600">(optional)</span>
+            </label>
+
+            <input
+              type="text"
+              placeholder="Enter referral code if you have one"
+              value={referralCode}
+              onChange={(e) => setReferralCode(normalizeReferralCodeInput(e.target.value))}
+              className="w-full bg-black border border-zinc-800 rounded-xl px-4 py-3 font-mono uppercase tracking-wide outline-none focus:border-yellow-500"
+            />
+            <p className="mt-2 text-xs text-zinc-500">
+              If you signed up through a referral link, this is already applied.
+            </p>
+          </div>
+        ) : (
+          <div className="mb-4 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+            Referral already applied to your account.
+          </div>
+        )}
 
         <div className="mb-6">
           <label className="block mb-3 text-zinc-400">

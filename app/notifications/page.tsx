@@ -36,6 +36,13 @@ function typeStyles(type: string) {
       iconWrap: "bg-sky-500/10 text-sky-400",
     };
   }
+  if (t.includes("referral")) {
+    return {
+      Icon: TrendingUp,
+      chip: "text-yellow-300 bg-yellow-500/15 border-yellow-500/30",
+      iconWrap: "bg-yellow-500/10 text-yellow-400",
+    };
+  }
   if (t.includes("p2p") || t.includes("trade")) {
     return {
       Icon: MessageCircle,

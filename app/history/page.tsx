@@ -1,22 +1,22 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 
 import {
-  ArrowLeft,
   ArrowDownLeft,
   ArrowUpRight,
   TrendingUp,
+  Gift,
 } from "lucide-react";
 
-import { formatMoneyAmount, formatUsdAmount } from "@/lib/formatMoney";
+import { formatUsdAmount } from "@/lib/formatMoney";
 import { useSupabase } from "@/lib/supabase";
 
 interface Transaction {
   id: string;
-  type: "deposit" | "withdrawal" | "profit";
+  type: "deposit" | "withdrawal" | "profit" | "referral_bonus";
   amount: number;
   status: string;
   description?: string;
@@ -30,14 +30,10 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true);
 
   const [activeFilter, setActiveFilter] = useState<
-    "all" | "deposit" | "withdrawal" | "profit"
+    "all" | "deposit" | "withdrawal" | "profit" | "referral_bonus"
   >("all");
 
-  useEffect(() => {
-    fetchHistory();
-  }, []);
-
-  async function fetchHistory() {
+  const fetchHistory = useCallback(async () => {
     setLoading(true);
 
     const {
@@ -74,7 +70,12 @@ export default function HistoryPage() {
       Transaction[]
     >((acc, item) => {
       const t = item.txn_type;
-      if (t !== "deposit" && t !== "withdrawal" && t !== "profit") {
+      if (
+        t !== "deposit" &&
+        t !== "withdrawal" &&
+        t !== "profit" &&
+        t !== "referral_bonus"
+      ) {
         return acc;
       }
       acc.push({
@@ -91,7 +92,14 @@ export default function HistoryPage() {
     setTransactions(mergedTransactions);
 
     setLoading(false);
-  }
+  }, [supabase]);
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      void fetchHistory();
+    }, 0);
+    return () => window.clearTimeout(handle);
+  }, [fetchHistory]);
 
   const filteredTransactions = useMemo(() => {
     if (activeFilter === "all") {
@@ -129,6 +137,9 @@ export default function HistoryPage() {
           />
         );
 
+      case "referral_bonus":
+        return <Gift className="text-yellow-400" size={20} />;
+
       default:
         return null;
     }
@@ -144,6 +155,9 @@ export default function HistoryPage() {
 
       case "profit":
         return "text-yellow-500";
+
+      case "referral_bonus":
+        return "text-yellow-400";
 
       default:
         return "text-white";
@@ -164,7 +178,7 @@ export default function HistoryPage() {
                 Transaction history
               </h1>
               <p className="mt-1 text-sm text-zinc-600">
-                Combined deposits, withdrawals, and profits — newest first (up to 250 rows).
+                Combined deposits, withdrawals, profits, and referral bonuses — newest first (up to 250 rows).
               </p>
             </div>
             <Link
@@ -177,7 +191,7 @@ export default function HistoryPage() {
         </header>
 
         <div className="-mx-1 mb-4 flex gap-1 overflow-x-auto border-b border-zinc-800/80 px-1 pb-px">
-          {(["all", "deposit", "withdrawal", "profit"] as const).map((filter) => (
+          {(["all", "deposit", "withdrawal", "profit", "referral_bonus"] as const).map((filter) => (
             <button
               key={filter}
               type="button"
@@ -188,7 +202,7 @@ export default function HistoryPage() {
                   : "border-transparent text-zinc-500 hover:text-zinc-300"
               }`}
             >
-              {filter}
+              {filter === "referral_bonus" ? "referral bonus" : filter}
             </button>
           ))}
         </div>
@@ -217,7 +231,7 @@ export default function HistoryPage() {
           ) : filteredTransactions.length > 0 ? (
             filteredTransactions.map((transaction) => {
               const statusUi =
-                transaction.status === "approved"
+                transaction.status === "approved" || transaction.status === "completed"
                   ? "bg-green-500/10 text-green-500"
                   : transaction.status === "pending"
                     ? "bg-yellow-500/10 text-yellow-500"
@@ -238,7 +252,7 @@ export default function HistoryPage() {
                       </div>
                       <div className="min-w-0">
                         <h3 className="text-sm font-semibold capitalize text-white">
-                          {transaction.type}
+                          {transaction.type === "referral_bonus" ? "Referral bonus" : transaction.type}
                         </h3>
                         <p className="truncate text-xs text-zinc-600">
                           {transaction.description}
@@ -271,7 +285,7 @@ export default function HistoryPage() {
                         {getTransactionIcon(transaction.type)}
                       </div>
                       <span className="text-sm font-semibold capitalize text-white">
-                        {transaction.type}
+                        {transaction.type === "referral_bonus" ? "Referral bonus" : transaction.type}
                       </span>
                     </div>
 

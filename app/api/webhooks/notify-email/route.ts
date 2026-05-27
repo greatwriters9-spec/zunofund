@@ -53,6 +53,7 @@ function investorEmailSubject(
     return `${base} Withdrawal submitted`;
   if (t.includes("withdrawal_approved"))
     return `${base} Withdrawal completed`;
+  if (t.includes("referral_bonus")) return `${base} Referral bonus credited`;
   if (t.includes("profit_bonus")) return `${base} Profit recorded`;
   if (t.includes("profit_compound")) return `${base} Profit credited`;
   if (t.includes("p2p_message")) return `${base} New P2P message`;

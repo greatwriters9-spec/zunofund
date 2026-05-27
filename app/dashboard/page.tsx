@@ -19,6 +19,8 @@ import {
   UserRound,
   Store,
   ArrowLeftRight,
+  Copy,
+  Gift,
 } from "lucide-react";
 
 import type { ProfitChartDatum } from "@/components/dashboard/ProfitGrowthChart";
@@ -38,6 +40,7 @@ import { notificationsOwnerOrFilter } from "@/lib/notificationQuery";
 import { fromUsd } from "@/lib/exchangeRates";
 import { fmtAssetAmount } from "@/lib/p2pAssets";
 import { formatFiat, getFiatCurrency } from "@/lib/currencies";
+import { buildReferralSignupPath } from "@/lib/referrals";
 import { useDisplayCryptoUnit, useDisplayCurrency, useFxRates } from "@/lib/useFx";
 import { CryptoUnitPicker } from "@/components/currency/CryptoUnitPicker";
 import { CurrencyPicker } from "@/components/currency/CurrencyPicker";
@@ -74,6 +77,7 @@ interface Investor {
   status: string;
   withdrawable_balance?: number | null;
   locked_principal_balance?: number | null;
+  referral_code?: string | null;
 }
 
 interface Notification {
@@ -125,6 +129,10 @@ export default function DashboardPage() {
   const [showNotifications, setShowNotifications] = useState(false);
 
   const [showWalletModal, setShowWalletModal] = useState(false)
+  const [copiedReferral, setCopiedReferral] = useState(false);
+  const [appOrigin] = useState(() =>
+    typeof window === "undefined" ? "" : window.location.origin,
+  );
 
   const [loading, setLoading] = useState(true);
   const [merchantProfile, setMerchantProfile] = useState<{ status: string } | null | undefined>(
@@ -464,6 +472,17 @@ export default function DashboardPage() {
     return formatUsdLocale(value);
   }
 
+  const referralCode = investor?.referral_code?.trim() ?? "";
+  const referralSignupPath = buildReferralSignupPath(referralCode);
+  const referralLink = appOrigin ? `${appOrigin}${referralSignupPath}` : referralSignupPath;
+
+  async function copyReferralLink() {
+    if (!referralCode) return;
+    await navigator.clipboard.writeText(referralLink);
+    setCopiedReferral(true);
+    window.setTimeout(() => setCopiedReferral(false), 2200);
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-white text-xl">
@@ -729,6 +748,43 @@ export default function DashboardPage() {
             Account {(investor?.status ?? "unknown").toUpperCase()}
           </div>
         </motion.div>
+
+        {referralCode ? (
+          <div className="mb-6 rounded-xl border border-yellow-500/15 bg-yellow-500/[0.04] px-4 py-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-yellow-500/90">
+                  <Gift size={14} aria-hidden />
+                  5% Network Rewards
+                </p>
+                <p className="mt-1 text-xs text-zinc-500">
+                  Your network moves. You earn 5%.
+                </p>
+              </div>
+              <div className="flex min-w-0 flex-col gap-2 sm:w-[25rem]">
+                <div className="flex min-w-0 items-center gap-2 rounded-lg border border-zinc-800 bg-black/35 px-3 py-2">
+                  <span className="shrink-0 rounded bg-yellow-500/10 px-2 py-1 font-mono text-xs font-bold text-yellow-300">
+                    {referralCode}
+                  </span>
+                  <span className="truncate text-xs text-zinc-500" title={referralLink}>
+                    {referralLink}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => void copyReferralLink()}
+                    className="ml-auto shrink-0 text-zinc-400 transition hover:text-yellow-400"
+                    aria-label="Copy 5% Network Rewards link"
+                  >
+                    <Copy size={15} aria-hidden />
+                  </button>
+                </div>
+                {copiedReferral ? (
+                  <p className="text-right text-[11px] text-emerald-400">5% Network Rewards link copied.</p>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         <div className="mb-6 grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4 lg:gap-4 items-stretch">
 

@@ -12,6 +12,7 @@ interface Deposit {
   payment_method: string;
   deposit_network?: string | null;
   deposit_wallet_address?: string | null;
+  referral_code?: string | null;
   status: string;
   created_at: string;
 }
@@ -113,6 +114,13 @@ export default function AdminDepositsPage() {
                 {deposit.deposit_wallet_address ? (
                   <p className="max-w-xl break-all text-gray-400">
                     Wallet: {deposit.deposit_wallet_address}
+                  </p>
+                ) : null}
+
+                {deposit.referral_code ? (
+                  <p className="text-gray-400">
+                    Referral code:{" "}
+                    <span className="font-mono text-yellow-300">{deposit.referral_code}</span>
                   </p>
                 ) : null}
 

@@ -8,6 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { PhoneInput } from "@/components/auth/PhoneInput";
 import { sanitizeNextParam } from "@/lib/authLinks";
 import { isValidPhoneE164 } from "@/lib/phoneCountries";
+import { normalizeReferralCodeInput } from "@/lib/referrals";
 import { authRedirectToUrl } from "@/lib/site-url";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 
@@ -17,6 +18,7 @@ function AuthPageInner() {
   const wantsSignup = searchParams.get("signup") === "1";
   const authCallbackError = searchParams.get("error");
   const authNotice = searchParams.get("notice");
+  const referralCode = normalizeReferralCodeInput(searchParams.get("ref"));
   const nextDestination =
     sanitizeNextParam(searchParams.get("next")) ?? "/dashboard";
 
@@ -164,6 +166,7 @@ setLoading(true)
           dob,
           phone,
           investment_plan: "Starter",
+          referral_code: referralCode || undefined,
         },
       },
     });
@@ -261,6 +264,13 @@ setLoading(true)
             role="status"
           >
             {formSuccess}
+          </div>
+        ) : null}
+
+        {!isLogin && referralCode ? (
+          <div className="mb-6 rounded-2xl border border-yellow-500/35 bg-yellow-500/10 px-5 py-4 text-sm text-yellow-100">
+            Referral code <span className="font-mono font-bold text-yellow-300">{referralCode}</span>{" "}
+            will be applied to your account.
           </div>
         ) : null}
 
