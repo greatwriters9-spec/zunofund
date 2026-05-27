@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { merchantInitials, orderStatusHeadline, paymentMethodLabel } from "@/components/p2p/utils";
+import { expireStaleP2pOrders, isP2pOrderActive, P2P_CANCELLED_STATUSES } from "@/lib/p2pExpiry";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 import { formatFiat } from "@/lib/currencies";
 import { formatMoneyAmount } from "@/lib/formatMoney";
@@ -38,6 +39,7 @@ function statusBadgeClass(status: string): string {
     case "completed":
       return "bg-emerald-500/15 text-emerald-200 ring-emerald-400/35";
     case "cancelled":
+    case "completed_expired":
       return "bg-red-500/12 text-red-200 ring-red-400/30";
     default:
       return "bg-white/10 text-zinc-300 ring-white/15";
@@ -162,6 +164,8 @@ export function InvestorP2pTradeHistoryView() {
       return;
     }
 
+    await expireStaleP2pOrders(supabase);
+
     const { data: ord, error: qErr } = await supabase
       .from("merchant_orders")
       .select(
@@ -218,11 +222,11 @@ export function InvestorP2pTradeHistoryView() {
   }, [load]);
 
   const { active, completed, cancelled } = useMemo(() => {
-    const activeRows = rows.filter(
-      (r) => r.status === "pending_payment" || r.status === "paid" || r.status === "disputed",
-    );
+    const activeRows = rows.filter((r) => isP2pOrderActive(r.status, r.expires_at));
     const completedRows = rows.filter((r) => r.status === "completed");
-    const cancelledRows = rows.filter((r) => r.status === "cancelled");
+    const cancelledRows = rows.filter((r) =>
+      (P2P_CANCELLED_STATUSES as readonly string[]).includes(r.status),
+    );
     return { active: activeRows, completed: completedRows, cancelled: cancelledRows };
   }, [rows]);
 

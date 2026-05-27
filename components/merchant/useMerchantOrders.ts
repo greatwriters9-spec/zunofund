@@ -3,14 +3,17 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { MerchantOrderCard } from "./merchantOrderTypes";
+import { expireStaleP2pOrders, isP2pOrderActive, P2P_CANCELLED_STATUSES } from "@/lib/p2pExpiry";
 
 export async function fetchMerchantOrdersWithInvestors(
   supabase: SupabaseClient,
   merchantUserId: string,
   statusFilter: "active" | "completed",
 ): Promise<{ orders: MerchantOrderCard[]; error: string | null }> {
+  await expireStaleP2pOrders(supabase);
+
   const activeStatuses = ["pending_payment", "paid", "disputed"];
-  const completedStatuses = ["completed", "cancelled"];
+  const completedStatuses = ["completed", ...P2P_CANCELLED_STATUSES];
 
   let q = supabase
     .from("merchant_orders")
@@ -63,7 +66,7 @@ export async function fetchMerchantOrdersWithInvestors(
     );
   }
 
-  const orders: MerchantOrderCard[] = ordersRaw.map((r) => ({
+  let orders: MerchantOrderCard[] = ordersRaw.map((r) => ({
     id: r.id as string,
     side: r.side as string,
     status: r.status as string,
@@ -78,6 +81,10 @@ export async function fetchMerchantOrdersWithInvestors(
       invMap.get(r.investor_user_id as string) ??
       ({ email: null, full_name: null } as MerchantOrderCard["investor"]),
   }));
+
+  if (statusFilter === "active") {
+    orders = orders.filter((o) => isP2pOrderActive(o.status, o.expires_at));
+  }
 
   return { orders, error: null };
 }
