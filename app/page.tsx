@@ -155,6 +155,14 @@ export default function HomePage() {
               />
 
               <Link
+                href="/download"
+                className="flex items-center gap-3 bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 transition px-8 py-5 rounded-2xl text-lg"
+              >
+                Download Android app
+                <ChevronRight size={20} />
+              </Link>
+
+              <Link
                 href="/contact"
                 className="flex items-center gap-3 bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 transition px-8 py-5 rounded-2xl text-lg"
               >
@@ -543,6 +551,13 @@ export default function HomePage() {
             </div>
 
             <div className="flex flex-wrap lg:justify-end gap-5">
+
+              <Link
+                href="/download"
+                className="flex items-center gap-3 bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 transition px-8 py-5 rounded-2xl text-lg"
+              >
+                Download app
+              </Link>
 
               <Link
                 href="/contact"

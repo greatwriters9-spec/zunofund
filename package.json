@@ -8,10 +8,17 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "cap:sync": "npx cap sync android",
+    "cap:open": "npx cap open android",
+    "android:build:debug": "cd android && gradlew.bat assembleDebug",
+    "android:build:release": "cd android && gradlew.bat bundleRelease",
+    "android:publish-apk": "powershell -NoProfile -Command \"New-Item -ItemType Directory -Force public/downloads | Out-Null; Copy-Item android/app/build/outputs/apk/debug/app-debug.apk public/downloads/zuno-android.apk -Force\"",
     "test:notify-email": "node scripts/test-notify-email.mjs",
     "sync:webhook-triggers": "node scripts/sync-webhook-triggers-from-env.mjs"
   },
   "dependencies": {
+    "@capacitor/android": "^8.3.4",
+    "@capacitor/core": "^8.3.4",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.105.3",
     "framer-motion": "^12.38.0",
@@ -22,6 +29,8 @@
     "recharts": "^3.8.1"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.3.4",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

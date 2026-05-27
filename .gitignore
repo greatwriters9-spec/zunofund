@@ -148,3 +148,14 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Capacitor / Android local build
+android/local.properties
+android/.gradle/
+android/app/build/
+android/build/
+android/.gradle-dist/
+android/gradle/wrapper/gradle-8.14.3-all.zip
+resources/icon-only.png
+resources/icon-foreground.png
+resources/splash.png

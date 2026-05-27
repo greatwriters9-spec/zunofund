@@ -148,6 +148,9 @@ function MarketingNavbarInner() {
               <a href="#how-it-works" className="hover:text-[#D4AF37] transition">
                 How It Works
               </a>
+              <Link href="/download" className="hover:text-[#D4AF37] transition">
+                Get the app
+              </Link>
               <Link href="/contact" className="hover:text-[#D4AF37] transition">
                 Support
               </Link>
@@ -223,6 +226,13 @@ function MarketingNavbarInner() {
             >
               How It Works
             </a>
+            <Link
+              href="/download"
+              className="rounded-xl px-4 py-4 text-[#E5E7EB]/90 transition hover:bg-white/5 hover:text-[#D4AF37]"
+              onClick={closeMobile}
+            >
+              Get the app
+            </Link>
             <Link
               href="/contact"
               className="rounded-xl px-4 py-4 text-[#E5E7EB]/90 transition hover:bg-white/5 hover:text-[#D4AF37]"

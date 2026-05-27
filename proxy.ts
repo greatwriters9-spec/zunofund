@@ -11,6 +11,6 @@ export const config = {
     /*
      * Run for all paths except static assets and images.
      */
-    "/((?!_next/static|_next/image|favicon.ico|api/cron|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/cron|.*\\.(?:svg|png|jpg|jpeg|gif|webp|apk)$).*)",
   ],
 };
