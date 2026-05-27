@@ -22,7 +22,7 @@ export function MerchantPresenceBridge() {
 
   useEffect(() => {
     let stopped = false;
-    let heartbeatId: ReturnType<typeof setInterval> | null = null;
+    let heartbeatId: number | null = null;
 
     async function isActiveMerchant(): Promise<boolean> {
       const {
