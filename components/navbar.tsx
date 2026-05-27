@@ -122,7 +122,7 @@ function MarketingNavbarInner() {
 
   return (
     <>
-      <header className="sticky top-0 z-[200] border-b border-white/5 bg-black/80 backdrop-blur-xl pt-[env(safe-area-inset-top)]">
+      <header className="surface-panel sticky top-0 z-[200] border-b border-white/5 bg-black/80 pt-[env(safe-area-inset-top)] lg:backdrop-blur-xl">
         <nav className="mx-auto flex h-[80px] max-w-[1600px] items-center gap-4 px-4 md:px-8">
           <button
             type="button"
@@ -184,7 +184,7 @@ function MarketingNavbarInner() {
       {mobileOpen ? (
         <div
           id="marketing-mobile-nav"
-          className="fixed inset-0 z-[210] flex flex-col bg-[#05080F]/97 backdrop-blur-xl pt-[env(safe-area-inset-top)] pb-[max(1.5rem,env(safe-area-inset-bottom))] px-6 md:hidden"
+          className="surface-menu-mobile fixed inset-0 z-[210] flex flex-col pt-[env(safe-area-inset-top)] pb-[max(1.5rem,env(safe-area-inset-bottom))] px-6 md:hidden"
           role="dialog"
           aria-modal="true"
           aria-label="Site navigation"
@@ -259,7 +259,7 @@ export function MarketingNavbar() {
   return (
     <Suspense
       fallback={
-        <header className="sticky top-0 z-[200] h-[80px] border-b border-white/5 bg-black/80 backdrop-blur-xl" />
+        <header className="surface-panel sticky top-0 z-[200] h-[80px] border-b border-white/5 bg-black/80 lg:backdrop-blur-xl" />
       }
     >
       <MarketingNavbarInner />
@@ -290,7 +290,7 @@ export function DashboardNavbar({
 
   return (
     <>
-      <header className="sticky top-0 z-[200] w-full border-b border-white/5 bg-black/80 backdrop-blur-xl pt-[env(safe-area-inset-top)]">
+      <header className="surface-panel sticky top-0 z-[200] w-full border-b border-white/5 bg-black/80 pt-[env(safe-area-inset-top)] lg:backdrop-blur-xl">
         <nav className="flex min-h-[70px] items-center gap-2 px-4 md:gap-4 md:px-10">
           <button
             type="button"
@@ -344,7 +344,7 @@ export function DashboardNavbar({
       {mobileOpen ? (
         <div
           id="dashboard-mobile-nav"
-          className="fixed inset-0 z-[210] flex flex-col bg-[#05080F]/97 backdrop-blur-xl pt-[env(safe-area-inset-top)] pb-[max(1.5rem,env(safe-area-inset-bottom))] px-6 md:hidden"
+          className="surface-menu-mobile fixed inset-0 z-[210] flex flex-col pt-[env(safe-area-inset-top)] pb-[max(1.5rem,env(safe-area-inset-bottom))] px-6 md:hidden"
           role="dialog"
           aria-modal="true"
           aria-label="Dashboard navigation"

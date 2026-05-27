@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -12,6 +13,20 @@ import {
 
 import { formatUsdAmount } from "@/lib/formatMoney";
 
+function useLiteChartRendering() {
+  const [lite, setLite] = useState(true);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 1023px), (hover: none) and (pointer: coarse)");
+    const sync = () => setLite(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  return lite;
+}
+
 export interface ProfitChartDatum {
   id: number;
   date: string;
@@ -19,9 +34,11 @@ export interface ProfitChartDatum {
 }
 
 export function ProfitGrowthChart(props: { data: ProfitChartDatum[] }) {
+  const liteRendering = useLiteChartRendering();
+
   return (
     <div
-      className="min-h-[240px] w-full sm:min-h-[280px] md:min-h-[300px]"
+      className="chart-panel-stable min-h-[240px] w-full sm:min-h-[280px] md:min-h-[300px]"
       style={{ height: 300 }}
     >
       <ResponsiveContainer width="100%" height="100%">
@@ -56,6 +73,7 @@ export function ProfitGrowthChart(props: { data: ProfitChartDatum[] }) {
             stroke="#facc15"
             fill="url(#profit)"
             strokeWidth={2}
+            isAnimationActive={!liteRendering}
           />
         </AreaChart>
       </ResponsiveContainer>

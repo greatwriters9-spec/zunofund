@@ -4,7 +4,6 @@ import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { useEffect, useState, useCallback } from "react";
-import { motion } from "framer-motion";
 import { X, Menu } from "lucide-react"
 import { usePathname, useRouter } from "next/navigation"
 
@@ -492,14 +491,14 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen text-white relative overflow-hidden">
-      <div className="relative z-10 max-w-7xl mx-auto p-5 md:p-7">
+    <div className="page-content-stable relative min-h-screen overflow-x-clip text-white">
+      <div className="relative z-10 mx-auto max-w-7xl p-5 md:p-7">
 
         {/* Mobile top toolbar: menu hard-left, profile+bell hard-right */}
         <div className="mb-5 flex items-center justify-between gap-2 md:hidden">
           <button
             type="button"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-950/70 backdrop-blur-xl transition hover:border-yellow-500"
+            className="surface-panel flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition hover:border-yellow-500"
             aria-expanded={mobileNavOpen}
             aria-label={mobileNavOpen ? "Close navigation menu" : "Open navigation menu"}
             onClick={() => setMobileNavOpen((o) => !o)}
@@ -514,7 +513,7 @@ export default function DashboardPage() {
           <div className="flex shrink-0 items-center gap-2">
             <Link
               href="/dashboard/profile"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-950/70 backdrop-blur-xl transition hover:border-yellow-500"
+              className="surface-panel flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition hover:border-yellow-500"
               aria-label="Profile and security"
             >
               <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-lg border border-yellow-500/25 bg-yellow-500/10">
@@ -537,7 +536,7 @@ export default function DashboardPage() {
 
             <Link
               href="/notifications"
-              className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-950/70 backdrop-blur-xl transition hover:border-yellow-500"
+              className="surface-panel relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition hover:border-yellow-500"
               aria-label="Notifications"
             >
               <Bell className="text-yellow-500" size={20} aria-hidden />
@@ -573,7 +572,7 @@ export default function DashboardPage() {
             </button>
             <Link
               href="/dashboard/profile"
-              className="bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 hover:border-yellow-500 transition p-3 rounded-2xl"
+              className="surface-panel rounded-2xl p-3 transition hover:border-yellow-500"
               aria-label="Profile and security"
             >
               <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl border border-yellow-500/25 bg-yellow-500/10">
@@ -600,7 +599,7 @@ export default function DashboardPage() {
               onClick={() =>
                 setShowNotifications(!showNotifications)
               }
-              className="bg-zinc-950/70 backdrop-blur-xl border border-zinc-800 hover:border-yellow-500 transition p-4 rounded-2xl relative"
+              className="surface-panel relative rounded-2xl p-4 transition hover:border-yellow-500"
             >
               <Bell className="text-yellow-500" size={24} />
 
@@ -612,7 +611,7 @@ export default function DashboardPage() {
             </button>
 
             {showNotifications && (
-              <div className="absolute right-0 z-50 mt-4 w-[min(360px,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] overflow-hidden border border-zinc-800/80 bg-zinc-950/95 shadow-2xl backdrop-blur-md lg:rounded-xl">
+              <div className="surface-panel-elevated absolute right-0 z-50 mt-4 w-[min(360px,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] overflow-hidden shadow-2xl lg:rounded-xl">
 
                 <div className="flex items-center justify-between gap-3 border-b border-zinc-800/80 px-4 py-3">
                   <h2 className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
@@ -682,11 +681,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8 border-b border-zinc-800/90 pb-8"
-        >
+        <div className="mb-8 border-b border-zinc-800/90 pb-8">
           <p className="text-sm font-medium text-zinc-500">Total balance</p>
 
           <p className="mt-2 text-4xl font-bold tabular-nums tracking-tight text-white sm:text-5xl md:text-[3.25rem]">
@@ -747,7 +742,7 @@ export default function DashboardPage() {
           >
             Account {(investor?.status ?? "unknown").toUpperCase()}
           </div>
-        </motion.div>
+        </div>
 
         {referralCode ? (
           <div className="mb-6 rounded-xl border border-yellow-500/15 bg-yellow-500/[0.04] px-4 py-3">
@@ -937,7 +932,10 @@ export default function DashboardPage() {
             href="/p2p"
             className="relative overflow-hidden rounded-xl border border-emerald-500/35 bg-gradient-to-br from-emerald-500/15 via-emerald-500/8 to-yellow-500/10 px-1.5 py-3 text-center text-[11px] font-bold text-emerald-300 shadow-[0_0_20px_-8px_rgba(16,185,129,0.55)] transition hover:border-emerald-400/70 hover:shadow-[0_0_28px_-6px_rgba(16,185,129,0.7)] sm:text-[13px] md:px-4 md:text-sm"
           >
-            <span aria-hidden className="pointer-events-none absolute -right-2 -top-2 h-10 w-10 rounded-full bg-emerald-500/20 blur-2xl" />
+            <span
+              aria-hidden
+              className="pointer-events-none absolute -right-2 -top-2 hidden h-10 w-10 rounded-full bg-emerald-500/20 blur-2xl lg:block"
+            />
             <span className="relative">P2P</span>
           </Link>
 
@@ -1032,7 +1030,9 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            <ProfitGrowthChart data={chartData} />
+            <div className="chart-panel-stable">
+              <ProfitGrowthChart data={chartData} />
+            </div>
           </div>
 
           <div className="flex max-h-[min(420px,55vh)] flex-col border border-zinc-800/80 bg-zinc-950/40 p-4 sm:p-5 lg:rounded-xl">
@@ -1048,7 +1048,7 @@ export default function DashboardPage() {
               </Link>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="scroll-panel-stable min-h-0 flex-1 overflow-y-auto">
               {notifications.length > 0 ? (
                 <div className="divide-y divide-zinc-800/80">
                   {notifications.map((notification) => (
@@ -1133,7 +1133,7 @@ export default function DashboardPage() {
 
       {showWalletModal ? (
         <div
-          className="fixed inset-0 z-[200] flex items-center justify-center p-5 bg-black/75 backdrop-blur-sm"
+          className="surface-overlay fixed inset-0 z-[200] flex items-center justify-center p-5"
           role="presentation"
           onClick={() => setShowWalletModal(false)}
         >
@@ -1216,7 +1216,7 @@ export default function DashboardPage() {
 
       {mobileNavOpen ? (
         <div
-          className="fixed inset-0 z-[210] flex flex-col bg-[#05080F]/97 backdrop-blur-xl pt-[env(safe-area-inset-top)] pb-[max(1.5rem,env(safe-area-inset-bottom))] px-6 md:hidden"
+          className="surface-menu-mobile fixed inset-0 z-[210] flex flex-col pt-[env(safe-area-inset-top)] pb-[max(1.5rem,env(safe-area-inset-bottom))] px-6 md:hidden"
           role="dialog"
           aria-modal="true"
           aria-label="Dashboard navigation"

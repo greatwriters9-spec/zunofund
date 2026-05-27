@@ -3,6 +3,8 @@
 :root {
   --background: #05080f;
   --foreground: #fafafa;
+  --surface-solid: rgb(9 9 11 / 0.96);
+  --surface-solid-elevated: rgb(9 9 11 / 0.98);
 }
 
 @theme inline {
@@ -16,4 +18,139 @@ body {
   background: transparent;
   color: inherit;
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Stable surfaces: solid on mobile, glass blur on lg+                        */
+/* -------------------------------------------------------------------------- */
+
+.surface-panel {
+  border: 1px solid rgb(39 39 42);
+  background-color: var(--surface-solid);
+}
+
+.surface-panel-elevated {
+  border: 1px solid rgb(39 39 42 / 0.8);
+  background-color: var(--surface-solid-elevated);
+}
+
+.surface-overlay {
+  background-color: rgb(0 0 0 / 0.9);
+}
+
+.surface-menu-mobile {
+  background-color: #05080f;
+}
+
+@media (min-width: 1024px) {
+  .surface-panel {
+    background-color: rgb(9 9 11 / 0.7);
+    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(24px);
+  }
+
+  .surface-panel-elevated {
+    background-color: rgb(9 9 11 / 0.95);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+  }
+
+  .surface-overlay {
+    background-color: rgb(0 0 0 / 0.75);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Page / scroll stability (Android compositor tearing mitigation)             */
+/* -------------------------------------------------------------------------- */
+
+.page-content-stable {
+  isolation: isolate;
+}
+
+.scroll-panel-stable {
+  -webkit-overflow-scrolling: touch;
+  overflow-anchor: auto;
+}
+
+.chart-panel-stable {
+  position: relative;
+  isolation: isolate;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Mobile + touch: disable GPU-heavy filters sitewide                          */
+/* -------------------------------------------------------------------------- */
+
+@media (max-width: 1023px), ((hover: none) and (pointer: coarse)) {
+  .ambient-blur-orb {
+    display: none !important;
+  }
+
+  .ambient-grid-overlay {
+    display: none !important;
+  }
+
+  :where([class*="backdrop-blur"]) {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  :where([class*="blur-["], .blur-2xl, .blur-xl, .blur-lg) {
+    filter: none !important;
+  }
+
+  :where([class*="bg-zinc-950\\/70"][class*="backdrop-blur"]),
+  :where([class*="bg-zinc-950\\/40"][class*="backdrop-blur"]) {
+    background-color: var(--surface-solid) !important;
+  }
+
+  :where([class*="bg-zinc-950\\/95"][class*="backdrop-blur"]) {
+    background-color: var(--surface-solid-elevated) !important;
+  }
+
+  :where([class*="bg-black\\/80"][class*="backdrop-blur"]),
+  :where([class*="bg-black\\/55"][class*="backdrop-blur"]),
+  :where([class*="bg-black\\/35"][class*="backdrop-blur"]),
+  :where([class*="bg-black\\/30"][class*="backdrop-blur"]),
+  :where([class*="bg-black\\/25"][class*="backdrop-blur"]) {
+    background-color: rgb(0 0 0 / 0.92) !important;
+  }
+
+  :where([class*="bg-black\\/75"][class*="backdrop-blur"]) {
+    background-color: rgb(0 0 0 / 0.9) !important;
+  }
+
+  :where([class*="bg-\\[\\#05080F\\]\\/97"][class*="backdrop-blur"]) {
+    background-color: #05080f !important;
+  }
+
+  :where([class*="bg-white\\/\\["][class*="backdrop-blur"]) {
+    background-color: rgb(24 24 27 / 0.96) !important;
+  }
+
+  .page-content-stable {
+    contain: layout style;
+  }
+
+  .scroll-panel-stable {
+    contain: content;
+  }
+
+  .chart-panel-stable {
+    contain: layout paint;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
