@@ -33,8 +33,42 @@ export interface ProfitChartDatum {
   profit: number;
 }
 
+function MobileProfitSummary(props: { data: ProfitChartDatum[] }) {
+  const total = props.data.reduce((sum, row) => sum + row.profit, 0);
+  const latest = props.data[props.data.length - 1];
+
+  return (
+    <div className="flex min-h-[200px] flex-col justify-center rounded-lg border border-zinc-800/80 bg-zinc-950 px-4 py-6">
+      <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+        Cumulative profit
+      </p>
+      <p className="mt-2 text-2xl font-bold tabular-nums text-yellow-500">
+        {formatUsdAmount(total)}
+      </p>
+      {latest ? (
+        <p className="mt-2 text-xs text-zinc-500">
+          Latest ({latest.date}): {formatUsdAmount(latest.profit)}
+        </p>
+      ) : (
+        <p className="mt-2 text-xs text-zinc-500">No profit history yet.</p>
+      )}
+      <p className="mt-4 text-[11px] leading-relaxed text-zinc-600">
+        Interactive chart is shown on larger screens for smoother performance on mobile.
+      </p>
+    </div>
+  );
+}
+
 export function ProfitGrowthChart(props: { data: ProfitChartDatum[] }) {
   const liteRendering = useLiteChartRendering();
+
+  if (liteRendering) {
+    return (
+      <div className="chart-panel-stable min-h-[200px] w-full">
+        <MobileProfitSummary data={props.data} />
+      </div>
+    );
+  }
 
   return (
     <div
@@ -57,7 +91,7 @@ export function ProfitGrowthChart(props: { data: ProfitChartDatum[] }) {
           <YAxis stroke="#71717a" tick={{ fontSize: 11 }} width={44} />
 
           <Tooltip
-            formatter={(value: any) => formatUsdAmount(Number(value ?? 0))}
+            formatter={(value) => formatUsdAmount(Number(value ?? 0))}
             contentStyle={{
               backgroundColor: "#09090b",
               border: "1px solid #3f3f46",
@@ -73,7 +107,7 @@ export function ProfitGrowthChart(props: { data: ProfitChartDatum[] }) {
             stroke="#facc15"
             fill="url(#profit)"
             strokeWidth={2}
-            isAnimationActive={!liteRendering}
+            isAnimationActive={false}
           />
         </AreaChart>
       </ResponsiveContainer>

@@ -24,7 +24,7 @@ export function CryptoUnitPicker({
     <div
       role="group"
       aria-label="Balance unit"
-      className={`inline-flex rounded-xl border border-white/[0.1] bg-black/35 p-0.5 ring-1 ring-white/[0.04] ${className}`}
+      className={`picker-stable inline-flex rounded-xl p-0.5 ${className}`}
     >
       {UNITS.map((u) => (
         <button

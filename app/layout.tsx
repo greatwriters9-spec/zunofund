@@ -68,40 +68,25 @@ export default function RootLayout({
         className="mobile-render-stable min-h-full flex flex-col bg-[#05080F] text-white overflow-x-clip"
         suppressHydrationWarning
       >
-        {/* GLOBAL AMBIENT BACKGROUND — gradient-only on mobile; filter blur on lg+ */}
+        {/* Ambient background: desktop only — fixed layers tear on many Android GPUs */}
         <div
-          className="pointer-events-none fixed inset-0 -z-10 bg-[linear-gradient(135deg,#05080F_0%,#0B1320_45%,#141B2D_75%,#1E293B_100%)]"
+          className="ambient-background-root pointer-events-none fixed inset-0 -z-10 hidden lg:block"
           aria-hidden
-        />
-        <div
-          className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_82%_18%,rgba(212,175,55,0.22),transparent_50%)] max-lg:opacity-80"
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none fixed inset-0 -z-10 hidden max-lg:block bg-[radial-gradient(ellipse_90%_60%_at_100%_0%,rgba(212,175,55,0.12),transparent_55%)]"
-          aria-hidden
-        />
-        <div
-          className="ambient-blur-orb pointer-events-none fixed -top-40 -right-32 -z-10 hidden h-[720px] w-[720px] rounded-full bg-[#D4AF37]/20 blur-[170px] lg:block"
-          aria-hidden
-        />
-        <div
-          className="ambient-blur-orb pointer-events-none fixed top-[40%] -left-32 -z-10 hidden h-[520px] w-[520px] rounded-full bg-[#F5E6B3]/8 blur-[180px] lg:block"
-          aria-hidden
-        />
-        <div
-          className="ambient-blur-orb pointer-events-none fixed -bottom-48 left-[20%] -z-10 hidden h-[640px] w-[640px] rounded-full bg-[#1E293B]/60 blur-[200px] lg:block"
-          aria-hidden
-        />
-        <div
-          className="ambient-grid-overlay pointer-events-none fixed inset-0 -z-10 opacity-[0.025] max-lg:hidden"
-          style={{
-            backgroundImage:
-              "linear-gradient(to right, rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.08) 1px, transparent 1px)",
-            backgroundSize: "80px 80px",
-          }}
-          aria-hidden
-        />
+        >
+          <div className="absolute inset-0 bg-[linear-gradient(135deg,#05080F_0%,#0B1320_45%,#141B2D_75%,#1E293B_100%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_82%_18%,rgba(212,175,55,0.22),transparent_50%)]" />
+          <div className="ambient-blur-orb absolute -top-40 -right-32 h-[720px] w-[720px] rounded-full bg-[#D4AF37]/20 blur-[170px]" />
+          <div className="ambient-blur-orb absolute top-[40%] -left-32 h-[520px] w-[520px] rounded-full bg-[#F5E6B3]/8 blur-[180px]" />
+          <div className="ambient-blur-orb absolute -bottom-48 left-[20%] h-[640px] w-[640px] rounded-full bg-[#1E293B]/60 blur-[200px]" />
+          <div
+            className="ambient-grid-overlay absolute inset-0 opacity-[0.025]"
+            style={{
+              backgroundImage:
+                "linear-gradient(to right, rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.08) 1px, transparent 1px)",
+              backgroundSize: "80px 80px",
+            }}
+          />
+        </div>
 
         <RealtimeNotificationBridge />
         <MerchantPresenceBridge />

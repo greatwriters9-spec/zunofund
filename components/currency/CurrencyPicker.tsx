@@ -75,7 +75,7 @@ export function CurrencyPicker({
         aria-expanded={open}
         aria-label="Choose display currency"
         onClick={() => setOpen((v) => !v)}
-        className={`flex items-center justify-between gap-1.5 rounded-xl border border-white/[0.1] bg-black/35 font-semibold uppercase tracking-wide text-[#F5E6B3] ring-1 ring-white/[0.04] transition hover:border-[#D4AF37]/35 ${triggerSize}`}
+        className={`picker-stable flex items-center justify-between gap-1.5 rounded-xl font-semibold uppercase tracking-wide text-[#F5E6B3] transition hover:border-[#D4AF37]/35 ${triggerSize}`}
       >
         <span className="truncate">
           {triggerVariant === "code-only" ? cur.code : `${cur.flag} ${cur.code}`}
@@ -86,7 +86,7 @@ export function CurrencyPicker({
       {open ? (
         <div
           role="listbox"
-          className={`absolute top-[calc(100%+6px)] z-[140] max-h-[min(320px,50dvh)] w-[min(15rem,calc(100vw-1.5rem))] overflow-y-auto rounded-xl border border-white/[0.1] bg-[#0c1018] py-1.5 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.85)] backdrop-blur-md [&::-webkit-scrollbar]:w-1.5 ${alignClass}`}
+          className={`picker-stable absolute top-[calc(100%+6px)] z-[140] max-h-[min(320px,50dvh)] w-[min(15rem,calc(100vw-1.5rem))] overflow-y-auto rounded-xl py-1.5 shadow-lg shadow-black/40 lg:backdrop-blur-md lg:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.85)] [&::-webkit-scrollbar]:w-1.5 ${alignClass}`}
         >
           {FIAT_CURRENCIES.map((c) => (
             <button

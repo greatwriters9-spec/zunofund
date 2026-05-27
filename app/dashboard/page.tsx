@@ -491,7 +491,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="page-content-stable relative min-h-screen overflow-x-clip text-white">
+    <div className="page-content-stable relative min-h-screen overflow-x-clip bg-[#05080F] text-white max-lg:bg-[#05080F] lg:bg-transparent">
       <div className="relative z-10 mx-auto max-w-7xl p-5 md:p-7">
 
         {/* Mobile top toolbar: menu hard-left, profile+bell hard-right */}
@@ -681,14 +681,14 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="mb-8 border-b border-zinc-800/90 pb-8">
+        <div className="dashboard-balance-stable mb-8 border-b border-zinc-800/90 pb-8">
           <p className="text-sm font-medium text-zinc-500">Total balance</p>
 
           <p className="mt-2 text-4xl font-bold tabular-nums tracking-tight text-white sm:text-5xl md:text-[3.25rem]">
             {formatBalanceHeadline()}
           </p>
 
-          <div className="mt-2 flex flex-wrap items-center gap-2 sm:gap-3">
+          <div className="mt-2 flex flex-col gap-2.5 max-lg:items-start sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
             <p
               className="text-base tabular-nums text-zinc-500"
               title={
