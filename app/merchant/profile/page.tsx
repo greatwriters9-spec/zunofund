@@ -4,12 +4,15 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 
+import { formatMerchantPresence } from "@/lib/merchantPresence";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 
 type Mp = {
   user_id: string;
   display_name: string | null;
   status: string;
+  is_online: boolean | null;
+  last_seen_at: string | null;
 };
 
 export default function MerchantProfilePage() {
@@ -48,7 +51,7 @@ export default function MerchantProfilePage() {
 
     const { data: mp, error } = await supabase
       .from("merchant_profiles")
-      .select("user_id, display_name, status")
+      .select("user_id, display_name, status, is_online, last_seen_at")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -92,6 +95,27 @@ export default function MerchantProfilePage() {
       kind: "ok",
       text: "Marketplace name updated. Investors see this on your offers.",
     });
+    await load();
+  }
+
+  async function setMerchantPresence(online: boolean) {
+    setUserMsg(null);
+    if (profile?.status !== "active") {
+      setUserMsg({ kind: "err", text: "Only active merchants can change online status." });
+      return;
+    }
+
+    setUserBusy(true);
+    const { error } = await supabase.rpc("merchant_set_presence", {
+      p_online: online,
+    });
+    setUserBusy(false);
+
+    if (error) {
+      setUserMsg({ kind: "err", text: formatSupabaseError(error) });
+      return;
+    }
+
     await load();
   }
 
@@ -160,6 +184,45 @@ export default function MerchantProfilePage() {
           <p className="mt-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
             Your merchant access is not active. Contact support if this is unexpected.
           </p>
+        ) : null}
+
+        {profile.status === "active" ? (
+          <section className="mt-8 rounded-2xl border border-zinc-800 bg-zinc-900/70 p-6">
+            <h2 className="text-lg font-semibold">Online status</h2>
+            <p
+              className={`mt-3 flex items-center gap-2 text-sm font-bold ${
+                profile.is_online ? "text-emerald-300" : "text-yellow-300"
+              }`}
+            >
+              <span
+                className={`h-2.5 w-2.5 rounded-full ${
+                  profile.is_online
+                    ? "bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.75)]"
+                    : "bg-yellow-400 shadow-[0_0_12px_rgba(250,204,21,0.65)]"
+                }`}
+                aria-hidden
+              />
+              {formatMerchantPresence(profile.is_online, profile.last_seen_at)}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={profile.is_online === true || userBusy}
+                onClick={() => void setMerchantPresence(true)}
+                className="rounded-xl bg-emerald-600 px-5 py-2 text-sm font-bold text-white hover:bg-emerald-500 disabled:opacity-50"
+              >
+                Go online
+              </button>
+              <button
+                type="button"
+                disabled={!profile.is_online || userBusy}
+                onClick={() => void setMerchantPresence(false)}
+                className="rounded-xl border border-yellow-400/45 px-5 py-2 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/10 disabled:opacity-50"
+              >
+                Go offline
+              </button>
+            </div>
+          </section>
         ) : null}
 
         <section className="mt-10 rounded-2xl border border-zinc-800 bg-zinc-900/70 p-6">

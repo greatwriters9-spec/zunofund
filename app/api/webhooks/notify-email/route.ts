@@ -55,6 +55,8 @@ function investorEmailSubject(
     return `${base} Withdrawal completed`;
   if (t.includes("profit_bonus")) return `${base} Profit recorded`;
   if (t.includes("profit_compound")) return `${base} Profit credited`;
+  if (t.includes("p2p_message")) return `${base} New P2P message`;
+  if (t.includes("p2p_trade")) return `${base} New P2P trade`;
   if (t.includes("principal_unlocked")) return `${base} Principal unlocked`;
   if (t.includes("support_reply")) return `${base} Support message`;
   if (t.includes("support_ticket_opened"))
@@ -217,6 +219,10 @@ export async function POST(request: Request) {
         : "You have a new notification in-app.";
     const notifType =
       typeof record.type === "string" ? record.type : "notification";
+
+    if (notifType.toLowerCase().includes("p2p_message_online")) {
+      return jsonResponse({ ok: true, skipped: "investor-online" });
+    }
 
     /*
      * Signup email verification must come from Supabase Auth only — it contains the

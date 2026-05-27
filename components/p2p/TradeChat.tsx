@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Paperclip, Send } from "lucide-react";
+import { ImageIcon, Paperclip, Send } from "lucide-react";
 
 export type ChatMessageKind = "user" | "system";
 
@@ -13,11 +13,15 @@ export type ChatMessage = {
   mine: boolean;
   body: string;
   at: Date;
+  attachmentUrl?: string | null;
+  attachmentName?: string | null;
+  attachmentMimeType?: string | null;
 };
 
 type TradeChatProps = {
   messages: ChatMessage[];
   onSend: (text: string) => void;
+  onAttach?: (file: File) => void;
   placeholder?: string;
   disabled?: boolean;
   /** Counterparty label shown in the chat bubbles' name strip */
@@ -29,12 +33,14 @@ type TradeChatProps = {
 export function TradeChat({
   messages,
   onSend,
+  onAttach,
   placeholder = "Write a message…",
   disabled,
   counterpartLabel,
   light = true,
 }: TradeChatProps) {
   const [text, setText] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -115,7 +121,27 @@ export function TradeChat({
                           : "rounded-[14px] rounded-bl-[4px] border border-[#D4AF37]/12 bg-black/45 text-zinc-100"
                       }`}
                     >
-                      <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                      {m.attachmentUrl ? (
+                        <a
+                          href={m.attachmentUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mb-2 block overflow-hidden rounded-lg border border-white/10 bg-black/25"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={m.attachmentUrl}
+                            alt={m.attachmentName ?? "Payment screenshot"}
+                            className="max-h-72 w-full object-contain"
+                          />
+                        </a>
+                      ) : m.attachmentName ? (
+                        <div className="mb-2 flex items-center gap-2 rounded-lg border border-white/10 bg-black/25 px-3 py-2 text-xs">
+                          <ImageIcon size={14} aria-hidden />
+                          <span className="break-all">{m.attachmentName}</span>
+                        </div>
+                      ) : null}
+                      {m.body ? <p className="whitespace-pre-wrap break-words">{m.body}</p> : null}
                       <p
                         className={`mt-1 text-right text-[10.5px] tabular-nums ${
                           m.mine ? "text-emerald-50/80" : "text-zinc-500"
@@ -135,12 +161,23 @@ export function TradeChat({
 
       <div className="shrink-0 border-t border-[#D4AF37]/12 bg-black/55 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md sm:px-6">
         <div className="mx-auto flex max-w-3xl items-center gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (file) onAttach?.(file);
+            }}
+          />
           <button
             type="button"
-            className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-md border border-[#D4AF37]/20 bg-black/40 text-[#D4AF37] transition hover:border-[#D4AF37]/45 hover:text-[#F5E6B3] disabled:opacity-40 sm:flex"
-            aria-label="Attach file"
-            disabled={disabled}
-            onClick={() => {}}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-[#D4AF37]/20 bg-black/40 text-[#D4AF37] transition hover:border-[#D4AF37]/45 hover:text-[#F5E6B3] disabled:opacity-40"
+            aria-label="Attach payment screenshot"
+            disabled={disabled || !onAttach}
+            onClick={() => fileInputRef.current?.click()}
           >
             <Paperclip className="h-4 w-4" />
           </button>

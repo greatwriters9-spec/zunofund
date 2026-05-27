@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { ArrowRight, CheckCircle2, LayoutDashboard, PackagePlus, Shield, Store, UserRound, Zap } from "lucide-react";
+import { ArrowRight, Bell, CheckCircle2, LayoutDashboard, PackagePlus, Shield, Store, UserRound, Zap } from "lucide-react";
 
 function isNavActive(pathname: string | null, href: string): boolean {
   if (!pathname) return false;
@@ -38,6 +38,7 @@ const MERCHANT_MOBILE_NAV: { href: string; label: string }[] = [
   { href: "/merchant/offers/new", label: "New offer" },
   { href: "/merchant/orders/active", label: "Active" },
   { href: "/merchant/orders/completed", label: "Completed" },
+  { href: "/notifications", label: "Alerts" },
   { href: "/merchant/profile", label: "Profile" },
 ];
 
@@ -118,6 +119,10 @@ export function MerchantAppShell({
                 <Link href="/merchant/orders/completed" className={navLinkClass("/merchant/orders/completed", pathname)}>
                   <CheckCircle2 className={iconCls} aria-hidden />
                   Completed trades
+                </Link>
+                <Link href="/notifications" className={navLinkClass("/notifications", pathname)}>
+                  <Bell className={iconCls} aria-hidden />
+                  Notifications
                 </Link>
               </>
             ) : null}

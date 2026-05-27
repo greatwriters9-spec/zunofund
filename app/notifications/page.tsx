@@ -36,6 +36,13 @@ function typeStyles(type: string) {
       iconWrap: "bg-sky-500/10 text-sky-400",
     };
   }
+  if (t.includes("p2p") || t.includes("trade")) {
+    return {
+      Icon: MessageCircle,
+      chip: "text-[#F5E6B3] bg-[#D4AF37]/15 border-[#D4AF37]/30",
+      iconWrap: "bg-[#D4AF37]/10 text-[#D4AF37]",
+    };
+  }
   if (t.includes("deposit")) {
     return {
       Icon: Wallet,

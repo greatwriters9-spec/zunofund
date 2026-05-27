@@ -17,6 +17,11 @@ import {
 } from "@/components/p2p/utils";
 import { deriveTradePanels } from "@/components/p2p/deriveTradePanels";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
+import {
+  createP2pProofSignedUrl,
+  uploadP2pPaymentProof,
+} from "@/lib/supabase/p2pProofs";
+import { formatMerchantPresence } from "@/lib/merchantPresence";
 import { formatFiat } from "@/lib/currencies";
 import { assetFromOfferSide, fmtAssetAmount } from "@/lib/p2pAssets";
 import type { WorkspaceOrderRow } from "@/components/p2p/workspaceTypes";
@@ -38,6 +43,9 @@ type OrderMessageRow = {
   id: string;
   sender_user_id: string;
   body: string;
+  attachment_path: string | null;
+  attachment_mime_type: string | null;
+  attachment_name: string | null;
   created_at: string;
 };
 
@@ -64,6 +72,10 @@ export function P2pOrderWorkspace({
   const [chatSyncError, setChatSyncError] = useState<string | null>(null);
   const [chatSending, setChatSending] = useState(false);
   const [merchantListingName, setMerchantListingName] = useState<string | null>(null);
+  const [merchantPresence, setMerchantPresence] = useState<{
+    is_online: boolean | null;
+    last_seen_at: string | null;
+  } | null>(null);
 
   const tradePanelsDerived = useMemo(() => {
     if (!order) return null;
@@ -79,6 +91,9 @@ export function P2pOrderWorkspace({
         mine: Boolean(userId && r.sender_user_id === userId),
         body: r.body,
         at: new Date(r.created_at),
+        attachmentUrl: r.attachment_path,
+        attachmentMimeType: r.attachment_mime_type,
+        attachmentName: r.attachment_name,
       })),
     [serverMessages, userId],
   );
@@ -162,6 +177,7 @@ export function P2pOrderWorkspace({
       setError(formatSupabaseError(qErr));
       setOrder(null);
       setMerchantListingName(null);
+      setMerchantPresence(null);
       return;
     }
 
@@ -169,6 +185,7 @@ export function P2pOrderWorkspace({
       setOrder(null);
       setError(null);
       setMerchantListingName(null);
+      setMerchantPresence(null);
       return;
     }
 
@@ -184,11 +201,24 @@ export function P2pOrderWorkspace({
 
     const { data: mpRow } = await supabase
       .from("merchant_profiles")
-      .select("display_name")
+      .select("display_name, is_online, last_seen_at")
       .eq("user_id", ord.merchant_user_id)
       .maybeSingle();
 
-    setMerchantListingName((mpRow as { display_name: string | null } | null)?.display_name ?? null);
+    const merchantRow = mpRow as {
+      display_name: string | null;
+      is_online: boolean | null;
+      last_seen_at: string | null;
+    } | null;
+    setMerchantListingName(merchantRow?.display_name ?? null);
+    setMerchantPresence(
+      merchantRow
+        ? {
+            is_online: merchantRow.is_online,
+            last_seen_at: merchantRow.last_seen_at,
+          }
+        : null,
+    );
 
     setOrder({
       ...(ord as WorkspaceOrderRow),
@@ -214,7 +244,7 @@ export function P2pOrderWorkspace({
     void (async () => {
       const { data, error: mErr } = await supabase
         .from("merchant_order_messages")
-        .select("id, sender_user_id, body, created_at")
+        .select("id, sender_user_id, body, attachment_path, attachment_mime_type, attachment_name, created_at")
         .eq("order_id", id)
         .order("created_at", { ascending: true });
 
@@ -224,7 +254,14 @@ export function P2pOrderWorkspace({
         setServerMessages([]);
         return;
       }
-      setServerMessages((data as OrderMessageRow[] | null) ?? []);
+      const rows = (data as OrderMessageRow[] | null) ?? [];
+      const signedRows = await Promise.all(
+        rows.map(async (row) => ({
+          ...row,
+          attachment_path: await createP2pProofSignedUrl(supabase, row.attachment_path),
+        })),
+      );
+      setServerMessages(signedRows);
     })();
 
     return () => {
@@ -245,8 +282,12 @@ export function P2pOrderWorkspace({
           table: "merchant_order_messages",
           filter: `order_id=eq.${id}`,
         },
-        (payload) => {
-          const row = payload.new as OrderMessageRow;
+        async (payload) => {
+          const rawRow = payload.new as OrderMessageRow;
+          const row = {
+            ...rawRow,
+            attachment_path: await createP2pProofSignedUrl(supabase, rawRow.attachment_path),
+          };
           if (!row?.id) return;
           setServerMessages((prev) => {
             if (prev.some((r) => r.id === row.id)) return prev;
@@ -291,7 +332,7 @@ export function P2pOrderWorkspace({
     const { data: inserted, error: insErr } = await supabase
       .from("merchant_order_messages")
       .insert({ order_id: order.id, body: trimmed })
-      .select("id, sender_user_id, body, created_at")
+      .select("id, sender_user_id, body, attachment_path, attachment_mime_type, attachment_name, created_at")
       .single();
 
     setChatSending(false);
@@ -305,6 +346,53 @@ export function P2pOrderWorkspace({
     setServerMessages((prev) => {
       if (prev.some((r) => r.id === row.id)) return prev;
       const next = [...prev, row];
+      next.sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      );
+      return next;
+    });
+  }
+
+  async function attachPaymentProof(file: File) {
+    if (!userId || !order || chatDisabled) return;
+    setChatSending(true);
+    setChatSyncError(null);
+
+    const uploaded = await uploadP2pPaymentProof(supabase, order.id, userId, file);
+    if (!uploaded.ok) {
+      setChatSending(false);
+      setChatSyncError(uploaded.message);
+      return;
+    }
+
+    const { data: inserted, error: insErr } = await supabase
+      .from("merchant_order_messages")
+      .insert({
+        order_id: order.id,
+        body: "Payment screenshot attached.",
+        attachment_path: uploaded.path,
+        attachment_mime_type: uploaded.mimeType,
+        attachment_name: uploaded.fileName,
+      })
+      .select("id, sender_user_id, body, attachment_path, attachment_mime_type, attachment_name, created_at")
+      .single();
+
+    setChatSending(false);
+
+    if (insErr) {
+      setChatSyncError(formatSupabaseError(insErr));
+      return;
+    }
+
+    const row = inserted as OrderMessageRow | null;
+    if (!row?.id) return;
+    const signedRow = {
+      ...row,
+      attachment_path: await createP2pProofSignedUrl(supabase, row.attachment_path),
+    };
+    setServerMessages((prev) => {
+      if (prev.some((r) => r.id === signedRow.id)) return prev;
+      const next = [...prev, signedRow];
       next.sort(
         (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
       );
@@ -493,6 +581,10 @@ export function P2pOrderWorkspace({
 
   const showTimer = leftSec > 0;
   const payLabel = paymentMethodLabel(order.payment_method);
+  const merchantPresenceLabel = formatMerchantPresence(
+    merchantPresence?.is_online,
+    merchantPresence?.last_seen_at,
+  );
   // Whoever is sending fiat (investor in sell_usdt, merchant in buy_usdt)
   // needs the fiat amount — not the USDT side. Snapshot was locked at open.
   const orderFiatCcy = (order.fiat_currency_code ?? "USD") || "USD";
@@ -747,6 +839,23 @@ export function P2pOrderWorkspace({
                 <div className="min-w-0">
                   <p className="truncate text-[15px] font-semibold text-white">{counterpartName}</p>
                   <p className="text-[11px] text-zinc-500">{payLabel}</p>
+                  {!isMerchant ? (
+                    <p
+                      className={`mt-0.5 flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wide ${
+                        merchantPresence?.is_online ? "text-emerald-300" : "text-yellow-300"
+                      }`}
+                    >
+                      <span
+                        className={`h-2 w-2 rounded-full ${
+                          merchantPresence?.is_online
+                            ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.75)]"
+                            : "bg-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.65)]"
+                        }`}
+                        aria-hidden
+                      />
+                      {merchantPresenceLabel}
+                    </p>
+                  ) : null}
                 </div>
               </div>
 
@@ -776,8 +885,9 @@ export function P2pOrderWorkspace({
                   counterpartLabel={counterpartName}
                   messages={combinedChatMessages}
                   onSend={(t) => void sendTradeMessage(t)}
+                  onAttach={(file) => void attachPaymentProof(file)}
                   disabled={chatInputDisabled}
-                  placeholder={chatSending ? "Sending…" : "Write a message…"}
+                  placeholder={chatSending ? "Sending…" : "Write a message or attach payment proof…"}
                 />
               </div>
             </section>

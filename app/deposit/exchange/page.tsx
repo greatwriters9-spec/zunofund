@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   displayPlanName,
   formatDepositRangeDescription,
@@ -9,20 +9,28 @@ import {
   type CanonicalInvestmentPlan,
 } from "@/lib/investmentPlans";
 import { formatUsdAmount } from "@/lib/formatMoney";
+import {
+  DEFAULT_PLATFORM_DEPOSIT_NETWORKS,
+  depositAssetLabel,
+  normalizePlatformDepositNetworkRows,
+  type DepositAssetCode,
+  type PlatformDepositNetwork,
+} from "@/lib/platformDepositNetworks";
 import { useSupabase, formatSupabaseError } from "@/lib/supabase";
 
 export default function DepositExchangePage() {
   const supabase = useSupabase();
   const [amount, setAmount] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("USDT");
+  const [paymentMethod, setPaymentMethod] = useState<DepositAssetCode>("USDT");
   const [txid, setTxid] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const walletAddress =
-    paymentMethod === "USDT"
-      ? "TAuiPnSkC3KsacnPQpJ8b55mbUoCoDzBg5"
-      : "1P7RWfvSawJBicW3jocUPUCmat4HhBALF9";
-  const selectedNetwork = paymentMethod === "USDT" ? "TRC20" : "Bitcoin";
+  const [depositNetworks, setDepositNetworks] = useState<PlatformDepositNetwork[]>(
+    DEFAULT_PLATFORM_DEPOSIT_NETWORKS,
+  );
+  const [networkId, setNetworkId] = useState(DEFAULT_PLATFORM_DEPOSIT_NETWORKS[0]!.id);
+  const [networksLoading, setNetworksLoading] = useState(true);
+  const [networksError, setNetworksError] = useState<string | null>(null);
 
   const [copied, setCopied] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -32,6 +40,67 @@ export default function DepositExchangePage() {
     null,
   );
   const [planLoadError, setPlanLoadError] = useState<string | null>(null);
+
+  const activeDepositNetworks = useMemo(
+    () => depositNetworks.filter((network) => network.is_active),
+    [depositNetworks],
+  );
+  const paymentOptions = useMemo(
+    () => Array.from(new Set(activeDepositNetworks.map((network) => network.asset))),
+    [activeDepositNetworks],
+  );
+  const networkOptions = useMemo(
+    () =>
+      activeDepositNetworks.filter((network) => network.asset === paymentMethod),
+    [activeDepositNetworks, paymentMethod],
+  );
+  const selectedDepositNetwork =
+    networkOptions.find((network) => network.id === networkId) ??
+    networkOptions[0] ??
+    null;
+  const walletAddress = selectedDepositNetwork?.wallet_address ?? "";
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadDepositNetworks() {
+      const { data, error } = await supabase
+        .from("platform_deposit_networks")
+        .select("id, asset, network_name, network_label, wallet_address, sort_order, is_active, updated_at")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
+
+      if (cancelled) return;
+
+      if (error) {
+        setNetworksError(formatSupabaseError(error));
+        setDepositNetworks(DEFAULT_PLATFORM_DEPOSIT_NETWORKS);
+      } else {
+        setNetworksError(null);
+        const normalized = normalizePlatformDepositNetworkRows(data);
+        setDepositNetworks(
+          normalized.length > 0 ? normalized : DEFAULT_PLATFORM_DEPOSIT_NETWORKS,
+        );
+      }
+      setNetworksLoading(false);
+    }
+
+    void loadDepositNetworks();
+    return () => {
+      cancelled = true;
+    };
+  }, [supabase]);
+
+  useEffect(() => {
+    if (paymentOptions.length > 0 && !paymentOptions.includes(paymentMethod)) {
+      setPaymentMethod(paymentOptions[0]!);
+      return;
+    }
+
+    if (networkOptions.length > 0 && !selectedDepositNetwork) {
+      setNetworkId(networkOptions[0]!.id);
+    }
+  }, [networkOptions, paymentMethod, paymentOptions, selectedDepositNetwork]);
 
   useEffect(() => {
     let cancelled = false;
@@ -74,6 +143,7 @@ export default function DepositExchangePage() {
   }, [supabase]);
 
   async function copyWallet() {
+    if (!walletAddress) return;
     await navigator.clipboard.writeText(walletAddress);
 
     setCopied(true);
@@ -105,13 +175,21 @@ export default function DepositExchangePage() {
       return;
     }
 
+    if (!selectedDepositNetwork) {
+      setFormError("Please select a valid deposit network.");
+      setLoading(false);
+      return;
+    }
+
     const { error } = await supabase.from("deposits").insert([
       {
         user_id: user.id,
         investor_email: user.email,
         amount: numAmount,
         txid,
-        payment_method: paymentMethod,
+        payment_method: selectedDepositNetwork.asset,
+        deposit_network: selectedDepositNetwork.network_name,
+        deposit_wallet_address: selectedDepositNetwork.wallet_address,
         status: "pending",
       },
     ]);
@@ -195,6 +273,15 @@ export default function DepositExchangePage() {
           </div>
         ) : null}
 
+        {networksError ? (
+          <div
+            className="mb-6 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-200"
+            role="status"
+          >
+            Could not load admin deposit wallets, using defaults: {networksError}
+          </div>
+        ) : null}
+
         <div className="mb-6 rounded-2xl border border-yellow-500/20 bg-yellow-500/10 p-4">
           <p className="text-yellow-400 font-semibold">
             Current tier: {displayPlanName(planSlug)}
@@ -233,11 +320,18 @@ export default function DepositExchangePage() {
 
           <select
             value={paymentMethod}
-            onChange={(e) => setPaymentMethod(e.target.value)}
+            onChange={(e) => {
+              setPaymentMethod(e.target.value as DepositAssetCode);
+              setNetworkId("");
+            }}
             className="w-full bg-black border border-zinc-800 rounded-xl px-4 py-3 outline-none focus:border-yellow-500"
+            disabled={networksLoading || paymentOptions.length === 0}
           >
-            <option>USDT</option>
-            <option>Bitcoin</option>
+            {paymentOptions.map((asset) => (
+              <option key={asset} value={asset}>
+                {depositAssetLabel(asset)}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -246,9 +340,25 @@ export default function DepositExchangePage() {
             Selected Network
           </label>
 
-          <div className="w-full bg-black border border-zinc-800 rounded-xl px-4 py-3 text-yellow-500 font-semibold">
-            {selectedNetwork}
-          </div>
+          <select
+            value={selectedDepositNetwork?.id ?? ""}
+            onChange={(e) => setNetworkId(e.target.value)}
+            className="w-full bg-black border border-zinc-800 rounded-xl px-4 py-3 text-yellow-500 font-semibold outline-none focus:border-yellow-500"
+            disabled={networksLoading || networkOptions.length === 0}
+          >
+            {networkOptions.length === 0 ? (
+              <option value="">No network available</option>
+            ) : (
+              networkOptions.map((network) => (
+                <option key={network.id} value={network.id}>
+                  {network.network_name}
+                  {network.network_label && network.network_label !== network.network_name
+                    ? ` - ${network.network_label}`
+                    : ""}
+                </option>
+              ))
+            )}
+          </select>
         </div>
 
         <div className="mb-4">
@@ -261,12 +371,14 @@ export default function DepositExchangePage() {
               type="text"
               value={walletAddress}
               readOnly
+              placeholder="Select a deposit network"
               className="flex-1 min-w-0 bg-black border border-zinc-800 rounded-xl px-4 py-3 outline-none text-white text-sm sm:text-base font-mono break-all"
             />
 
             <button
               type="button"
               onClick={copyWallet}
+              disabled={!walletAddress}
               className="inline-flex h-12 w-full shrink-0 items-center justify-center rounded-xl bg-yellow-500 px-6 font-bold text-black transition hover:bg-yellow-400 sm:w-auto sm:min-w-[120px]"
               aria-label="Copy wallet address"
             >

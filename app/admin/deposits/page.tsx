@@ -10,6 +10,8 @@ interface Deposit {
   amount: number;
   txid: string;
   payment_method: string;
+  deposit_network?: string | null;
+  deposit_wallet_address?: string | null;
   status: string;
   created_at: string;
 }
@@ -101,6 +103,18 @@ export default function AdminDepositsPage() {
                 <p className="text-gray-400">
                   Method: {deposit.payment_method}
                 </p>
+
+                {deposit.deposit_network ? (
+                  <p className="text-gray-400">
+                    Network: {deposit.deposit_network}
+                  </p>
+                ) : null}
+
+                {deposit.deposit_wallet_address ? (
+                  <p className="max-w-xl break-all text-gray-400">
+                    Wallet: {deposit.deposit_wallet_address}
+                  </p>
+                ) : null}
 
                 <p
                   className={`mt-2 font-medium ${

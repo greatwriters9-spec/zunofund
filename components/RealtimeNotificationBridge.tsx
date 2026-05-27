@@ -32,6 +32,43 @@ export function RealtimeNotificationBridge() {
   const lastInvestorSyncAtRef = useRef(0);
 
   useEffect(() => {
+    let stopped = false;
+
+    async function setInvestorPresence(online: boolean, force = false) {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if ((stopped && !force) || !session?.user?.id) return;
+      await supabase.rpc("investor_set_presence", { p_online: online });
+    }
+
+    const markFromVisibility = () => {
+      void setInvestorPresence(document.visibilityState === "visible");
+    };
+
+    markFromVisibility();
+    const heartbeat = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        void setInvestorPresence(true);
+      }
+    }, 45000);
+    const markOffline = () => {
+      void setInvestorPresence(false, true);
+    };
+
+    document.addEventListener("visibilitychange", markFromVisibility);
+    window.addEventListener("beforeunload", markOffline);
+
+    return () => {
+      void setInvestorPresence(false, true);
+      window.clearInterval(heartbeat);
+      document.removeEventListener("visibilitychange", markFromVisibility);
+      window.removeEventListener("beforeunload", markOffline);
+      stopped = true;
+    };
+  }, [supabase]);
+
+  useEffect(() => {
     let cancelled = false;
 
     async function wire() {
@@ -65,7 +102,7 @@ export function RealtimeNotificationBridge() {
         const notificationType =
           typeof row.type === "string" ? row.type : "";
 
-        document.dispatchEvent(
+        window.dispatchEvent(
           new CustomEvent("tp:investor-notification", { detail: row }),
         );
 
@@ -79,7 +116,7 @@ export function RealtimeNotificationBridge() {
         if (now - lastInvestorSyncAtRef.current < 450) return;
         lastInvestorSyncAtRef.current = now;
 
-        document.dispatchEvent(
+        window.dispatchEvent(
           new CustomEvent("tp:investor-notifications-sync"),
         );
       }
@@ -152,7 +189,7 @@ export function RealtimeNotificationBridge() {
             },
             (payload: PostgresInsertPayload) => {
               const row = payload.new ?? {};
-              document.dispatchEvent(
+              window.dispatchEvent(
                 new CustomEvent("tp:admin-notification", {
                   detail: row,
                 }),

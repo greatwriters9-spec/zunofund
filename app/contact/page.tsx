@@ -1,12 +1,17 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { Headset, ArrowLeft, ShieldCheck } from "lucide-react"
+import { Headset, ArrowLeft, ShieldCheck, ChevronDown, ChevronUp } from "lucide-react"
 
 import { PlatformContactDisplay } from "@/components/contact/PlatformContactDisplay"
+import { usePlatformFaqs } from "@/lib/usePlatformFaqs"
 
 export default function SupportPage() {
+  const { faqs, loading: faqsLoading } = usePlatformFaqs()
+  const [expandedFaqId, setExpandedFaqId] = useState<string | null>(null)
+
   return (
     <div className="min-h-screen bg-white text-black overflow-hidden">
 
@@ -164,42 +169,50 @@ export default function SupportPage() {
 
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-4">
+            {faqsLoading && faqs.length === 0 ? (
+              <div className="bg-white rounded-3xl p-8 border border-zinc-200">
+                <p className="text-zinc-600 leading-relaxed">Loading FAQs...</p>
+              </div>
+            ) : faqs.length === 0 ? (
+              <div className="bg-white rounded-3xl p-8 border border-zinc-200">
+                <p className="text-zinc-600 leading-relaxed">No FAQs have been published yet.</p>
+              </div>
+            ) : (
+              faqs.map((faq) => {
+                const open = expandedFaqId === faq.id
 
-            <div className="bg-white rounded-3xl p-8 border border-zinc-200">
-              <h3 className="font-bold text-xl mb-4">
-                How long do withdrawals take?
-              </h3>
+                return (
+                  <div key={faq.id} className="bg-white rounded-3xl border border-zinc-200">
+                    <button
+                      type="button"
+                      aria-expanded={open}
+                      onClick={() => setExpandedFaqId(open ? null : faq.id)}
+                      className="flex w-full items-center justify-between gap-5 p-6 text-left sm:p-8"
+                    >
+                      <span className="font-bold text-xl">
+                        {faq.question}
+                      </span>
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-700">
+                        {open ? (
+                          <ChevronUp size={20} aria-hidden />
+                        ) : (
+                          <ChevronDown size={20} aria-hidden />
+                        )}
+                      </span>
+                    </button>
 
-              <p className="text-zinc-600 leading-relaxed">
-                Withdrawal processing times depend on verification
-                and blockchain confirmation speed. Most requests are
-                processed within a short timeframe after approval.
-              </p>
-            </div>
-
-            <div className="bg-white rounded-3xl p-8 border border-zinc-200">
-              <h3 className="font-bold text-xl mb-4">
-                Is investor support available every day?
-              </h3>
-
-              <p className="text-zinc-600 leading-relaxed">
-                Yes. Our support team operates 24/7 to ensure
-                continuous assistance for investors worldwide.
-              </p>
-            </div>
-
-            <div className="bg-white rounded-3xl p-8 border border-zinc-200">
-              <h3 className="font-bold text-xl mb-4">
-                How do I begin investing?
-              </h3>
-
-              <p className="text-zinc-600 leading-relaxed">
-                Create an account, choose your preferred investment
-                plan, and proceed with your deposit request through
-                the secure investor dashboard.
-              </p>
-            </div>
+                    {open ? (
+                      <div className="border-t border-zinc-100 px-6 pb-6 pt-0 sm:px-8 sm:pb-8">
+                        <p className="text-zinc-600 leading-relaxed whitespace-pre-line">
+                          {faq.answer}
+                        </p>
+                      </div>
+                    ) : null}
+                  </div>
+                )
+              })
+            )}
 
           </div>
 
