@@ -684,32 +684,14 @@ export default function DashboardPage() {
         <div className="dashboard-balance-stable mb-8 border-b border-zinc-800/90 pb-8">
           <p className="text-sm font-medium text-zinc-500">Total balance</p>
 
-          <p className="mt-2 text-4xl font-bold tabular-nums tracking-tight text-white sm:text-5xl md:text-[3.25rem]">
-            {formatBalanceHeadline()}
-          </p>
-
-          <div className="mt-2 flex flex-col gap-2.5 max-lg:items-start sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
-            <p
-              className="text-base tabular-nums text-zinc-500"
-              title={
-                displayCrypto === "BTC"
-                  ? "Investment balance in USDT and fiat"
-                  : `${displayCurrencyMeta.name} · ${displayCurrencyMeta.code}`
-              }
-            >
-              {formatBalanceSubline()}
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <p className="min-w-0 flex-1 text-4xl font-bold tabular-nums tracking-tight text-white sm:text-5xl md:text-[3.25rem]">
+              {formatBalanceHeadline()}
             </p>
-            <CryptoUnitPicker value={displayCrypto} onChange={setDisplayCrypto} size="sm" />
-            <CurrencyPicker
-              value={displayCurrency}
-              onChange={setDisplayCurrency}
-              size="sm"
-              align="start"
-            />
             <button
               type="button"
               onClick={() => setShowBalance(!showBalance)}
-              className="flex shrink-0 items-center gap-1.5 rounded-lg border border-zinc-700/80 bg-transparent px-2.5 py-1.5 text-sm text-zinc-300 transition hover:border-yellow-500/50 hover:text-white"
+              className="flex h-8 shrink-0 items-center gap-1.5 self-center rounded-lg border border-zinc-700/80 bg-transparent px-2.5 text-sm text-zinc-300 transition hover:border-yellow-500/50 hover:text-white"
               aria-pressed={showBalance}
               aria-label={showBalance ? "Hide balance" : "Show balance"}
             >
@@ -718,10 +700,32 @@ export default function DashboardPage() {
               ) : (
                 <Eye size={16} aria-hidden />
               )}
-              <span className="hidden min-[380px]:inline text-xs">
+              <span className="text-xs">
                 {showBalance ? "Hide" : "Show"}
               </span>
             </button>
+          </div>
+
+          <p
+            className="mt-2 text-base tabular-nums text-zinc-500"
+            title={
+              displayCrypto === "BTC"
+                ? "Investment balance in USDT and fiat"
+                : `${displayCurrencyMeta.name} · ${displayCurrencyMeta.code}`
+            }
+          >
+            {formatBalanceSubline()}
+          </p>
+
+          <div className="mt-2 flex flex-row flex-wrap items-center gap-2">
+            <CryptoUnitPicker value={displayCrypto} onChange={setDisplayCrypto} size="sm" />
+            <CurrencyPicker
+              value={displayCurrency}
+              onChange={setDisplayCurrency}
+              size="sm"
+              align="start"
+              triggerVariant="code-only"
+            />
           </div>
 
           <p className="mt-4 text-xs text-zinc-600">
