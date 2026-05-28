@@ -48,6 +48,8 @@ type P2pMarketToolbarProps = {
   onOpenAdvancedFilters: () => void;
   listViewMode: P2pListViewMode;
   onListViewModeChange: (m: P2pListViewMode) => void;
+  hasActiveOrder?: boolean;
+  onOpenActiveTrade?: () => void;
 };
 
 function useDismissOnOutside(open: DropdownKey | null, setOpen: (k: DropdownKey | null) => void) {
@@ -106,6 +108,8 @@ export function P2pMarketToolbar({
   onOpenAdvancedFilters,
   listViewMode,
   onListViewModeChange,
+  hasActiveOrder = false,
+  onOpenActiveTrade,
 }: P2pMarketToolbarProps) {
   const [openMenu, setOpenMenu] = useState<DropdownKey | null>(null);
   const rootRef = useDismissOnOutside(openMenu, setOpenMenu);
@@ -383,6 +387,15 @@ export function P2pMarketToolbar({
                 </MenuPanel>
               ) : null}
             </div>
+            {hasActiveOrder && onOpenActiveTrade ? (
+              <button
+                type="button"
+                onClick={onOpenActiveTrade}
+                className="flex h-[42px] items-center rounded-xl border border-emerald-400/35 bg-emerald-600/20 px-3 text-[11px] font-bold uppercase tracking-wide text-emerald-100 transition hover:bg-emerald-600/30"
+              >
+                Open active trade
+              </button>
+            ) : null}
           </div>
         </div>
       </div>

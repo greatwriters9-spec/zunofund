@@ -11,6 +11,7 @@ import type { P2pListViewMode } from "@/components/p2p/P2pMarketToolbar";
 import { P2pMarketToolbar } from "@/components/p2p/P2pMarketToolbar";
 import { resolveTradeAmount } from "@/components/p2p/resolveTradeAmount";
 import type { P2pAssetCode, P2pMarketTab } from "@/components/p2p/p2pTypes";
+import { expireStaleP2pOrders, isP2pOrderActive } from "@/lib/p2pExpiry";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 import { formatFiat, type FiatCurrencyCode } from "@/lib/currencies";
 import { assetFromOfferSide, formatLimitRange, minAmountPlaceholder, p2pOfferSide } from "@/lib/p2pAssets";
@@ -40,6 +41,7 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
 
   const [listViewMode, setListViewMode] = useState<P2pListViewMode>("offers");
   const [activeTradesGen, setActiveTradesGen] = useState(0);
+  const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [feeCapInput, setFeeCapInput] = useState("");
   const [sizeFloorInput, setSizeFloorInput] = useState("");
@@ -80,6 +82,38 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
   const bumpActiveTrades = useCallback(() => {
     setActiveTradesGen((n) => n + 1);
   }, []);
+
+  const loadActiveOrder = useCallback(async () => {
+    await expireStaleP2pOrders(supabase);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user?.id) {
+      setActiveOrderId(null);
+      return;
+    }
+
+    const { data, error: qErr } = await supabase
+      .from("merchant_orders")
+      .select("id, status, expires_at, created_at")
+      .or(`investor_user_id.eq.${user.id},merchant_user_id.eq.${user.id}`)
+      .in("status", ["pending_payment", "paid", "disputed"])
+      .order("created_at", { ascending: false })
+      .limit(25);
+
+    if (qErr) {
+      setActiveOrderId(null);
+      return;
+    }
+
+    const rows = ((data ?? []) as Array<{
+      id: string;
+      status: string;
+      expires_at: string | null;
+    }>).filter((r) => isP2pOrderActive(r.status, r.expires_at));
+
+    setActiveOrderId(rows[0]?.id ?? null);
+  }, [supabase]);
 
   const handleListViewModeChange = useCallback(
     (m: P2pListViewMode) => {
@@ -123,6 +157,15 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
   useEffect(() => {
     void fetchOffers();
   }, [fetchOffers, asset, tab]);
+
+  useEffect(() => {
+    void loadActiveOrder();
+  }, [loadActiveOrder, activeTradesGen]);
+
+  useEffect(() => {
+    if (!activeOrderId) return;
+    setListViewMode((prev) => (prev === "offers" ? "active" : prev));
+  }, [activeOrderId]);
 
   const toolbarAmount = useMemo(() => {
     const parsed = Number(amount);
@@ -319,6 +362,11 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
             onOpenAdvancedFilters={() => setFiltersOpen(true)}
             listViewMode={listViewMode}
             onListViewModeChange={handleListViewModeChange}
+            hasActiveOrder={Boolean(activeOrderId)}
+            onOpenActiveTrade={() => {
+              if (!activeOrderId) return;
+              router.push(`/p2p/order/${activeOrderId}`);
+            }}
           />
         </div>
 
