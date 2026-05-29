@@ -475,7 +475,14 @@ export function MerchantOfferHorizontalCard({
         </span>
       </StripValue>
 
-      <EditableMetric label="Rate" value={offer.rate_percentage} suffix="%" onCommit={(n) => persist({ rate_percentage: n })} />
+      <EditableMetric
+        label="Rate"
+        value={offer.rate_percentage}
+        suffix="%"
+        onCommit={async (n) => {
+          await persist({ rate_percentage: n });
+        }}
+      />
 
       <EditableLimit
         fiat={fiat}
@@ -495,7 +502,12 @@ export function MerchantOfferHorizontalCard({
         </StripFieldBox>
       </StripValue>
 
-      <EditableNote value={offer.advert_message} onCommit={async (advert_message) => persist({ advert_message })} />
+      <EditableNote
+        value={offer.advert_message}
+        onCommit={async (advert_message) => {
+          await persist({ advert_message });
+        }}
+      />
 
       <div className="flex items-center justify-end gap-2">
         <IconBtn label="Edit listing" href={`/merchant/offers/${offer.id}/edit`} tone="gold">
