@@ -1,109 +1,91 @@
-const ctxRef: { ctx: AudioContext | null } = { ctx: null };
+/** In-app notification sounds served from /public/sounds/notifications. */
 
-/** Short synthetic cues — no mp3 latency; tweak frequencies per notification family. */
-const PRESETS = {
-  deposit: { frequency: 520, decay: 0.18 },
-  withdrawal: { frequency: 360, decay: 0.2 },
-  profit: { frequency: 660, decay: 0.16 },
-  support: { frequency: 880, decay: 0.22 },
-  admin: { frequency: 300, decay: 0.25 },
-  neutral: { frequency: 600, decay: 0.15 },
+export const NOTIFICATION_SOUND_URLS = {
+  /** universfield-new-notification-040 — P2P trades, chat, disputes */
+  p2p: "/sounds/notifications/p2p.mp3",
+  /** dragon-studio-new-notification-3 — general platform alerts */
+  generalA: "/sounds/notifications/general-a.mp3",
+  /** universfield-new-notification-014 — general platform alerts (alternate) */
+  generalB: "/sounds/notifications/general-b.mp3",
 } as const;
 
-function cueFamily(type: string) {
+const ALL_URLS = Object.values(NOTIFICATION_SOUND_URLS);
+
+let unlocked = false;
+
+function isP2pNotificationType(type: string): boolean {
   const t = type.toLowerCase();
-  if (t.includes("deposit")) return PRESETS.deposit;
-  if (t.includes("withdraw")) return PRESETS.withdrawal;
+  return t.startsWith("p2p_") || t.includes("p2p");
+}
+
+function generalSoundUrl(type: string): string {
+  const t = type.toLowerCase();
+  if (t.includes("deposit")) return NOTIFICATION_SOUND_URLS.generalA;
+  if (t.includes("withdraw")) return NOTIFICATION_SOUND_URLS.generalB;
   if (
     t.includes("profit") ||
     t.includes("compound") ||
-    t.includes("principal")
-  )
-    return PRESETS.profit;
-  if (t.includes("support") || t.includes("ticket"))
-    return PRESETS.support;
-  return PRESETS.neutral;
+    t.includes("principal") ||
+    t.includes("bonus")
+  ) {
+    return NOTIFICATION_SOUND_URLS.generalA;
+  }
+  if (t.includes("support") || t.includes("ticket") || t.includes("reply")) {
+    return NOTIFICATION_SOUND_URLS.generalB;
+  }
+  return t.length % 2 === 0
+    ? NOTIFICATION_SOUND_URLS.generalA
+    : NOTIFICATION_SOUND_URLS.generalB;
 }
 
-function resumeContext(audioContext: AudioContext) {
-  if (audioContext.state === "suspended") void audioContext.resume();
+export function notificationSoundUrlForType(
+  type?: string | null,
+): string {
+  const t = (type ?? "").trim();
+  if (isP2pNotificationType(t)) return NOTIFICATION_SOUND_URLS.p2p;
+  return generalSoundUrl(t);
 }
 
-/** Investor-facing notification chirp derived from Postgres `notifications.type`. */
-export function playInvestorNotificationSound(type?: string | null) {
-  if (typeof window === "undefined") return;
-  try {
-    const AudioCtx = window.AudioContext || (
-      window as typeof window & { webkitAudioContext?: typeof AudioContext }
-    ).webkitAudioContext;
-    if (!AudioCtx) return;
+/** Prime audio after a user gesture so later realtime inserts can play. */
+export function unlockNotificationAudio(): void {
+  if (typeof window === "undefined" || unlocked) return;
+  unlocked = true;
 
-    ctxRef.ctx ??= new AudioCtx();
-    const audioContext = ctxRef.ctx;
-    resumeContext(audioContext);
-
-    const { frequency, decay } = cueFamily(type ?? "");
-    const now = audioContext.currentTime;
-
-    const osc = audioContext.createOscillator();
-    const gain = audioContext.createGain();
-    osc.type = "triangle";
-    osc.frequency.setValueAtTime(frequency, now);
-    gain.gain.setValueAtTime(0.001, now);
-    gain.gain.exponentialRampToValueAtTime(0.12, now + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + decay);
-    osc.connect(gain).connect(audioContext.destination);
-    osc.start(now);
-    osc.stop(now + decay + 0.05);
-  } catch {
-    /* ignore autoplay failures */
+  for (const src of ALL_URLS) {
+    const audio = new Audio(src);
+    audio.preload = "auto";
+    audio.volume = 0.001;
+    const playPromise = audio.play();
+    if (playPromise) {
+      void playPromise
+        .then(() => {
+          audio.pause();
+          audio.currentTime = 0;
+        })
+        .catch(() => {
+          unlocked = false;
+        });
+    }
   }
 }
 
-export function playAdminNotificationSound(theme?: string | null) {
+export function playNotificationSound(type?: string | null): void {
   if (typeof window === "undefined") return;
-  try {
-    const AudioCtx = window.AudioContext || (
-      window as typeof window & { webkitAudioContext?: typeof AudioContext }
-    ).webkitAudioContext;
-    if (!AudioCtx) return;
 
-    ctxRef.ctx ??= new AudioCtx();
-    const audioContext = ctxRef.ctx;
-    resumeContext(audioContext);
+  const src = notificationSoundUrlForType(type);
+  const audio = new Audio(src);
+  audio.volume = 0.88;
+  void audio.play().catch(() => {
+    /* autoplay blocked until unlockNotificationAudio runs */
+  });
+}
 
-    const base =
-      (theme ?? "").includes("withdraw")
-        ? 280
-        : (theme ?? "").includes("deposit")
-          ? PRESETS.deposit.frequency
-          : (theme ?? "").includes("ticket")
-            ? 720
-            : PRESETS.admin.frequency;
+/** Investor / merchant `notifications` row insert. */
+export function playInvestorNotificationSound(type?: string | null): void {
+  playNotificationSound(type);
+}
 
-    const now = audioContext.currentTime;
-
-    const playTone = (
-      hz: number,
-      offset: number,
-      decay: number,
-      vol: number,
-    ) => {
-      const osc = audioContext.createOscillator();
-      const gain = audioContext.createGain();
-      osc.type = "square";
-      osc.frequency.setValueAtTime(hz, now + offset);
-      gain.gain.setValueAtTime(0.001, now + offset);
-      gain.gain.exponentialRampToValueAtTime(vol, now + offset + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + offset + decay);
-      osc.connect(gain).connect(audioContext.destination);
-      osc.start(now + offset);
-      osc.stop(now + offset + decay + 0.05);
-    };
-
-    playTone(base, 0, 0.16, 0.08);
-    playTone(base * 1.32, 0.12, 0.14, 0.07);
-  } catch {
-    /* ignore autoplay failures */
-  }
+/** Admin desk `admin_notifications` row insert. */
+export function playAdminNotificationSound(type?: string | null): void {
+  playNotificationSound(type);
 }
