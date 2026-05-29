@@ -9,6 +9,7 @@ import {
   MerchantOfferHorizontalCard,
   type MerchantOfferHorizontalRow,
 } from "@/components/merchant/MerchantOfferHorizontalCard";
+import { OffersScrollList } from "@/components/p2p/OffersScrollList";
 import type { MerchantOrderCard } from "@/components/merchant/merchantOrderTypes";
 import { MerchantTradesList } from "@/components/merchant/MerchantTradesList";
 import { fetchMerchantOrdersWithInvestors } from "@/components/merchant/useMerchantOrders";
@@ -460,7 +461,7 @@ export default function MerchantDashboardPage() {
                     .
                   </div>
                 ) : (
-                  <div className="flex max-h-[min(60vh,calc(100vh-14rem))] flex-col gap-3 overflow-y-auto pb-1 pr-1 [scrollbar-width:thin] lg:gap-4 [&::-webkit-scrollbar]:w-2">
+                  <OffersScrollList>
                     {offers.map((o) => (
                       <MerchantOfferHorizontalCard
                         key={o.id}
@@ -471,7 +472,7 @@ export default function MerchantDashboardPage() {
                         onDelete={() => void deleteOffer(o.id)}
                       />
                     ))}
-                  </div>
+                  </OffersScrollList>
                 )}
               </>
             ) : (
