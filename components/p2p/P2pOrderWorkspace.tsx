@@ -96,6 +96,11 @@ export function P2pOrderWorkspace({
     is_online: boolean | null;
     last_seen_at: string | null;
   } | null>(null);
+  const [investorContact, setInvestorContact] = useState<{
+    full_name: string | null;
+    email: string | null;
+    phone: string | null;
+  } | null>(null);
 
   const tradePanelsDerived = useMemo(() => {
     if (!order) return null;
@@ -219,6 +224,7 @@ export function P2pOrderWorkspace({
       setMerchantListingName(null);
       setMerchantPresence(null);
       setInvestorPresence(null);
+      setInvestorContact(null);
       return;
     }
 
@@ -228,6 +234,7 @@ export function P2pOrderWorkspace({
       setMerchantListingName(null);
       setMerchantPresence(null);
       setInvestorPresence(null);
+      setInvestorContact(null);
       return;
     }
 
@@ -300,11 +307,24 @@ export function P2pOrderWorkspace({
     const row = Array.isArray(data) ? data[0] : data;
     if (!row) {
       setInvestorPresence(null);
+      setInvestorContact(null);
       return;
     }
+    const typed = row as {
+      is_online?: boolean;
+      last_seen_at?: string | null;
+      full_name?: string | null;
+      email?: string | null;
+      phone?: string | null;
+    };
     setInvestorPresence({
-      is_online: Boolean((row as { is_online?: boolean }).is_online),
-      last_seen_at: (row as { last_seen_at?: string | null }).last_seen_at ?? null,
+      is_online: Boolean(typed.is_online),
+      last_seen_at: typed.last_seen_at ?? null,
+    });
+    setInvestorContact({
+      full_name: typed.full_name ?? null,
+      email: typed.email ?? null,
+      phone: typed.phone ?? null,
     });
   }, [id, supabase]);
 
@@ -614,6 +634,22 @@ export function P2pOrderWorkspace({
   const detailRows = useMemo(() => {
     if (!order) return [];
 
+    const merchantView = Boolean(userId && order.merchant_user_id === userId);
+    const counterpartyRows =
+      merchantView && investorContact
+        ? [
+            {
+              label: "Counterparty",
+              value: investorContact.full_name?.trim() || "—",
+            },
+            { label: "Email", value: investorContact.email?.trim() || "—" },
+            {
+              label: "Phone",
+              value: investorContact.phone?.trim() || "Not provided",
+            },
+          ]
+        : [];
+
     // Phase 3 fiat snapshot — locked at order open. NULL on legacy rows.
     const fiatCcy = (order.fiat_currency_code ?? "USD") || "USD";
     const fiatAmt = Number(order.fiat_amount ?? 0);
@@ -629,6 +665,7 @@ export function P2pOrderWorkspace({
 
     if (order.side === "sell_usdt" || order.side === "sell_btc") {
       return [
+        ...counterpartyRows,
         { label: `Amount (${orderAsset})`, value: fmtAssetAmount(orderAsset, order.amount_requested) },
         { label: "Merchant fee", value: `${Number(order.rate_percentage)}%` },
         {
@@ -650,6 +687,7 @@ export function P2pOrderWorkspace({
     }
     const escrowAmt = order.usdt_escrow_amount ?? order.btc_escrow_amount ?? 0;
     return [
+      ...counterpartyRows,
       { label: `${orderAsset} locked`, value: fmtAssetAmount(orderAsset, escrowAmt) },
       { label: "Merchant fee", value: `${Number(order.rate_percentage)}%` },
       ...(showFiatRow
@@ -669,7 +707,7 @@ export function P2pOrderWorkspace({
             },
           ]),
     ];
-  }, [order]);
+  }, [order, userId, investorContact]);
 
   if (!id?.trim()) {
     return (

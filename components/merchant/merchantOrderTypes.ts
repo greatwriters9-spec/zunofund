@@ -9,5 +9,5 @@ export type MerchantOrderCard = {
   fiat_amount: number | null;
   created_at: string;
   expires_at: string;
-  investor: { email: string | null; full_name: string | null } | null;
+  investor: { email: string | null; full_name: string | null; phone: string | null } | null;
 };

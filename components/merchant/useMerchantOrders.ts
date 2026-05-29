@@ -50,7 +50,10 @@ export async function fetchMerchantOrdersWithInvestors(
   const ordersRaw = rows ?? [];
   const ids = [...new Set(ordersRaw.map((r) => r.investor_user_id).filter(Boolean))] as string[];
 
-  let invMap = new Map<string, { email: string | null; full_name: string | null }>();
+  let invMap = new Map<
+    string,
+    { email: string | null; full_name: string | null; phone: string | null }
+  >();
   if (ids.length > 0) {
     const { data: profs, error: rpcErr } = await supabase.rpc("merchant_list_counterparty_profiles", {
       p_investor_user_ids: ids,
@@ -59,10 +62,23 @@ export async function fetchMerchantOrdersWithInvestors(
       return { orders: [], error: rpcErr.message };
     }
     invMap = new Map(
-      (profs ?? []).map((row: { user_id: string; email: string | null; full_name: string | null }) => [
-        row.user_id,
-        { email: row.email ?? null, full_name: row.full_name ?? null },
-      ]),
+      (
+        profs ?? []
+      ).map(
+        (row: {
+          user_id: string;
+          email: string | null;
+          full_name: string | null;
+          phone: string | null;
+        }) => [
+          row.user_id,
+          {
+            email: row.email ?? null,
+            full_name: row.full_name ?? null,
+            phone: row.phone ?? null,
+          },
+        ],
+      ),
     );
   }
 
@@ -79,7 +95,7 @@ export async function fetchMerchantOrdersWithInvestors(
     expires_at: r.expires_at as string,
     investor:
       invMap.get(r.investor_user_id as string) ??
-      ({ email: null, full_name: null } as MerchantOrderCard["investor"]),
+      ({ email: null, full_name: null, phone: null } as MerchantOrderCard["investor"]),
   }));
 
   if (statusFilter === "active") {

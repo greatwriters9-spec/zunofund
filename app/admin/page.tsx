@@ -10,6 +10,7 @@ interface Investor {
   id: string;
   full_name: string;
   email: string;
+  phone: string | null;
   balance: number;
   total_profit: number;
   investment_plan: string;
@@ -29,7 +30,7 @@ export default function AdminPage() {
 
   const fetchDashboardData = useCallback(async () => {
     const investorListCols =
-      "id, full_name, email, balance, total_profit, investment_plan, status, created_at";
+      "id, full_name, email, phone, balance, total_profit, investment_plan, status, created_at";
 
     const [
       depositsCountRes,
@@ -153,9 +154,14 @@ export default function AdminPage() {
                   >
                     <td className="p-5">
                       <div>
-                        <h3 className="font-semibold text-[#F5E6B3]">{investor.full_name}</h3>
+                        <h3 className="font-semibold text-[#F5E6B3]">
+                          {investor.full_name?.trim() || "—"}
+                        </h3>
 
                         <p className="text-sm text-zinc-500">{investor.email}</p>
+                        <p className="text-sm text-zinc-500">
+                          {investor.phone?.trim() ? investor.phone : "No phone on file"}
+                        </p>
                       </div>
                     </td>
 

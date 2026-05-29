@@ -15,6 +15,8 @@ import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 interface InvestorRow {
   id: string;
   email: string;
+  full_name?: string | null;
+  phone?: string | null;
   balance?: number | null;
   total_profit?: number | null;
   investment_plan?: string | null;
@@ -179,7 +181,11 @@ export default function InvestorsPage() {
               key={inv.id}
               className="border border-zinc-800 bg-zinc-950 p-4 rounded-xl space-y-3"
             >
-              <p className="font-semibold">{inv.email}</p>
+              <p className="font-semibold">{inv.full_name?.trim() || "—"}</p>
+              <p className="text-sm text-zinc-400">{inv.email}</p>
+              <p className="text-sm text-zinc-500">
+                Phone: {inv.phone?.trim() ? inv.phone : "Not provided"}
+              </p>
               <p className="text-gray-400">
                 Balance: {formatUsdAmount(inv.balance)}
               </p>

@@ -109,6 +109,9 @@ export function MerchantTradesList(props: {
                   {o.investor?.email ? (
                     <p className="font-mono text-xs text-zinc-500">{o.investor.email}</p>
                   ) : null}
+                  {o.investor?.phone ? (
+                    <p className="font-mono text-xs text-zinc-500">{o.investor.phone}</p>
+                  ) : null}
                 </td>
                 <td className="px-4 py-3 text-zinc-400">{sideLabel(o.side)}</td>
                 <td className="px-4 py-3 text-zinc-200">{amountLine(o)}</td>
@@ -168,6 +171,9 @@ export function MerchantTradesList(props: {
                 <p className="text-sm font-semibold text-white">{investorLabel(o.investor)}</p>
                 {o.investor?.email ? (
                   <p className="mt-0.5 font-mono text-xs text-zinc-500">{o.investor.email}</p>
+                ) : null}
+                {o.investor?.phone ? (
+                  <p className="mt-0.5 font-mono text-xs text-zinc-500">{o.investor.phone}</p>
                 ) : null}
                 <p className="mt-2 text-xs text-zinc-500">
                   Opened{" "}
