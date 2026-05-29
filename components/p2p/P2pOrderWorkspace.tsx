@@ -10,9 +10,9 @@ import { DisputeModal } from "@/components/p2p/DisputeModal";
 import type { ChatMessage } from "@/components/p2p/TradeChat";
 import { TradeChat } from "@/components/p2p/TradeChat";
 import { TradeOrderBrief } from "@/components/p2p/TradeOrderBrief";
+import { MerchantOfferAvatar } from "@/components/p2p/MerchantOfferAvatar";
 import {
   formatHMS,
-  merchantInitials,
   orderStatusHeadline,
   paymentMethodLabel,
 } from "@/components/p2p/utils";
@@ -87,6 +87,7 @@ export function P2pOrderWorkspace({
   const [chatSyncError, setChatSyncError] = useState<string | null>(null);
   const [chatSending, setChatSending] = useState(false);
   const [merchantListingName, setMerchantListingName] = useState<string | null>(null);
+  const [merchantAvatarUrl, setMerchantAvatarUrl] = useState<string | null>(null);
   const [merchantPresence, setMerchantPresence] = useState<{
     is_online: boolean | null;
     last_seen_at: string | null;
@@ -100,6 +101,7 @@ export function P2pOrderWorkspace({
     full_name: string | null;
     email: string | null;
     phone: string | null;
+    avatar_url: string | null;
   } | null>(null);
 
   const tradePanelsDerived = useMemo(() => {
@@ -222,6 +224,7 @@ export function P2pOrderWorkspace({
       setError(formatSupabaseError(qErr));
       setOrder(null);
       setMerchantListingName(null);
+      setMerchantAvatarUrl(null);
       setMerchantPresence(null);
       setInvestorPresence(null);
       setInvestorContact(null);
@@ -232,6 +235,7 @@ export function P2pOrderWorkspace({
       setOrder(null);
       setError(null);
       setMerchantListingName(null);
+      setMerchantAvatarUrl(null);
       setMerchantPresence(null);
       setInvestorPresence(null);
       setInvestorContact(null);
@@ -248,28 +252,115 @@ export function P2pOrderWorkspace({
             .maybeSingle()
         : { data: null };
 
-    const { data: mpRow } = await supabase
-      .from("merchant_profiles")
-      .select("display_name, is_online, last_seen_at, presence_mode")
-      .eq("user_id", ord.merchant_user_id)
-      .maybeSingle();
+    const viewerIsInvestor = user?.id === ord.investor_user_id;
+    const viewerIsMerchant = user?.id === ord.merchant_user_id;
 
-    const merchantRow = mpRow as {
-      display_name: string | null;
-      is_online: boolean | null;
-      last_seen_at: string | null;
-      presence_mode?: MerchantPresenceMode | null;
-    } | null;
-    setMerchantListingName(merchantRow?.display_name ?? null);
-    setMerchantPresence(
-      merchantRow
-        ? {
-            is_online: merchantRow.is_online,
-            last_seen_at: merchantRow.last_seen_at,
+    setMerchantListingName(null);
+    setMerchantAvatarUrl(null);
+    setMerchantPresence(null);
+    setInvestorPresence(null);
+    setInvestorContact(null);
+
+    if (viewerIsInvestor) {
+      const { data: merchantProfData, error: merchantProfErr } = await supabase.rpc(
+        "investor_get_order_merchant_profile",
+        { p_order_id: id },
+      );
+      if (!merchantProfErr) {
+        const merchantRow = (Array.isArray(merchantProfData) ? merchantProfData[0] : merchantProfData) as
+          | {
+              display_name?: string | null;
+              is_online?: boolean | null;
+              last_seen_at?: string | null;
+              presence_mode?: MerchantPresenceMode | null;
+              avatar_url?: string | null;
+            }
+          | null
+          | undefined;
+        if (merchantRow) {
+          setMerchantListingName(merchantRow.display_name ?? null);
+          setMerchantAvatarUrl(merchantRow.avatar_url?.trim() ? merchantRow.avatar_url.trim() : null);
+          setMerchantPresence({
+            is_online: merchantRow.is_online ?? null,
+            last_seen_at: merchantRow.last_seen_at ?? null,
             presence_mode: merchantRow.presence_mode ?? "auto",
-          }
-        : null,
-    );
+          });
+        }
+      } else {
+        const { data: mpRow } = await supabase
+          .from("merchant_profiles")
+          .select("display_name, is_online, last_seen_at, presence_mode")
+          .eq("user_id", ord.merchant_user_id)
+          .maybeSingle();
+        const merchantRow = mpRow as {
+          display_name: string | null;
+          is_online: boolean | null;
+          last_seen_at: string | null;
+          presence_mode?: MerchantPresenceMode | null;
+        } | null;
+        setMerchantListingName(merchantRow?.display_name ?? null);
+        setMerchantPresence(
+          merchantRow
+            ? {
+                is_online: merchantRow.is_online,
+                last_seen_at: merchantRow.last_seen_at,
+                presence_mode: merchantRow.presence_mode ?? "auto",
+              }
+            : null,
+        );
+      }
+    } else if (viewerIsMerchant) {
+      const { data: invData, error: invErr } = await supabase.rpc("merchant_get_order_investor_presence", {
+        p_order_id: id,
+      });
+      if (!invErr) {
+        const invRow = (Array.isArray(invData) ? invData[0] : invData) as
+          | {
+              is_online?: boolean;
+              last_seen_at?: string | null;
+              full_name?: string | null;
+              email?: string | null;
+              phone?: string | null;
+              avatar_url?: string | null;
+            }
+          | null
+          | undefined;
+        if (invRow) {
+          setInvestorPresence({
+            is_online: Boolean(invRow.is_online),
+            last_seen_at: invRow.last_seen_at ?? null,
+          });
+          setInvestorContact({
+            full_name: invRow.full_name ?? null,
+            email: invRow.email ?? null,
+            phone: invRow.phone ?? null,
+            avatar_url: invRow.avatar_url?.trim() ? invRow.avatar_url.trim() : null,
+          });
+        }
+      }
+    } else {
+      const { data: mpRow } = await supabase
+        .from("merchant_profiles")
+        .select("display_name, is_online, last_seen_at, presence_mode")
+        .eq("user_id", ord.merchant_user_id)
+        .maybeSingle();
+      const merchantRow = mpRow as {
+        display_name: string | null;
+        is_online: boolean | null;
+        last_seen_at: string | null;
+        presence_mode?: MerchantPresenceMode | null;
+      } | null;
+      setMerchantListingName(merchantRow?.display_name ?? null);
+      setMerchantPresence(
+        merchantRow
+          ? {
+              is_online: merchantRow.is_online,
+              last_seen_at: merchantRow.last_seen_at,
+              presence_mode: merchantRow.presence_mode ?? "auto",
+            }
+          : null,
+      );
+    }
 
     setOrder({
       ...(ord as WorkspaceOrderRow),
@@ -279,24 +370,30 @@ export function P2pOrderWorkspace({
   }, [id, supabase]);
 
   const refreshMerchantPresence = useCallback(async () => {
-    if (!order?.merchant_user_id) return;
-    const { data: mpRow } = await supabase
-      .from("merchant_profiles")
-      .select("is_online, last_seen_at, presence_mode")
-      .eq("user_id", order.merchant_user_id)
-      .maybeSingle();
-    const row = mpRow as {
-      is_online: boolean | null;
-      last_seen_at: string | null;
-      presence_mode: MerchantPresenceMode | null;
-    } | null;
+    if (!id?.trim()) return;
+    const { data, error: profErr } = await supabase.rpc("investor_get_order_merchant_profile", {
+      p_order_id: id,
+    });
+    if (profErr) return;
+    const row = (Array.isArray(data) ? data[0] : data) as
+      | {
+          display_name?: string | null;
+          is_online?: boolean | null;
+          last_seen_at?: string | null;
+          presence_mode?: MerchantPresenceMode | null;
+          avatar_url?: string | null;
+        }
+      | null
+      | undefined;
     if (!row) return;
+    setMerchantListingName(row.display_name ?? null);
+    setMerchantAvatarUrl(row.avatar_url?.trim() ? row.avatar_url.trim() : null);
     setMerchantPresence({
-      is_online: row.is_online,
-      last_seen_at: row.last_seen_at,
+      is_online: row.is_online ?? null,
+      last_seen_at: row.last_seen_at ?? null,
       presence_mode: row.presence_mode ?? "auto",
     });
-  }, [order?.merchant_user_id, supabase]);
+  }, [id, supabase]);
 
   const refreshInvestorPresence = useCallback(async () => {
     if (!id?.trim()) return;
@@ -316,6 +413,7 @@ export function P2pOrderWorkspace({
       full_name?: string | null;
       email?: string | null;
       phone?: string | null;
+      avatar_url?: string | null;
     };
     setInvestorPresence({
       is_online: Boolean(typed.is_online),
@@ -325,6 +423,7 @@ export function P2pOrderWorkspace({
       full_name: typed.full_name ?? null,
       email: typed.email ?? null,
       phone: typed.phone ?? null,
+      avatar_url: typed.avatar_url?.trim() ? typed.avatar_url.trim() : null,
     });
   }, [id, supabase]);
 
@@ -776,7 +875,10 @@ export function P2pOrderWorkspace({
   const btnCancel =
     "inline-flex h-10 w-full items-center justify-center rounded-md border border-red-500/40 bg-black/35 px-4 text-[14px] font-medium text-red-300 transition hover:border-red-500/60 hover:bg-red-500/10 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-50";
 
-  const counterpartName = isMerchant ? "Investor" : merchantListingName ?? "Merchant";
+  const counterpartName = isMerchant
+    ? investorContact?.full_name?.trim() || "Investor"
+    : merchantListingName ?? "Merchant";
+  const counterpartAvatarUrl = isMerchant ? investorContact?.avatar_url : merchantAvatarUrl;
 
   const shellHeight = embedded
     ? "min-h-0 max-lg:min-h-[min(560px,82dvh)] lg:h-[min(720px,calc(100vh-13rem))] lg:min-h-[480px]"
@@ -1110,12 +1212,12 @@ export function P2pOrderWorkspace({
 
             <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[#05080F]">
               <div className="flex shrink-0 items-center gap-3 border-b border-[#D4AF37]/12 bg-black/40 px-5 py-3 sm:px-6">
-                <div
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#D4AF37]/15 text-[12px] font-semibold text-[#F5E6B3] ring-1 ring-[#D4AF37]/35"
-                  aria-hidden
-                >
-                  {merchantInitials(counterpartName)}
-                </div>
+                <MerchantOfferAvatar
+                  avatarUrl={counterpartAvatarUrl}
+                  displayName={counterpartName}
+                  size="sm"
+                  className="h-9 w-9 ring-[#D4AF37]/35"
+                />
                 <div className="min-w-0">
                   <p className="truncate text-[15px] font-semibold text-white">{counterpartName}</p>
                   <p className="text-[11px] text-zinc-500">{payLabel}</p>

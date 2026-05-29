@@ -83,6 +83,7 @@ export default function MerchantDashboardPage() {
   const [mainTab, setMainTab] = useState<MerchantMainTab>("offers");
   const [error, setError] = useState<string | null>(null);
   const [presenceBusy, setPresenceBusy] = useState(false);
+  const [merchantAvatarUrl, setMerchantAvatarUrl] = useState<string | null>(null);
   const liveOnPage = useMerchantPresenceLive();
 
   const load = useCallback(async () => {
@@ -116,6 +117,15 @@ export default function MerchantDashboardPage() {
     }
 
     setProfile(prof);
+
+    const { data: invRow } = await supabase
+      .from("investors")
+      .select("avatar_url")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    setMerchantAvatarUrl(
+      typeof invRow?.avatar_url === "string" && invRow.avatar_url.trim() ? invRow.avatar_url.trim() : null,
+    );
 
     if (prof?.status === "active") {
       await expireStaleP2pOrders(supabase);
@@ -455,6 +465,8 @@ export default function MerchantDashboardPage() {
                       <MerchantOfferHorizontalCard
                         key={o.id}
                         offer={o}
+                        merchantAvatarUrl={merchantAvatarUrl}
+                        merchantDisplayName={profile?.display_name}
                         onToggleActive={() => void toggleOffer(o.id, o.status !== "active")}
                         onDelete={() => void deleteOffer(o.id)}
                       />

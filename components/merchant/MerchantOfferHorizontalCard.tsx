@@ -1,7 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { MerchantOfferAvatar } from "@/components/p2p/MerchantOfferAvatar";
+import { sideLabel } from "@/components/merchant/merchantOfferSide";
 import { paymentMethodLabel } from "@/components/p2p/utils";
 import { getFiatCurrency } from "@/lib/currencies";
 import { formatMoneyAmount } from "@/lib/formatMoney";
@@ -20,17 +23,11 @@ export type MerchantOfferHorizontalRow = {
 
 type MerchantOfferHorizontalCardProps = {
   offer: MerchantOfferHorizontalRow;
+  merchantAvatarUrl?: string | null;
+  merchantDisplayName?: string | null;
   onToggleActive: () => void;
   onDelete: () => void;
 };
-
-function sideLabel(side: string): string {
-  if (side === "sell_usdt") return "Sell USDT";
-  if (side === "buy_usdt") return "Buy USDT";
-  if (side === "sell_btc") return "Sell BTC";
-  if (side === "buy_btc") return "Buy BTC";
-  return side;
-}
 
 function Zone({
   label,
@@ -65,7 +62,13 @@ function Zone({
  * Merchant listing row — same interaction model as investor OfferCard:
  * rigid grid zones, emerald wash, advert column before actions, bold CTAs.
  */
-export function MerchantOfferHorizontalCard({ offer, onToggleActive, onDelete }: MerchantOfferHorizontalCardProps) {
+export function MerchantOfferHorizontalCard({
+  offer,
+  merchantAvatarUrl,
+  merchantDisplayName,
+  onToggleActive,
+  onDelete,
+}: MerchantOfferHorizontalCardProps) {
   const methodsDisplay = offer.payment_methods.map((c) => paymentMethodLabel(c)).join(" · ") || "—";
   const isActive = offer.status === "active";
   const advert = offer.advert_message?.trim();
@@ -78,6 +81,9 @@ export function MerchantOfferHorizontalCard({ offer, onToggleActive, onDelete }:
 
   const delBtn =
     "rounded-xl border-2 border-red-500/55 bg-gradient-to-b from-red-950/40 to-black/50 px-4 py-2.5 text-[11px] font-extrabold uppercase tracking-[0.14em] text-red-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_14px_-4px_rgba(239,68,68,0.35)] ring-1 ring-red-400/30 transition hover:-translate-y-px hover:border-red-400/70 hover:shadow-[0_8px_22px_-6px_rgba(239,68,68,0.45)] active:translate-y-0";
+
+  const editBtn =
+    "rounded-xl border-2 border-[#D4AF37]/45 bg-gradient-to-b from-[#D4AF37]/15 to-black/50 px-4 py-2.5 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#F5E6B3] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_14px_-4px_rgba(212,175,55,0.35)] ring-1 ring-[#D4AF37]/30 transition hover:-translate-y-px hover:border-[#D4AF37]/65 active:translate-y-0";
 
   return (
     <article
@@ -94,6 +100,13 @@ export function MerchantOfferHorizontalCard({ offer, onToggleActive, onDelete }:
       />
 
       <div className="relative z-[1] flex min-w-0 flex-col justify-center gap-1.5 max-lg:border-b max-lg:border-white/10 max-lg:pb-3 lg:border-r lg:border-white/10 lg:pr-4">
+        <div className="flex items-start gap-2.5">
+          <MerchantOfferAvatar
+            avatarUrl={merchantAvatarUrl}
+            displayName={merchantDisplayName}
+            size="sm"
+          />
+          <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <span
             className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wide ring-1 ${
@@ -116,6 +129,8 @@ export function MerchantOfferHorizontalCard({ offer, onToggleActive, onDelete }:
         <p className="bg-gradient-to-r from-[#FFF8E7] via-[#F5E6B3] to-[#E8CF7A] bg-clip-text text-sm font-extrabold uppercase tracking-wide text-transparent drop-shadow-[0_0_14px_rgba(245,230,179,0.25)]">
           {sideLabel(offer.side)}
         </p>
+          </div>
+        </div>
       </div>
 
       <Zone label="Fee" aria-label={`Listing fee ${offer.rate_percentage} percent`}>
@@ -169,6 +184,9 @@ export function MerchantOfferHorizontalCard({ offer, onToggleActive, onDelete }:
       </Zone>
 
       <div className="relative z-[1] flex min-h-[3rem] flex-wrap items-center justify-end gap-2 px-3 max-lg:border-t max-lg:border-white/10 max-lg:pt-4 lg:border-l lg:border-t-0 lg:border-white/10 lg:pl-4 lg:pt-0">
+        <Link href={`/merchant/offers/${offer.id}/edit`} className={editBtn}>
+          Edit
+        </Link>
         <button type="button" onClick={onToggleActive} className={pauseBtn}>
           {isActive ? "Pause" : "On"}
         </button>

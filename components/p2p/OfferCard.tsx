@@ -12,7 +12,8 @@ import {
 } from "@/lib/p2pValue";
 import { useFxRates } from "@/lib/useFx";
 import { formatInvestorMerchantPresence } from "@/lib/merchantPresence";
-import { paymentMethodLabelCaps, merchantInitials } from "./utils";
+import { MerchantOfferAvatar } from "@/components/p2p/MerchantOfferAvatar";
+import { paymentMethodLabelCaps } from "./utils";
 
 export type OfferCardRow = {
   offer_id: string;
@@ -21,6 +22,7 @@ export type OfferCardRow = {
   merchant_is_online?: boolean | null;
   merchant_last_seen_at?: string | null;
   merchant_presence_mode?: string | null;
+  merchant_avatar_url?: string | null;
   side: string;
   payment_methods: string[];
   min_limit: number;
@@ -123,12 +125,7 @@ export function OfferCard({
       className="grid gap-4 border-b border-white/[0.07] px-4 py-4 text-[13px] text-zinc-200 last:border-b-0 md:grid-cols-[minmax(0,1.05fr)_minmax(0,1.65fr)_auto]"
     >
       <div className="flex min-w-0 items-start gap-3">
-        <div
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black/55 text-[11px] font-extrabold uppercase text-[#F5E6B3] ring-1 ring-[#D4AF37]/55"
-          aria-hidden
-        >
-          {merchantInitials(row.merchant_display_name)}
-        </div>
+        <MerchantOfferAvatar avatarUrl={row.merchant_avatar_url} displayName={name} size="sm" />
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-[15px] font-bold tracking-tight text-[#F5E6B3]" title={name}>
             {name}
