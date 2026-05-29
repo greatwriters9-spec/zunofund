@@ -14,7 +14,6 @@ import { MerchantTradesList } from "@/components/merchant/MerchantTradesList";
 import { fetchMerchantOrdersWithInvestors } from "@/components/merchant/useMerchantOrders";
 import { useMerchantPresenceLive } from "@/hooks/useMerchantPresenceLive";
 import { merchantPresenceUi, syncMerchantPresence } from "@/lib/merchantPresence";
-import { expireStaleP2pOrders, P2P_CANCELLED_STATUSES } from "@/lib/p2pExpiry";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 
 type MerchantMainTab = "offers" | "active";
@@ -110,8 +109,6 @@ export default function MerchantDashboardPage() {
     setProfile(prof);
 
     if (prof?.status === "active") {
-      await expireStaleP2pOrders(supabase);
-
       const [offersRes, activeTradeHead, completedTradeHead, activeFull] = await Promise.all([
         supabase
           .from("merchant_offers")
@@ -127,7 +124,7 @@ export default function MerchantDashboardPage() {
           .from("merchant_orders")
           .select("id", { count: "exact", head: true })
           .eq("merchant_user_id", user.id)
-          .in("status", ["completed", ...P2P_CANCELLED_STATUSES]),
+          .in("status", ["completed", "cancelled"]),
         fetchMerchantOrdersWithInvestors(supabase, user.id, "active"),
       ]);
       const activeC = activeTradeHead.count;
