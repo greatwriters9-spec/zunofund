@@ -41,10 +41,30 @@ export function MerchantPresenceBridge() {
 
     async function pingOnline() {
       if (stopped || !activeMerchantRef.current) return;
+      const mode = await getPresenceMode();
+      if (mode !== "auto") return;
       await syncMerchantPresence(supabase, true);
     }
 
+    async function getPresenceMode(): Promise<string> {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.user?.id) return "auto";
+
+      const { data, error } = await supabase
+        .from("merchant_profiles")
+        .select("presence_mode")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+
+      if (error) return "auto";
+      return (data as { presence_mode?: string } | null)?.presence_mode ?? "auto";
+    }
+
     async function pingOffline() {
+      const mode = await getPresenceMode();
+      if (mode !== "auto") return;
       await syncMerchantPresence(supabase, false);
     }
 

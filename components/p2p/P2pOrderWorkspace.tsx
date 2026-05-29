@@ -26,6 +26,7 @@ import {
 import {
   formatMerchantPresence,
   isMerchantEffectivelyOnline,
+  type MerchantPresenceMode,
 } from "@/lib/merchantPresence";
 import { formatFiat } from "@/lib/currencies";
 import { assetFromOfferSide, fmtAssetAmount } from "@/lib/p2pAssets";
@@ -88,6 +89,7 @@ export function P2pOrderWorkspace({
   const [merchantPresence, setMerchantPresence] = useState<{
     is_online: boolean | null;
     last_seen_at: string | null;
+    presence_mode: MerchantPresenceMode;
   } | null>(null);
 
   const tradePanelsDerived = useMemo(() => {
@@ -234,7 +236,7 @@ export function P2pOrderWorkspace({
 
     const { data: mpRow } = await supabase
       .from("merchant_profiles")
-      .select("display_name, is_online, last_seen_at")
+      .select("display_name, is_online, last_seen_at, presence_mode")
       .eq("user_id", ord.merchant_user_id)
       .maybeSingle();
 
@@ -242,6 +244,7 @@ export function P2pOrderWorkspace({
       display_name: string | null;
       is_online: boolean | null;
       last_seen_at: string | null;
+      presence_mode?: MerchantPresenceMode | null;
     } | null;
     setMerchantListingName(merchantRow?.display_name ?? null);
     setMerchantPresence(
@@ -249,6 +252,7 @@ export function P2pOrderWorkspace({
         ? {
             is_online: merchantRow.is_online,
             last_seen_at: merchantRow.last_seen_at,
+            presence_mode: merchantRow.presence_mode ?? "auto",
           }
         : null,
     );
@@ -698,10 +702,12 @@ export function P2pOrderWorkspace({
   const merchantOnline = isMerchantEffectivelyOnline(
     merchantPresence?.is_online,
     merchantPresence?.last_seen_at,
+    merchantPresence?.presence_mode,
   );
   const merchantPresenceLabel = formatMerchantPresence(
     merchantPresence?.is_online,
     merchantPresence?.last_seen_at,
+    merchantPresence?.presence_mode,
   );
   // Whoever is sending fiat (investor in sell_usdt, merchant in buy_usdt)
   // needs the fiat amount — not the USDT side. Snapshot was locked at open.
