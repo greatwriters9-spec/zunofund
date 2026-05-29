@@ -14,3 +14,11 @@ export function sideLabel(side: string): string {
   if (side === "buy_btc") return "Buy BTC";
   return side;
 }
+
+export function isBuyOfferSide(side: string): boolean {
+  return side.startsWith("buy_");
+}
+
+export function offerAssetLabel(side: string): string {
+  return side.includes("btc") ? "BTC" : "USDT";
+}

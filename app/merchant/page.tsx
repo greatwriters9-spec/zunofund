@@ -7,8 +7,11 @@ import { useSearchParams } from "next/navigation";
 import { MerchantAppShell } from "@/components/merchant/MerchantAppShell";
 import {
   MerchantOfferHorizontalCard,
+  MerchantOffersStripHeader,
   type MerchantOfferHorizontalRow,
+  type MerchantOfferQuickSavePatch,
 } from "@/components/merchant/MerchantOfferHorizontalCard";
+import { isBuyOfferSide } from "@/components/merchant/merchantOfferSide";
 import { OffersScrollList } from "@/components/p2p/OffersScrollList";
 import type { MerchantOrderCard } from "@/components/merchant/merchantOrderTypes";
 import { MerchantTradesList } from "@/components/merchant/MerchantTradesList";
@@ -25,6 +28,7 @@ import { expireStaleP2pOrders, P2P_CANCELLED_STATUSES } from "@/lib/p2pExpiry";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 
 type MerchantMainTab = "offers" | "active";
+type MerchantOfferSideTab = "buy" | "sell";
 type Profile = {
   user_id: string;
   display_name: string | null;
@@ -46,6 +50,10 @@ function normalizeMerchantOfferRows(raw: unknown): MerchantOfferHorizontalRow[] 
       max_limit: Number(row.max_limit ?? 0),
       rate_percentage: Number(row.rate_percentage ?? 0),
       payment_methods: Array.isArray(row.payment_methods) ? [...(row.payment_methods as string[])] : [],
+      payment_instructions:
+        typeof row.payment_instructions === "string" && row.payment_instructions.trim()
+          ? row.payment_instructions.trim()
+          : null,
       advert_message:
         typeof row.advert_message === "string" && row.advert_message.trim() ? row.advert_message.trim() : null,
       fiat_currency_code:
@@ -82,6 +90,7 @@ export default function MerchantDashboardPage() {
   const [merchantActiveOrders, setMerchantActiveOrders] = useState<MerchantOrderCard[]>([]);
   const [activeOrdersError, setActiveOrdersError] = useState<string | null>(null);
   const [mainTab, setMainTab] = useState<MerchantMainTab>("offers");
+  const [offerSideTab, setOfferSideTab] = useState<MerchantOfferSideTab>("sell");
   const [error, setError] = useState<string | null>(null);
   const [presenceBusy, setPresenceBusy] = useState(false);
   const [merchantAvatarUrl, setMerchantAvatarUrl] = useState<string | null>(null);
@@ -196,6 +205,31 @@ export default function MerchantDashboardPage() {
       return;
     }
     await load();
+  }
+
+  async function quickSaveOffer(offerId: string, patch: MerchantOfferQuickSavePatch): Promise<string | null> {
+    const row = offers.find((o) => o.id === offerId);
+    if (!row) return "Listing not found.";
+
+    const sellSide = row.side === "sell_usdt" || row.side === "sell_btc";
+    setError(null);
+    const { error: e } = await supabase.rpc("merchant_update_offer", {
+      p_offer_id: offerId,
+      p_payment_methods: row.payment_methods.length ? row.payment_methods : ["other"],
+      p_min_limit: patch.min_limit,
+      p_max_limit: patch.max_limit,
+      p_rate_percentage: patch.rate_percentage,
+      p_payment_instructions: sellSide ? row.payment_instructions : null,
+      p_advert_message: patch.advert_message,
+      p_fiat_currency_code: row.fiat_currency_code ?? "USD",
+    });
+    if (e) {
+      const msg = formatSupabaseError(e);
+      setError(msg);
+      return msg;
+    }
+    await load();
+    return null;
   }
 
   async function deleteOffer(offerId: string) {
@@ -461,18 +495,86 @@ export default function MerchantDashboardPage() {
                     .
                   </div>
                 ) : (
-                  <OffersScrollList>
-                    {offers.map((o) => (
-                      <MerchantOfferHorizontalCard
-                        key={o.id}
-                        offer={o}
-                        merchantAvatarUrl={merchantAvatarUrl}
-                        merchantDisplayName={profile?.display_name}
-                        onToggleActive={() => void toggleOffer(o.id, o.status !== "active")}
-                        onDelete={() => void deleteOffer(o.id)}
-                      />
-                    ))}
-                  </OffersScrollList>
+                  <>
+                    <div
+                      className="mb-3 flex gap-2"
+                      role="tablist"
+                      aria-label="Buy and sell listings"
+                    >
+                      {(
+                        [
+                          { id: "sell" as const, label: "Sell offers" },
+                          { id: "buy" as const, label: "Buy offers" },
+                        ] as const
+                      ).map(({ id, label }) => {
+                        const count = offers.filter((o) =>
+                          id === "buy" ? isBuyOfferSide(o.side) : !isBuyOfferSide(o.side),
+                        ).length;
+                        const selected = offerSideTab === id;
+                        const isSell = id === "sell";
+                        const sideTabCls = selected
+                          ? isSell
+                            ? "border-red-500/22 bg-red-950/35 text-red-100/95 shadow-[0_0_22px_rgba(220,38,38,0.14),inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-red-500/18"
+                            : "border-emerald-500/22 bg-emerald-950/30 text-emerald-100/95 shadow-[0_0_22px_rgba(16,185,129,0.14),inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-emerald-500/18"
+                          : isSell
+                            ? "border-red-500/10 bg-black/28 text-zinc-500 shadow-[0_0_12px_rgba(220,38,38,0.05)] hover:border-red-500/18 hover:bg-red-950/20 hover:text-red-200/80"
+                            : "border-emerald-500/10 bg-black/28 text-zinc-500 shadow-[0_0_12px_rgba(16,185,129,0.05)] hover:border-emerald-500/18 hover:bg-emerald-950/20 hover:text-emerald-200/80";
+                        const countCls = selected
+                          ? isSell
+                            ? "text-red-300/55"
+                            : "text-emerald-300/55"
+                          : "text-zinc-600";
+                        return (
+                          <button
+                            key={id}
+                            type="button"
+                            role="tab"
+                            aria-selected={selected}
+                            onClick={() => setOfferSideTab(id)}
+                            className={`flex-1 rounded-xl border px-3 py-2.5 text-center text-[10px] font-bold uppercase tracking-[0.12em] transition duration-200 sm:flex-none sm:min-w-[9.5rem] sm:text-[11px] ${sideTabCls}`}
+                          >
+                            {label}
+                            <span className={`ml-1.5 tabular-nums ${countCls}`}>({count})</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {(() => {
+                      const filtered = offers.filter((o) =>
+                        offerSideTab === "buy" ? isBuyOfferSide(o.side) : !isBuyOfferSide(o.side),
+                      );
+                      if (filtered.length === 0) {
+                        return (
+                          <div className="rounded-2xl border border-dashed border-[#D4AF37]/22 bg-black/25 py-12 text-center text-sm text-zinc-500">
+                            No {offerSideTab === "buy" ? "buy" : "sell"} offers yet —{" "}
+                            <Link
+                              href="/merchant/offers/new"
+                              className="font-semibold text-[#D4AF37] hover:underline"
+                            >
+                              publish one
+                            </Link>
+                            .
+                          </div>
+                        );
+                      }
+                      return (
+                        <OffersScrollList stripLayout>
+                          <MerchantOffersStripHeader />
+                          {filtered.map((o) => (
+                            <MerchantOfferHorizontalCard
+                              key={o.id}
+                              offer={o}
+                              merchantAvatarUrl={merchantAvatarUrl}
+                              merchantDisplayName={profile?.display_name}
+                              onToggleActive={() => void toggleOffer(o.id, o.status !== "active")}
+                              onDelete={() => void deleteOffer(o.id)}
+                              onQuickSave={quickSaveOffer}
+                            />
+                          ))}
+                        </OffersScrollList>
+                      );
+                    })()}
+                  </>
                 )}
               </>
             ) : (
