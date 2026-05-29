@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { merchantInitials, orderStatusHeadline, paymentMethodLabel } from "@/components/p2p/utils";
+import { expireStaleP2pOrders, isP2pOrderActive, P2P_CANCELLED_STATUSES } from "@/lib/p2pExpiry";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 import { formatFiat } from "@/lib/currencies";
 import { formatMoneyAmount } from "@/lib/formatMoney";
@@ -18,6 +19,7 @@ type InvestorTradeRow = {
   payment_method: string;
   fee_amount: number;
   created_at: string;
+  expires_at: string | null;
   merchant_user_id: string;
   merchant_display_name: string | null;
   fiat_currency_code: string | null;
@@ -39,6 +41,7 @@ function statusBadgeClass(status: string): string {
     case "completed":
       return "bg-emerald-500/15 text-emerald-200 ring-emerald-500/30";
     case "cancelled":
+    case "completed_expired":
       return "bg-red-500/12 text-red-200 ring-red-400/30";
     default:
       return "bg-white/10 text-zinc-300 ring-white/15";
@@ -74,10 +77,12 @@ export function InvestorMarketplaceActiveTrades({
       return;
     }
 
+    await expireStaleP2pOrders(supabase);
+
     let q = supabase
       .from("merchant_orders")
       .select(
-        "id, side, status, amount_requested, payment_method, fee_amount, created_at, merchant_user_id, fiat_currency_code, fiat_amount",
+        "id, side, status, amount_requested, payment_method, fee_amount, created_at, expires_at, merchant_user_id, fiat_currency_code, fiat_amount",
       )
       .eq("investor_user_id", user.id);
 
@@ -86,7 +91,7 @@ export function InvestorMarketplaceActiveTrades({
     } else if (bucket === "completed") {
       q = q.eq("status", "completed");
     } else {
-      q = q.eq("status", "cancelled");
+      q = q.in("status", [...P2P_CANCELLED_STATUSES]);
     }
 
     const { data: ord, error: qErr } = await q.order("created_at", { ascending: false });
@@ -122,13 +127,17 @@ export function InvestorMarketplaceActiveTrades({
       );
     }
 
-    const merged: InvestorTradeRow[] = ordersRaw.map((r) => ({
+    let merged: InvestorTradeRow[] = ordersRaw.map((r) => ({
       ...r,
       amount_requested: Number(r.amount_requested),
       fee_amount: Number(r.fee_amount ?? 0),
       fiat_amount: r.fiat_amount == null ? null : Number(r.fiat_amount),
       merchant_display_name: nameMap.get(r.merchant_user_id) ?? null,
     }));
+
+    if (bucket === "active") {
+      merged = merged.filter((r) => isP2pOrderActive(r.status, r.expires_at));
+    }
 
     setRows(merged);
     setLoading(false);

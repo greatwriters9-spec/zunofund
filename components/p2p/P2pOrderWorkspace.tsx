@@ -17,6 +17,7 @@ import {
   paymentMethodLabel,
 } from "@/components/p2p/utils";
 import { deriveTradePanels } from "@/components/p2p/deriveTradePanels";
+import { expireStaleP2pOrders } from "@/lib/p2pExpiry";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 import {
   createP2pProofSignedUrl,
@@ -136,14 +137,12 @@ export function P2pOrderWorkspace({
     const out: ChatMessage[] = [];
     const st = order.status;
 
-    if (st === "cancelled") {
-      out.push(
-        sys(
-          "sys-cancelled",
-          "Trade cancelled — do not send new funds unless you jointly coordinate here.",
-          "default",
-        ),
-      );
+    if (st === "cancelled" || st === "completed_expired") {
+      const body =
+        st === "completed_expired"
+          ? "Payment window expired — this trade was cancelled by the system. Do not send new funds."
+          : "Trade cancelled — do not send new funds unless you jointly coordinate here.";
+      out.push(sys("sys-cancelled", body, "default"));
       return out;
     }
 
@@ -194,6 +193,7 @@ export function P2pOrderWorkspace({
     if (user?.id) {
       const { data: adminFlag } = await supabase.rpc("is_admin", { check_uid: user.id });
       setIsAdminUser(Boolean(adminMode || adminFlag));
+      await expireStaleP2pOrders(supabase);
     } else {
       setIsAdminUser(adminMode);
     }
@@ -346,6 +346,33 @@ export function P2pOrderWorkspace({
     const t = window.setInterval(() => setTick((x) => x + 1), 1000);
     return () => window.clearInterval(t);
   }, []);
+
+  useEffect(() => {
+    if (!order || order.status !== "pending_payment") return;
+
+    const msLeft = new Date(order.expires_at).getTime() - Date.now();
+    let cancelled = false;
+
+    const runExpiry = () => {
+      void (async () => {
+        await expireStaleP2pOrders(supabase);
+        if (!cancelled) await load();
+      })();
+    };
+
+    if (msLeft <= 0) {
+      runExpiry();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const t = window.setTimeout(runExpiry, msLeft);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+    };
+  }, [order?.id, order?.status, order?.expires_at, load, supabase]);
 
   async function run(label: string, fn: () => Promise<{ error: unknown }>) {
     setBusy(label);
