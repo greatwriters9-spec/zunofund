@@ -47,28 +47,34 @@ const HEADER_ROW = `${STRIP_GRID} sticky top-0 z-10 border-b border-white/[0.14]
 
 const VALUE_TEXT = "text-[15px] font-semibold leading-snug text-zinc-100";
 
-/** Muted inset panel — matches strip background, not loud gold outlines. */
 const FIELD_BOX =
   "w-full rounded-xl border border-white/[0.055] bg-[#0a0e16]/90 px-3.5 py-2.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]";
 
-const FIELD_BOX_BTN = `${FIELD_BOX} transition duration-200 hover:border-white/[0.09] hover:bg-[#0c111a] disabled:opacity-50`;
+const FIELD_BOX_BTN = `${FIELD_BOX} touch-manipulation transition duration-200 hover:border-white/[0.09] hover:bg-[#0c111a] disabled:opacity-50`;
 
-const FIELD_INPUT = `${FIELD_BOX} text-[14px] font-semibold text-zinc-100 outline-none focus:border-white/[0.11] focus:bg-[#0c111a] focus:ring-1 focus:ring-white/[0.06]`;
+const FIELD_BOX_BTN_TOUCH = `${FIELD_BOX_BTN} min-h-[44px] py-3 lg:min-h-0 lg:py-2.5`;
+
+const FIELD_INPUT = `${FIELD_BOX} min-h-[44px] touch-manipulation text-[14px] font-semibold text-zinc-100 outline-none focus:border-white/[0.11] focus:bg-[#0c111a] focus:ring-1 focus:ring-white/[0.06] lg:min-h-0`;
 
 const CHIP_SOFT =
   "inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] ring-1";
+
+const MOBILE_TOUCH = "[&_button]:min-h-[44px] [&_button]:touch-manipulation [&_input]:min-h-[44px]";
 
 function StripValue({ children, className = "" }: { children: ReactNode; className?: string }) {
   return <div className={`flex min-w-0 items-center ${className}`}>{children}</div>;
 }
 
-function StripFieldBox({
-  children,
-  className = "",
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
+function MobileLabeledField({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className={`space-y-1.5 ${MOBILE_TOUCH}`}>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">{label}</p>
+      <div className="w-full min-w-0">{children}</div>
+    </div>
+  );
+}
+
+function StripFieldBox({ children, className = "" }: { children: ReactNode; className?: string }) {
   return <div className={`${FIELD_BOX} ${className}`}>{children}</div>;
 }
 
@@ -81,7 +87,6 @@ function parseMoneyToken(raw: string): number | null {
   return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
-/** Parse `USD (200-599)` or `KES (2,000-5,000)` when inline-editing limits. */
 export function parseOfferLimitDraft(
   draft: string,
   fallbackFiat: string,
@@ -109,7 +114,7 @@ function LimitBoxContent({ fiat, min, max }: { fiat: string; min: number; max: n
       <span className="shrink-0 text-[11px] font-bold uppercase tracking-[0.12em] text-zinc-500">
         {fiat.toUpperCase()}
       </span>
-      <span className={`min-w-0 truncate tabular-nums ${VALUE_TEXT}`}>
+      <span className={`min-w-0 break-words tabular-nums lg:truncate ${VALUE_TEXT}`}>
         ({formatMoneyAmount(min)}
         <span className="mx-1 font-normal text-zinc-500">–</span>
         {formatMoneyAmount(max)})
@@ -124,21 +129,23 @@ function IconBtn({
   href,
   tone,
   children,
+  className = "",
 }: {
   label: string;
   onClick?: () => void;
   href?: string;
   tone: "gold" | "green" | "red";
   children: ReactNode;
+  className?: string;
 }) {
   const toneCls =
     tone === "gold"
-      ? "text-[#D4AF37] hover:bg-[#D4AF37]/14 hover:text-[#F5E6B3]"
+      ? "text-[#D4AF37] hover:bg-[#D4AF37]/14 hover:text-[#F5E6B3] active:bg-[#D4AF37]/20"
       : tone === "green"
-        ? "text-emerald-400 hover:bg-emerald-500/18 hover:text-emerald-100"
-        : "text-red-400 hover:bg-red-500/14 hover:text-red-200";
+        ? "text-emerald-400 hover:bg-emerald-500/18 hover:text-emerald-100 active:bg-emerald-500/22"
+        : "text-red-400 hover:bg-red-500/14 hover:text-red-200 active:bg-red-500/20";
 
-  const cls = `inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.07] bg-[#0a0e16]/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition ${toneCls}`;
+  const cls = `inline-flex shrink-0 items-center justify-center rounded-xl border border-white/[0.07] bg-[#0a0e16]/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] touch-manipulation transition ${toneCls} ${className}`;
 
   if (href) {
     return (
@@ -155,22 +162,80 @@ function IconBtn({
   );
 }
 
+function OfferActionButtons({
+  offerId,
+  isActive,
+  onToggleActive,
+  onDelete,
+}: {
+  offerId: string;
+  isActive: boolean;
+  onToggleActive: () => void;
+  onDelete: () => void;
+}) {
+  const icon = "h-[18px] w-[18px]";
+  return (
+    <>
+      <div className="hidden items-center justify-end gap-2 lg:flex">
+        <IconBtn label="Edit listing" href={`/merchant/offers/${offerId}/edit`} tone="gold" className="h-10 w-10">
+          <Pencil className={icon} strokeWidth={2} aria-hidden />
+        </IconBtn>
+        <IconBtn
+          label={isActive ? "Pause listing" : "Activate listing"}
+          onClick={onToggleActive}
+          tone="green"
+          className="h-10 w-10"
+        >
+          <Power className={`${icon} ${isActive ? "" : "opacity-50"}`} strokeWidth={2} aria-hidden />
+        </IconBtn>
+        <IconBtn label="Delete listing" onClick={onDelete} tone="red" className="h-10 w-10">
+          <Trash2 className={icon} strokeWidth={2} aria-hidden />
+        </IconBtn>
+      </div>
+      <div className="grid grid-cols-3 gap-2 lg:hidden">
+        <IconBtn
+          label="Edit listing"
+          href={`/merchant/offers/${offerId}/edit`}
+          tone="gold"
+          className="h-11 w-full min-h-[44px]"
+        >
+          <Pencil className={icon} strokeWidth={2} aria-hidden />
+        </IconBtn>
+        <IconBtn
+          label={isActive ? "Pause listing" : "Activate listing"}
+          onClick={onToggleActive}
+          tone="green"
+          className="h-11 w-full min-h-[44px]"
+        >
+          <Power className={`${icon} ${isActive ? "" : "opacity-50"}`} strokeWidth={2} aria-hidden />
+        </IconBtn>
+        <IconBtn label="Delete listing" onClick={onDelete} tone="red" className="h-11 w-full min-h-[44px]">
+          <Trash2 className={icon} strokeWidth={2} aria-hidden />
+        </IconBtn>
+      </div>
+    </>
+  );
+}
+
 function EditableMetric({
   label,
   value,
   suffix,
   disabled,
   onCommit,
+  touchFriendly,
 }: {
   label: string;
   value: number;
   suffix?: string;
   disabled?: boolean;
   onCommit: (next: number) => Promise<void>;
+  touchFriendly?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(String(value));
   const [saving, setSaving] = useState(false);
+  const btnCls = touchFriendly ? FIELD_BOX_BTN_TOUCH : FIELD_BOX_BTN;
 
   useEffect(() => {
     if (!editing) setDraft(String(value));
@@ -198,7 +263,7 @@ function EditableMetric({
 
   if (editing) {
     return (
-      <StripValue>
+      <StripValue className="w-full">
         <input
           type="number"
           step="any"
@@ -222,13 +287,13 @@ function EditableMetric({
   }
 
   return (
-    <StripValue>
+    <StripValue className="w-full">
       <button
         type="button"
         disabled={disabled || saving}
         aria-label={`Edit ${label}`}
         onClick={() => setEditing(true)}
-        className={`${FIELD_BOX_BTN} min-w-0 truncate text-left tabular-nums ${VALUE_TEXT}`}
+        className={`${btnCls} min-w-0 truncate text-left tabular-nums ${VALUE_TEXT}`}
         title={`Tap to edit ${label.toLowerCase()}`}
       >
         {display}
@@ -242,17 +307,20 @@ function EditableLimit({
   min,
   max,
   onCommit,
+  touchFriendly,
 }: {
   fiat: string;
   min: number;
   max: number;
   onCommit: (next: { min: number; max: number }) => Promise<string | null>;
+  touchFriendly?: boolean;
 }) {
   const display = formatOfferLimitDisplay(fiat, min, max);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(display);
   const [saving, setSaving] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
+  const btnCls = touchFriendly ? FIELD_BOX_BTN_TOUCH : FIELD_BOX_BTN;
 
   useEffect(() => {
     if (!editing) setDraft(formatOfferLimitDisplay(fiat, min, max));
@@ -281,7 +349,7 @@ function EditableLimit({
 
   if (editing) {
     return (
-      <StripValue className="flex-col items-stretch gap-1.5">
+      <StripValue className="w-full flex-col items-stretch gap-1.5">
         <input
           type="text"
           autoFocus
@@ -310,13 +378,13 @@ function EditableLimit({
   }
 
   return (
-    <StripValue>
+    <StripValue className="w-full">
       <button
         type="button"
         disabled={saving}
         aria-label="Edit limit"
         onClick={() => setEditing(true)}
-        className={FIELD_BOX_BTN}
+        className={`${btnCls} w-full text-left`}
         title="Tap to edit limit"
       >
         <LimitBoxContent fiat={fiat} min={min} max={max} />
@@ -328,14 +396,17 @@ function EditableLimit({
 function EditableNote({
   value,
   onCommit,
+  touchFriendly,
 }: {
   value: string | null;
   onCommit: (next: string | null) => Promise<void>;
+  touchFriendly?: boolean;
 }) {
   const shown = value?.trim() ? value.trim().toUpperCase() : null;
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(shown ?? "");
   const [saving, setSaving] = useState(false);
+  const btnCls = touchFriendly ? FIELD_BOX_BTN_TOUCH : FIELD_BOX_BTN;
 
   useEffect(() => {
     if (!editing) setDraft(shown ?? "");
@@ -356,7 +427,7 @@ function EditableNote({
 
   if (editing) {
     return (
-      <StripValue>
+      <StripValue className="w-full">
         <input
           type="text"
           autoFocus
@@ -380,17 +451,17 @@ function EditableNote({
   }
 
   return (
-    <StripValue>
+    <StripValue className="w-full">
       <button
         type="button"
         disabled={saving}
         aria-label="Edit note"
         onClick={() => setEditing(true)}
-        className={FIELD_BOX_BTN}
+        className={`${btnCls} w-full text-left`}
         title="Tap to edit note"
       >
         <span
-          className={`block min-w-0 truncate text-[13px] font-semibold uppercase tracking-[0.06em] ${
+          className={`block min-w-0 text-[13px] font-semibold uppercase tracking-[0.06em] line-clamp-3 break-words lg:truncate lg:line-clamp-none ${
             shown ? "text-zinc-200" : "text-zinc-600"
           }`}
         >
@@ -401,10 +472,10 @@ function EditableNote({
   );
 }
 
-/** Column labels aligned to offer rows below. */
+/** Column labels — desktop strip only. */
 export function MerchantOffersStripHeader() {
   return (
-    <div className={HEADER_ROW} aria-hidden>
+    <div className={`${HEADER_ROW} hidden lg:grid`} aria-hidden>
       <span />
       <span className="min-w-0 truncate">Asset</span>
       <span className="min-w-0 truncate">Rate</span>
@@ -416,7 +487,6 @@ export function MerchantOffersStripHeader() {
   );
 }
 
-/** Full-width horizontal strip — one grid row per offer, columns aligned with the header. */
 export function MerchantOfferHorizontalCard({
   offer,
   merchantAvatarUrl,
@@ -453,77 +523,120 @@ export function MerchantOfferHorizontalCard({
     [offer, onQuickSave],
   );
 
+  const statusChip = (
+    <span
+      className={`${CHIP_SOFT} ${
+        isActive
+          ? "bg-emerald-500/22 text-emerald-50 ring-emerald-400/40"
+          : "bg-zinc-700/35 text-zinc-400 ring-zinc-600/50"
+      }`}
+    >
+      {offer.status}
+    </span>
+  );
+
+  const rateField = (
+    <EditableMetric
+      label="Rate"
+      value={offer.rate_percentage}
+      suffix="%"
+      touchFriendly
+      onCommit={async (n) => {
+        await persist({ rate_percentage: n });
+      }}
+    />
+  );
+
+  const limitField = (
+    <EditableLimit
+      fiat={fiat}
+      min={offer.min_limit}
+      max={offer.max_limit}
+      touchFriendly
+      onCommit={async ({ min, max }) => persist({ min_limit: min, max_limit: max })}
+    />
+  );
+
+  const payField = (
+    <StripFieldBox className="min-h-[44px] py-3 lg:min-h-0 lg:py-2.5">
+      <p
+        className="text-[13px] font-medium uppercase leading-snug tracking-[0.05em] text-zinc-300 lg:truncate"
+        title={methodsDisplay}
+      >
+        {methodsDisplay}
+      </p>
+    </StripFieldBox>
+  );
+
+  const noteField = (
+    <EditableNote
+      value={offer.advert_message}
+      touchFriendly
+      onCommit={async (advert_message) => {
+        await persist({ advert_message });
+      }}
+    />
+  );
+
+  const actions = (
+    <OfferActionButtons
+      offerId={offer.id}
+      isActive={isActive}
+      onToggleActive={onToggleActive}
+      onDelete={onDelete}
+    />
+  );
+
   return (
-    <article aria-label={`${asset} offer ${offer.status}`} className={STRIP_ROW}>
-      <MerchantOfferAvatar
-        avatarUrl={merchantAvatarUrl}
-        displayName={merchantDisplayName ?? asset}
-        size="md"
-        className="shrink-0"
-      />
+    <>
+      {/* Mobile: stacked card — no horizontal scroll, full-width tap targets */}
+      <article
+        aria-label={`${asset} offer ${offer.status}`}
+        className="flex flex-col gap-3.5 border-b border-white/[0.07] bg-[#070b12]/55 p-4 last:border-b-0 lg:hidden"
+      >
+        <div className="flex items-center gap-3">
+          <MerchantOfferAvatar
+            avatarUrl={merchantAvatarUrl}
+            displayName={merchantDisplayName ?? asset}
+            size="md"
+            className="shrink-0"
+          />
+          <div className="min-w-0 flex-1">
+            <p className="text-[16px] font-extrabold uppercase tracking-[0.08em] text-[#F5E6B3]">{asset}</p>
+            <div className="mt-1.5">{statusChip}</div>
+          </div>
+        </div>
 
-      <StripValue className="min-w-0 gap-2.5">
-        <p className={`shrink-0 text-[15px] font-extrabold uppercase tracking-[0.08em] text-[#F5E6B3]`}>{asset}</p>
-        <span
-          className={`${CHIP_SOFT} ${
-            isActive
-              ? "bg-emerald-500/22 text-emerald-50 ring-emerald-400/40"
-              : "bg-zinc-700/35 text-zinc-400 ring-zinc-600/50"
-          }`}
-        >
-          {offer.status}
-        </span>
-      </StripValue>
+        <div className={`grid grid-cols-1 gap-3 ${MOBILE_TOUCH}`}>
+          <MobileLabeledField label="Rate">{rateField}</MobileLabeledField>
+          <MobileLabeledField label="Limit">{limitField}</MobileLabeledField>
+          <MobileLabeledField label="Pay">{payField}</MobileLabeledField>
+          <MobileLabeledField label="Note">{noteField}</MobileLabeledField>
+        </div>
 
-      <EditableMetric
-        label="Rate"
-        value={offer.rate_percentage}
-        suffix="%"
-        onCommit={async (n) => {
-          await persist({ rate_percentage: n });
-        }}
-      />
+        {actions}
+      </article>
 
-      <EditableLimit
-        fiat={fiat}
-        min={offer.min_limit}
-        max={offer.max_limit}
-        onCommit={async ({ min, max }) => persist({ min_limit: min, max_limit: max })}
-      />
+      {/* Desktop: horizontal aligned strip */}
+      <article aria-label={`${asset} offer ${offer.status}`} className={`${STRIP_ROW} hidden lg:grid`}>
+        <MerchantOfferAvatar
+          avatarUrl={merchantAvatarUrl}
+          displayName={merchantDisplayName ?? asset}
+          size="md"
+          className="shrink-0"
+        />
 
-      <StripValue>
-        <StripFieldBox className="min-w-0">
-          <p
-            className="min-w-0 truncate text-[13px] font-medium uppercase tracking-[0.05em] text-zinc-300"
-            title={methodsDisplay}
-          >
-            {methodsDisplay}
-          </p>
-        </StripFieldBox>
-      </StripValue>
+        <StripValue className="min-w-0 gap-2.5">
+          <p className="shrink-0 text-[15px] font-extrabold uppercase tracking-[0.08em] text-[#F5E6B3]">{asset}</p>
+          {statusChip}
+        </StripValue>
 
-      <EditableNote
-        value={offer.advert_message}
-        onCommit={async (advert_message) => {
-          await persist({ advert_message });
-        }}
-      />
-
-      <div className="flex items-center justify-end gap-2">
-        <IconBtn label="Edit listing" href={`/merchant/offers/${offer.id}/edit`} tone="gold">
-          <Pencil className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
-        </IconBtn>
-        <IconBtn
-          label={isActive ? "Pause listing" : "Activate listing"}
-          onClick={onToggleActive}
-          tone="green"
-        >
-          <Power className={`h-[18px] w-[18px] ${isActive ? "" : "opacity-50"}`} strokeWidth={2} aria-hidden />
-        </IconBtn>
-        <IconBtn label="Delete listing" onClick={onDelete} tone="red">
-          <Trash2 className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
-        </IconBtn>
-      </div>
-    </article>
+        {rateField}
+        {limitField}
+        <StripValue>{payField}</StripValue>
+        {noteField}
+        {actions}
+      </article>
+    </>
   );
 }

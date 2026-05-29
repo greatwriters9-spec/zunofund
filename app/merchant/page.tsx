@@ -451,7 +451,7 @@ export default function MerchantDashboardPage() {
 
         <section>
           <div
-            className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap"
+            className="mb-4 grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:items-center sm:flex-wrap sm:gap-3"
             role="tablist"
             aria-label="Console listings and trades"
           >
@@ -459,7 +459,7 @@ export default function MerchantDashboardPage() {
               type="button"
               role="tab"
               aria-selected={mainTab === "offers"}
-              className={`relative flex-1 rounded-xl border px-4 py-2.5 text-center text-[11px] font-bold uppercase tracking-[0.14em] transition sm:flex-none sm:min-w-[11rem] sm:py-3 sm:text-[12px] ${
+              className={`relative min-h-[44px] w-full touch-manipulation rounded-xl border px-4 py-2.5 text-center text-[11px] font-bold uppercase tracking-[0.14em] transition sm:flex-none sm:min-w-[11rem] sm:py-3 sm:text-[12px] ${
                 mainTab === "offers"
                   ? "border-[#D4AF37]/55 bg-black/55 text-[#F5E6B3] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ring-1 ring-emerald-500/20"
                   : "border-white/12 bg-black/28 text-zinc-500 hover:border-[#D4AF37]/30 hover:text-zinc-300"
@@ -472,7 +472,7 @@ export default function MerchantDashboardPage() {
               type="button"
               role="tab"
               aria-selected={mainTab === "active"}
-              className={`relative flex-1 rounded-xl border px-4 py-2.5 text-center text-[11px] font-bold uppercase tracking-[0.14em] transition sm:flex-none sm:min-w-[11rem] sm:py-3 sm:text-[12px] ${
+              className={`relative min-h-[44px] w-full touch-manipulation rounded-xl border px-4 py-2.5 text-center text-[11px] font-bold uppercase tracking-[0.14em] transition sm:flex-none sm:min-w-[11rem] sm:py-3 sm:text-[12px] ${
                 mainTab === "active"
                   ? "border-[#D4AF37]/55 bg-black/55 text-[#F5E6B3] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ring-1 ring-emerald-500/20"
                   : "border-white/12 bg-black/28 text-zinc-500 hover:border-[#D4AF37]/30 hover:text-zinc-300"
@@ -497,7 +497,7 @@ export default function MerchantDashboardPage() {
                 ) : (
                   <>
                     <div
-                      className="mb-3 flex gap-2"
+                      className="mb-3 grid grid-cols-2 gap-2 sm:flex sm:gap-2"
                       role="tablist"
                       aria-label="Buy and sell listings"
                     >
@@ -531,7 +531,7 @@ export default function MerchantDashboardPage() {
                             role="tab"
                             aria-selected={selected}
                             onClick={() => setOfferSideTab(id)}
-                            className={`flex-1 rounded-xl border px-3 py-2.5 text-center text-[10px] font-bold uppercase tracking-[0.12em] transition duration-200 sm:flex-none sm:min-w-[9.5rem] sm:text-[11px] ${sideTabCls}`}
+                            className={`min-h-[44px] w-full touch-manipulation rounded-xl border px-3 py-2.5 text-center text-[10px] font-bold uppercase tracking-[0.12em] transition duration-200 sm:flex-none sm:min-w-[9.5rem] sm:text-[11px] ${sideTabCls}`}
                           >
                             {label}
                             <span className={`ml-1.5 tabular-nums ${countCls}`}>({count})</span>

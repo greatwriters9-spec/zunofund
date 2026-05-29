@@ -21,7 +21,7 @@ export function OffersScrollList({ children, className = "", stripLayout = false
           stripLayout ? "overflow-x-auto overflow-y-auto" : "overflow-x-hidden overflow-y-auto"
         }`}
       >
-        {stripLayout ? <div className="w-full min-w-[44rem]">{children}</div> : children}
+        {stripLayout ? <div className="w-full min-w-0 lg:min-w-[44rem]">{children}</div> : children}
       </div>
     </div>
   );
