@@ -461,9 +461,9 @@ function EditableNote({
         title="Tap to edit note"
       >
         <span
-          className={`block min-w-0 text-[13px] font-semibold uppercase tracking-[0.06em] line-clamp-3 break-words lg:truncate lg:line-clamp-none ${
-            shown ? "text-zinc-200" : "text-zinc-600"
-          }`}
+          className={`block min-w-0 text-[13px] font-semibold uppercase tracking-[0.06em] ${
+            touchFriendly ? "line-clamp-3 break-words" : "truncate"
+          } ${shown ? "text-zinc-200" : "text-zinc-600"}`}
         >
           {shown || "—"}
         </span>
@@ -535,32 +535,49 @@ export function MerchantOfferHorizontalCard({
     </span>
   );
 
-  const rateField = (
-    <EditableMetric
-      label="Rate"
-      value={offer.rate_percentage}
-      suffix="%"
-      touchFriendly
-      onCommit={async (n) => {
-        await persist({ rate_percentage: n });
-      }}
-    />
+  const onRateCommit = async (n: number) => {
+    await persist({ rate_percentage: n });
+  };
+  const onLimitCommit = async ({ min, max }: { min: number; max: number }) =>
+    persist({ min_limit: min, max_limit: max });
+  const onNoteCommit = async (advert_message: string | null) => {
+    await persist({ advert_message });
+  };
+
+  const rateFieldMobile = (
+    <EditableMetric label="Rate" value={offer.rate_percentage} suffix="%" touchFriendly onCommit={onRateCommit} />
+  );
+  const rateFieldDesktop = (
+    <EditableMetric label="Rate" value={offer.rate_percentage} suffix="%" onCommit={onRateCommit} />
   );
 
-  const limitField = (
+  const limitFieldMobile = (
     <EditableLimit
       fiat={fiat}
       min={offer.min_limit}
       max={offer.max_limit}
       touchFriendly
-      onCommit={async ({ min, max }) => persist({ min_limit: min, max_limit: max })}
+      onCommit={onLimitCommit}
     />
   );
+  const limitFieldDesktop = (
+    <EditableLimit fiat={fiat} min={offer.min_limit} max={offer.max_limit} onCommit={onLimitCommit} />
+  );
 
-  const payField = (
-    <StripFieldBox className="min-h-[44px] py-3 lg:min-h-0 lg:py-2.5">
+  const payFieldMobile = (
+    <StripFieldBox className="min-h-[44px] py-3">
       <p
-        className="text-[13px] font-medium uppercase leading-snug tracking-[0.05em] text-zinc-300 lg:truncate"
+        className="text-[13px] font-medium uppercase leading-snug tracking-[0.05em] text-zinc-300"
+        title={methodsDisplay}
+      >
+        {methodsDisplay}
+      </p>
+    </StripFieldBox>
+  );
+  const payFieldDesktop = (
+    <StripFieldBox>
+      <p
+        className="min-w-0 truncate text-[13px] font-medium uppercase tracking-[0.05em] text-zinc-300"
         title={methodsDisplay}
       >
         {methodsDisplay}
@@ -568,15 +585,8 @@ export function MerchantOfferHorizontalCard({
     </StripFieldBox>
   );
 
-  const noteField = (
-    <EditableNote
-      value={offer.advert_message}
-      touchFriendly
-      onCommit={async (advert_message) => {
-        await persist({ advert_message });
-      }}
-    />
-  );
+  const noteFieldMobile = <EditableNote value={offer.advert_message} touchFriendly onCommit={onNoteCommit} />;
+  const noteFieldDesktop = <EditableNote value={offer.advert_message} onCommit={onNoteCommit} />;
 
   const actions = (
     <OfferActionButtons
@@ -608,10 +618,10 @@ export function MerchantOfferHorizontalCard({
         </div>
 
         <div className={`grid grid-cols-1 gap-3 ${MOBILE_TOUCH}`}>
-          <MobileLabeledField label="Rate">{rateField}</MobileLabeledField>
-          <MobileLabeledField label="Limit">{limitField}</MobileLabeledField>
-          <MobileLabeledField label="Pay">{payField}</MobileLabeledField>
-          <MobileLabeledField label="Note">{noteField}</MobileLabeledField>
+          <MobileLabeledField label="Rate">{rateFieldMobile}</MobileLabeledField>
+          <MobileLabeledField label="Limit">{limitFieldMobile}</MobileLabeledField>
+          <MobileLabeledField label="Pay">{payFieldMobile}</MobileLabeledField>
+          <MobileLabeledField label="Note">{noteFieldMobile}</MobileLabeledField>
         </div>
 
         {actions}
@@ -631,10 +641,10 @@ export function MerchantOfferHorizontalCard({
           {statusChip}
         </StripValue>
 
-        {rateField}
-        {limitField}
-        <StripValue>{payField}</StripValue>
-        {noteField}
+        {rateFieldDesktop}
+        {limitFieldDesktop}
+        <StripValue>{payFieldDesktop}</StripValue>
+        {noteFieldDesktop}
         {actions}
       </article>
     </>
