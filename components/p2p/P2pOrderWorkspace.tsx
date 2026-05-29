@@ -23,6 +23,7 @@ import {
   createP2pProofSignedUrl,
   uploadP2pPaymentProof,
 } from "@/lib/supabase/p2pProofs";
+import { formatInvestorPresence } from "@/lib/investorPresence";
 import {
   formatMerchantPresence,
   isMerchantEffectivelyOnline,
@@ -90,6 +91,10 @@ export function P2pOrderWorkspace({
     is_online: boolean | null;
     last_seen_at: string | null;
     presence_mode: MerchantPresenceMode;
+  } | null>(null);
+  const [investorPresence, setInvestorPresence] = useState<{
+    is_online: boolean | null;
+    last_seen_at: string | null;
   } | null>(null);
 
   const tradePanelsDerived = useMemo(() => {
@@ -213,6 +218,7 @@ export function P2pOrderWorkspace({
       setOrder(null);
       setMerchantListingName(null);
       setMerchantPresence(null);
+      setInvestorPresence(null);
       return;
     }
 
@@ -221,6 +227,7 @@ export function P2pOrderWorkspace({
       setError(null);
       setMerchantListingName(null);
       setMerchantPresence(null);
+      setInvestorPresence(null);
       return;
     }
 
@@ -264,9 +271,63 @@ export function P2pOrderWorkspace({
     setError(null);
   }, [id, supabase]);
 
+  const refreshMerchantPresence = useCallback(async () => {
+    if (!order?.merchant_user_id) return;
+    const { data: mpRow } = await supabase
+      .from("merchant_profiles")
+      .select("is_online, last_seen_at, presence_mode")
+      .eq("user_id", order.merchant_user_id)
+      .maybeSingle();
+    const row = mpRow as {
+      is_online: boolean | null;
+      last_seen_at: string | null;
+      presence_mode: MerchantPresenceMode | null;
+    } | null;
+    if (!row) return;
+    setMerchantPresence({
+      is_online: row.is_online,
+      last_seen_at: row.last_seen_at,
+      presence_mode: row.presence_mode ?? "auto",
+    });
+  }, [order?.merchant_user_id, supabase]);
+
+  const refreshInvestorPresence = useCallback(async () => {
+    if (!id?.trim()) return;
+    const { data, error: presErr } = await supabase.rpc("merchant_get_order_investor_presence", {
+      p_order_id: id,
+    });
+    if (presErr) return;
+    const row = Array.isArray(data) ? data[0] : data;
+    if (!row) {
+      setInvestorPresence(null);
+      return;
+    }
+    setInvestorPresence({
+      is_online: Boolean((row as { is_online?: boolean }).is_online),
+      last_seen_at: (row as { last_seen_at?: string | null }).last_seen_at ?? null,
+    });
+  }, [id, supabase]);
+
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!order) return;
+    const t = window.setInterval(() => {
+      if (userId === order.merchant_user_id) {
+        void refreshInvestorPresence();
+      } else if (userId === order.investor_user_id) {
+        void refreshMerchantPresence();
+      }
+    }, 30_000);
+    return () => window.clearInterval(t);
+  }, [order, refreshInvestorPresence, refreshMerchantPresence, userId]);
+
+  useEffect(() => {
+    if (!order || userId !== order.merchant_user_id) return;
+    void refreshInvestorPresence();
+  }, [order, refreshInvestorPresence, userId]);
 
   useEffect(() => {
     setServerMessages([]);
@@ -709,6 +770,10 @@ export function P2pOrderWorkspace({
     merchantPresence?.last_seen_at,
     merchantPresence?.presence_mode,
   );
+  const investorPresenceUi = formatInvestorPresence(
+    investorPresence?.is_online,
+    investorPresence?.last_seen_at,
+  );
   // Whoever is sending fiat (investor in sell_usdt, merchant in buy_usdt)
   // needs the fiat amount — not the USDT side. Snapshot was locked at open.
   const orderFiatCcy = (order.fiat_currency_code ?? "USD") || "USD";
@@ -1032,7 +1097,23 @@ export function P2pOrderWorkspace({
                       />
                       {merchantPresenceLabel}
                     </p>
-                  ) : null}
+                  ) : (
+                    <p
+                      className={`mt-0.5 flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wide ${
+                        investorPresenceUi.online ? "text-emerald-300" : "text-yellow-300"
+                      }`}
+                    >
+                      <span
+                        className={`h-2 w-2 rounded-full ${
+                          investorPresenceUi.online
+                            ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.75)]"
+                            : "bg-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.65)]"
+                        }`}
+                        aria-hidden
+                      />
+                      {investorPresenceUi.primary}
+                    </p>
+                  )}
                 </div>
               </div>
 
