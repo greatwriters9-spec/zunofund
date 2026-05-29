@@ -10,7 +10,6 @@ import {
   Bell,
 } from "lucide-react";
 
-import { formatUsdAmountsInText } from "@/lib/formatMoney";
 import { useSupabase, formatSupabaseError } from "@/lib/supabase";
 
 interface Ticket {
@@ -293,7 +292,9 @@ export default function AdminSupportPage() {
                           </h3>
 
                           <p className="text-gray-400 text-sm mb-2">
-                            {formatUsdAmountsInText(notification.message)}
+                            {
+                              notification.message
+                            }
                           </p>
 
                           <p className="text-gray-600 text-xs">

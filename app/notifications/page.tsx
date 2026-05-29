@@ -13,7 +13,6 @@ import {
   ShieldAlert,
 } from "lucide-react";
 
-import { formatUsdAmountsInText } from "@/lib/formatMoney";
 import { coerceRpcBigint, formatSupabaseError, useSupabase } from "@/lib/supabase";
 import { notificationsOwnerOrFilter } from "@/lib/notificationQuery";
 
@@ -381,7 +380,7 @@ export default function NotificationsPage() {
                         {(notification.type || "update").replace(/-/g, " ")}
                       </p>
                       <p className="mt-2 text-sm leading-snug text-zinc-400">
-                        {formatUsdAmountsInText(notification.message)}
+                        {notification.message}
                       </p>
                     </div>
                   </div>

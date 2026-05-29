@@ -1,7 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 
 import { getEmailBrandWithPlatformContact } from "@/lib/email/brandWithPlatformContact";
-import { formatUsdAmountsInText } from "@/lib/formatMoney";
 import { siteOriginFromRequest } from "@/lib/email/request-origin";
 import { buildZunoEmailHtml } from "@/lib/email/zuno-layout";
 import { getSupabaseUrl } from "@/lib/supabase/env";
@@ -216,11 +215,10 @@ export async function POST(request: Request) {
       typeof record.title === "string"
         ? record.title
         : "Account notification";
-    const bodyMsg = formatUsdAmountsInText(
+    const bodyMsg =
       typeof record.message === "string"
         ? record.message
-        : "You have a new notification in-app.",
-    );
+        : "You have a new notification in-app.";
     const notifType =
       typeof record.type === "string" ? record.type : "notification";
 
@@ -296,11 +294,10 @@ export async function POST(request: Request) {
       typeof record.title === "string"
         ? record.title
         : "Admin desk alert";
-    const bodyMsg = formatUsdAmountsInText(
+    const bodyMsg =
       typeof record.message === "string"
         ? record.message
-        : "Open the Admin panel for details.",
-    );
+        : "Open the Admin panel for details.";
     const notifType =
       typeof record.type === "string" ? record.type : "admin";
 

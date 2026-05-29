@@ -26,7 +26,6 @@ import type { ProfitChartDatum } from "@/components/dashboard/ProfitGrowthChart"
 import {
   formatMoneyAmount,
   formatSignedUsdAmount,
-  formatUsdAmountsInText,
   formatUsdLocale,
 } from "@/lib/formatMoney";
 import { coerceRpcBigint, formatSupabaseError, useSupabase } from "@/lib/supabase";
@@ -648,7 +647,7 @@ export default function DashboardPage() {
                             />
                           </div>
                           <p className="mt-1 line-clamp-2 text-xs leading-snug text-zinc-500">
-                            {formatUsdAmountsInText(notification.message)}
+                            {notification.message}
                           </p>
                           <p className="mt-2 text-[11px] tabular-nums text-zinc-600">
                             {new Date(notification.created_at).toLocaleString()}
@@ -1073,7 +1072,7 @@ export default function DashboardPage() {
                         />
                       </div>
                       <p className="mt-1 line-clamp-2 text-xs leading-snug text-zinc-500">
-                        {formatUsdAmountsInText(notification.message)}
+                        {notification.message}
                       </p>
                     </button>
                   ))}
