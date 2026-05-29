@@ -13,12 +13,7 @@ import type { MerchantOrderCard } from "@/components/merchant/merchantOrderTypes
 import { MerchantTradesList } from "@/components/merchant/MerchantTradesList";
 import { fetchMerchantOrdersWithInvestors } from "@/components/merchant/useMerchantOrders";
 import { useMerchantPresenceLive } from "@/hooks/useMerchantPresenceLive";
-import {
-  merchantPresenceUi,
-  setMerchantPresenceMode,
-  syncMerchantPresence,
-  type MerchantPresenceMode,
-} from "@/lib/merchantPresence";
+import { merchantPresenceUi, syncMerchantPresence } from "@/lib/merchantPresence";
 import { expireStaleP2pOrders, P2P_CANCELLED_STATUSES } from "@/lib/p2pExpiry";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 
@@ -29,7 +24,6 @@ type Profile = {
   status: string;
   is_online: boolean | null;
   last_seen_at: string | null;
-  presence_mode: MerchantPresenceMode | null;
 };
 
 function normalizeMerchantOfferRows(raw: unknown): MerchantOfferHorizontalRow[] {
@@ -81,7 +75,6 @@ export default function MerchantDashboardPage() {
   const [activeOrdersError, setActiveOrdersError] = useState<string | null>(null);
   const [mainTab, setMainTab] = useState<MerchantMainTab>("offers");
   const [error, setError] = useState<string | null>(null);
-  const [presenceBusy, setPresenceBusy] = useState(false);
   const liveOnPage = useMerchantPresenceLive();
 
   const load = useCallback(async () => {
@@ -98,7 +91,7 @@ export default function MerchantDashboardPage() {
 
     const profStatus = await supabase
       .from("merchant_profiles")
-      .select("user_id, display_name, status, is_online, last_seen_at, presence_mode")
+      .select("user_id, display_name, status, is_online, last_seen_at")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -108,7 +101,7 @@ export default function MerchantDashboardPage() {
       await syncMerchantPresence(supabase, true);
       const { data: refreshed } = await supabase
         .from("merchant_profiles")
-        .select("user_id, display_name, status, is_online, last_seen_at, presence_mode")
+        .select("user_id, display_name, status, is_online, last_seen_at")
         .eq("user_id", user.id)
         .maybeSingle();
       if (refreshed) prof = refreshed as Profile;
@@ -287,24 +280,11 @@ export default function MerchantDashboardPage() {
       </>
     ));
   } else {
-    const presenceMode = profile.presence_mode ?? "auto";
     const { showOnline: merchantOnline, label: presenceLabel } = merchantPresenceUi(
       liveOnPage,
       profile.is_online,
       profile.last_seen_at,
-      presenceMode,
     );
-
-    async function setManualPresence(mode: "manual_online" | "manual_offline") {
-      setPresenceBusy(true);
-      const { error: presErr } = await setMerchantPresenceMode(supabase, mode);
-      setPresenceBusy(false);
-      if (presErr) {
-        setError(presErr);
-        return;
-      }
-      void load();
-    }
 
     body = (
       <>
@@ -331,28 +311,9 @@ export default function MerchantDashboardPage() {
             />
             {presenceLabel}
           </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              type="button"
-              disabled={presenceBusy || presenceMode === "manual_online"}
-              onClick={() => void setManualPresence("manual_online")}
-              className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Online
-            </button>
-            <button
-              type="button"
-              disabled={presenceBusy || presenceMode === "manual_offline"}
-              onClick={() => void setManualPresence("manual_offline")}
-              className="rounded-xl border border-white/15 bg-black/40 px-4 py-2 text-xs font-bold uppercase tracking-wide text-zinc-200 transition hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Offline
-            </button>
-          </div>
-          <p className="mt-3 text-xs text-zinc-500">
-            Press <strong className="text-zinc-300">Online</strong> to stay visible to investors even when
-            you are away. Press <strong className="text-zinc-300">Offline</strong> to hide. While neither
-            manual mode is set, you go online automatically on this console or an open P2P trade tab.
+          <p className="mt-2 text-xs text-zinc-500">
+            You show as online automatically while the merchant console or an active P2P trade is open in
+            this browser. Close the tab or leave those pages to go offline.
           </p>
         </div>
 
