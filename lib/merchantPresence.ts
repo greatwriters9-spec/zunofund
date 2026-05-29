@@ -1,10 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-/** How long after the last presence ping a merchant still shows as online (when not on page). */
+/** How long after the last presence ping a merchant still shows as online (auto mode). */
 export const MERCHANT_PRESENCE_STALE_MS = 5 * 60 * 1000;
 
 /** Ping interval while merchant console / trade page is open. */
 export const MERCHANT_PRESENCE_HEARTBEAT_MS = 60 * 1000;
+
+export type MerchantPresenceMode = "auto" | "manual_online" | "manual_offline";
 
 export function isMerchantPresencePath(pathname: string | null): boolean {
   if (!pathname) return false;
@@ -19,10 +21,23 @@ export async function syncMerchantPresence(
   return { error: error ? error.message : null };
 }
 
+export async function setMerchantPresenceMode(
+  supabase: SupabaseClient,
+  mode: "manual_online" | "manual_offline",
+): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc("merchant_set_presence_mode", { p_mode: mode });
+  return { error: error ? error.message : null };
+}
+
 export function isMerchantEffectivelyOnline(
   isOnline: boolean | null | undefined,
   lastSeenAt: string | null | undefined,
+  presenceMode?: MerchantPresenceMode | string | null,
 ): boolean {
+  const mode = (presenceMode ?? "auto") as MerchantPresenceMode;
+  if (mode === "manual_online") return Boolean(isOnline);
+  if (mode === "manual_offline") return false;
+
   if (!isOnline) return false;
   if (!lastSeenAt) return false;
   const seenMs = new Date(lastSeenAt).getTime();
@@ -62,16 +77,18 @@ function lastSeenClock(lastSeenAt: string): string {
 export function formatMerchantPresence(
   isOnline: boolean | null | undefined,
   lastSeenAt: string | null | undefined,
+  presenceMode?: MerchantPresenceMode | string | null,
 ): string {
-  return formatInvestorMerchantPresence(isOnline, lastSeenAt).primary;
+  return formatInvestorMerchantPresence(isOnline, lastSeenAt, presenceMode).primary;
 }
 
-/** P2P marketplace offer cards — Online only when flag + fresh heartbeat; otherwise last seen + clock. */
+/** P2P marketplace offer cards — Online only when effectively online; manual online skips last seen. */
 export function formatInvestorMerchantPresence(
   isOnline: boolean | null | undefined,
   lastSeenAt: string | null | undefined,
+  presenceMode?: MerchantPresenceMode | string | null,
 ): { online: boolean; primary: string; secondary: string | null } {
-  if (isMerchantEffectivelyOnline(isOnline, lastSeenAt)) {
+  if (isMerchantEffectivelyOnline(isOnline, lastSeenAt, presenceMode)) {
     return { online: true, primary: "Online", secondary: null };
   }
 
@@ -88,17 +105,25 @@ export function formatInvestorMerchantPresence(
   };
 }
 
-/** Merchant UI: on-page = always Online; away = last seen from DB. */
+/** Merchant UI: on-page = always Online; away = last seen from DB unless manual online. */
 export function merchantPresenceUi(
   liveOnPage: boolean,
   isOnline: boolean | null | undefined,
   lastSeenAt: string | null | undefined,
+  presenceMode?: MerchantPresenceMode | string | null,
 ): { showOnline: boolean; label: string } {
+  const mode = (presenceMode ?? "auto") as MerchantPresenceMode;
+  if (mode === "manual_online") {
+    return { showOnline: true, label: "Online (manual)" };
+  }
+  if (mode === "manual_offline") {
+    return { showOnline: false, label: "Offline (manual)" };
+  }
   if (liveOnPage) {
     return { showOnline: true, label: "Online" };
   }
   return {
-    showOnline: isMerchantEffectivelyOnline(isOnline, lastSeenAt),
-    label: formatMerchantPresence(isOnline, lastSeenAt),
+    showOnline: isMerchantEffectivelyOnline(isOnline, lastSeenAt, presenceMode),
+    label: formatMerchantPresence(isOnline, lastSeenAt, presenceMode),
   };
 }

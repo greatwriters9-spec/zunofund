@@ -20,6 +20,7 @@ export type OfferCardRow = {
   merchant_display_name: string | null;
   merchant_is_online?: boolean | null;
   merchant_last_seen_at?: string | null;
+  merchant_presence_mode?: string | null;
   side: string;
   payment_methods: string[];
   min_limit: number;
@@ -71,6 +72,7 @@ export function OfferCard({
   const presence = formatInvestorMerchantPresence(
     row.merchant_is_online,
     row.merchant_last_seen_at,
+    row.merchant_presence_mode,
   );
   const { rates } = useFxRates();
   const offerAsset = assetFromOfferSide(row.side);
