@@ -1,14 +1,16 @@
 "use client";
 
+import { ArrowDown, ArrowUp } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { assetFromOfferSide, fmtAssetAmount, type P2pAssetCode } from "@/lib/p2pAssets";
-import { formatFiat, getFiatCurrency } from "@/lib/currencies";
+import { formatFiat } from "@/lib/currencies";
 import {
   clampFiatToLimits,
-  cryptoToFiat,
   fiatToCrypto,
+  formatOfferUnitPriceAmount,
   inputToOfferFiat,
+  offerFiatPerOneCrypto,
 } from "@/lib/p2pValue";
 import { useFxRates } from "@/lib/useFx";
 import { formatInvestorMerchantPresence } from "@/lib/merchantPresence";
@@ -43,20 +45,133 @@ type OfferCardProps = {
   onTrade: () => void;
 };
 
-function PayReceiveCol({
-  top,
-  value,
-  sub,
+function RateVsMpBadge({ ratePct }: { ratePct: number }) {
+  const absPct = Math.abs(ratePct).toLocaleString(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+  const aboveMp = ratePct >= 0;
+  const signed = aboveMp ? `+${absPct}%` : `-${absPct}%`;
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold tabular-nums ring-1 max-md:px-1 max-md:py-0 max-md:text-[8px] ${
+        aboveMp
+          ? "bg-emerald-500/15 text-emerald-200 ring-emerald-400/35"
+          : "bg-orange-500/15 text-orange-200 ring-orange-400/35"
+      }`}
+      title={aboveMp ? "Above market price" : "Below market price"}
+    >
+      {aboveMp ? (
+        <ArrowUp className="h-3 w-3 shrink-0" strokeWidth={2.5} aria-hidden />
+      ) : (
+        <ArrowDown className="h-3 w-3 shrink-0" strokeWidth={2.5} aria-hidden />
+      )}
+      <span>{signed}</span>
+      <span className="text-[9px] font-semibold uppercase tracking-wide opacity-90 max-md:hidden">
+        {aboveMp ? "above MP" : "below MP"}
+      </span>
+    </span>
+  );
+}
+
+function OfferUnitPrice({
+  fiatPerCrypto,
+  fiatCode,
+  asset,
 }: {
-  top: ReactNode;
-  value: ReactNode;
+  fiatPerCrypto: number;
+  fiatCode: string;
+  asset: P2pAssetCode;
+}) {
+  const main = formatOfferUnitPriceAmount(fiatPerCrypto, fiatCode);
+  const fiatLabel = fiatCode.toLowerCase();
+
+  return (
+    <span
+      className="inline-flex w-fit shrink-0 items-baseline gap-0.5 rounded-md border border-white/[0.06] bg-[#0a0e16]/80 px-2 py-1 tabular-nums shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-white/[0.04] max-md:px-1.5 max-md:py-0.5"
+      title={`${main} ${fiatCode} per 1 ${asset}`}
+    >
+      <span className="text-[17px] font-bold leading-none tracking-tight text-white max-md:text-[12px]">
+        {main}
+      </span>
+      <span className="pb-px text-[10px] font-semibold uppercase tracking-wide text-zinc-500 max-md:text-[8px]">
+        /{fiatLabel}
+      </span>
+    </span>
+  );
+}
+
+function formatPaymentMethodsCompact(methods: string[]): { display: string; title: string } {
+  const labels = methods.map((c) => paymentMethodLabelCaps(c)).filter(Boolean);
+  if (labels.length === 0) {
+    return { display: "—", title: "" };
+  }
+  const title = labels.join(" · ");
+  if (labels.length <= 2) {
+    return { display: labels.join(" · "), title };
+  }
+  const rest = labels.length - 2;
+  return {
+    display: `${labels.slice(0, 2).join(" · ")} · +${rest} other${rest === 1 ? "" : "s"}`,
+    title,
+  };
+}
+
+const DETAIL_LABEL =
+  "text-[10px] font-semibold uppercase tracking-[0.12em] leading-[15px] text-zinc-500 max-md:text-[8px] max-md:tracking-[0.08em] max-md:leading-none";
+
+/** Mobile: same left-to-right zones as desktop (note hidden). */
+const OFFER_MOBILE_GRID_CLASS =
+  "grid grid-cols-[minmax(0,1.32fr)_minmax(0,1.02fr)_minmax(0,0.7fr)_minmax(0,0.7fr)_3.35rem] items-start gap-x-1.5 gap-y-0 py-3 text-[11px]";
+
+/** Desktop columns: merchant | note (fixed) | payment | pay | receive | gap | action */
+export const OFFER_ROW_GRID_CLASS =
+  "md:grid-cols-[minmax(0,19rem)_10rem_11.25rem_8rem_8rem_minmax(5.5rem,1.5fr)_9.5rem] md:items-start md:gap-x-0 md:py-4 md:text-[13px]";
+
+const PAYMENT_METHOD_CLASS =
+  "text-[14px] font-extrabold uppercase leading-snug tracking-[0.04em] text-white line-clamp-3 break-words max-md:text-[10px] max-md:font-bold max-md:leading-tight max-md:line-clamp-2";
+
+const DETAIL_GAP = "md:pl-4";
+
+const AMOUNT_VALUE_CLASS =
+  "tabular-nums text-[15px] font-bold leading-tight tracking-tight text-white max-md:text-[11px] max-md:font-semibold";
+
+const TRADE_BTN_CLASS =
+  "inline-flex w-full items-center justify-center gap-1 rounded-xl px-2 py-2 text-center font-extrabold uppercase tracking-wide text-white transition disabled:pointer-events-none disabled:opacity-40 max-md:min-h-[2.125rem] max-md:flex-col max-md:gap-0 max-md:rounded-lg max-md:py-1.5 max-md:text-[8px] max-md:leading-tight md:min-h-[44px] md:flex-row md:gap-1 md:rounded-xl md:px-4 md:py-2.5 md:text-[12px] md:max-w-[9.5rem]";
+
+const NOTE_BOX_CLASS =
+  "mt-1.5 flex min-h-[2.75rem] items-center justify-center rounded-lg border border-[#D4AF37]/22 bg-[#D4AF37]/10 px-2.5 py-2 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] ring-1 ring-[#D4AF37]/18 md:min-h-[3rem]";
+
+function OfferDetailCol({
+  label,
+  mobileLabel,
+  children,
+  sub,
+  className = "",
+}: {
+  label: string;
+  mobileLabel?: string;
+  children: ReactNode;
   sub?: ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="min-w-[7rem] shrink-0" role="group">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500">{top}</p>
-      <p className="mt-1 tabular-nums text-[15px] font-bold leading-tight tracking-tight text-white">{value}</p>
-      {sub ? <div className="mt-1 text-[10px] leading-snug text-zinc-500">{sub}</div> : null}
+    <div className={`flex min-w-0 flex-col items-start ${className}`} role="group">
+      <p className={DETAIL_LABEL}>
+        {mobileLabel ? (
+          <>
+            <span className="md:hidden">{mobileLabel}</span>
+            <span className="hidden md:inline">{label}</span>
+          </>
+        ) : (
+          label
+        )}
+      </p>
+      <div className="mt-1.5 w-full min-w-0 max-md:mt-0.5">{children}</div>
+      {sub ? (
+        <p className="mt-1 max-w-full text-[10px] leading-snug text-zinc-500 max-md:hidden">{sub}</p>
+      ) : null}
     </div>
   );
 }
@@ -95,49 +210,47 @@ export function OfferCard({
   const rateFactor = 1 + ratePct / 100;
   const sellLockCrypto = clampedCrypto / Math.max(0.0001, rateFactor);
 
-  const methodsCompact =
-    row.payment_methods.slice(0, 2).map((c) => paymentMethodLabelCaps(c)).join(" · ") ||
-    paymentMethodLabelCaps(row.payment_methods[0] ?? "");
-  const methodsMore = row.payment_methods.length > 2 ? ` · +${row.payment_methods.length - 2}` : "";
+  const fiatPerCrypto = offerFiatPerOneCrypto(offerAsset, fiatCode, ratePct, row.side, rates);
+
+  const paymentMethods = formatPaymentMethodsCompact(row.payment_methods);
+  const advertText = row.advert_message?.trim() ? row.advert_message.trim().toUpperCase() : null;
 
   const primaryLabel = flow === "buy" ? "Buy" : "Sell";
+  const payLabel = flow === "buy" ? `Pay (${browsingMode ? "from " : ""}${fiatCode})` : "Escrow lock";
+  const receiveLabel = flow === "buy" ? "Receive" : `Receive (${fiatCode})`;
+  const payLabelMobile = flow === "buy" ? `Pay` : "Lock";
+  const receiveLabelMobile = flow === "buy" ? "Get" : fiatCode;
 
-  const btnBuyClass =
-    "mt-4 inline-flex min-h-[44px] w-full items-center justify-center gap-1 rounded-xl bg-emerald-600 px-4 py-2.5 text-center text-[12px] font-extrabold uppercase tracking-wide text-white ring-1 ring-emerald-400/35 transition hover:bg-emerald-500 disabled:pointer-events-none disabled:opacity-40 sm:mt-0 md:max-w-[9.5rem]";
-
-  const btnSellClass =
-    "mt-4 inline-flex min-h-[44px] w-full items-center justify-center gap-1 rounded-xl bg-red-600 px-4 py-2.5 text-center text-[12px] font-extrabold uppercase tracking-wide text-white ring-1 ring-red-400/35 transition hover:bg-red-500 disabled:pointer-events-none disabled:opacity-40 sm:mt-0 md:max-w-[9.5rem]";
-
-  const feePct = Math.abs(ratePct).toLocaleString(undefined, {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  });
-  const rateBadge =
-    flow === "sell"
-      ? ratePct >= 0
-        ? `+${feePct}% above spot`
-        : `${Number(row.rate_percentage).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}% below spot`
-      : `+${feePct}% fee`;
+  const btnBuyClass = `${TRADE_BTN_CLASS} bg-emerald-600 ring-1 ring-emerald-400/35 hover:bg-emerald-500`;
+  const btnSellClass = `${TRADE_BTN_CLASS} bg-red-600 ring-1 ring-red-400/35 hover:bg-red-500`;
 
   return (
     <article
       aria-label={`Offer from ${name}`}
-      className="grid gap-4 border-b border-white/[0.07] px-4 py-4 text-[13px] text-zinc-200 last:border-b-0 md:grid-cols-[minmax(0,1.05fr)_minmax(0,1.65fr)_auto]"
+      className={`grid border-b border-white/[0.07] px-3 text-zinc-200 last:border-b-0 sm:px-6 ${OFFER_MOBILE_GRID_CLASS} ${OFFER_ROW_GRID_CLASS}`}
     >
-      <div className="flex min-w-0 items-start gap-3">
-        <MerchantOfferAvatar avatarUrl={row.merchant_avatar_url} displayName={name} size="sm" />
+      <div className="flex min-w-0 items-start gap-2 max-md:col-start-1 md:min-h-[4.75rem] md:gap-3">
+        <MerchantOfferAvatar
+          avatarUrl={row.merchant_avatar_url}
+          displayName={name}
+          size="sm"
+          className="shrink-0 max-md:h-8 max-md:w-8 max-md:text-[9px]"
+        />
         <div className="min-w-0 flex-1">
-          <h3 className="truncate text-[15px] font-bold tracking-tight text-[#F5E6B3]" title={name}>
+          <h3
+            className="truncate text-[15px] font-bold leading-[15px] tracking-tight text-[#F5E6B3] max-md:text-[12px] max-md:leading-tight"
+            title={name}
+          >
             {name}
           </h3>
-          <div className="mt-1">
+          <div className="mt-1.5 max-md:mt-0.5">
             <p
-              className={`flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wide ${
+              className={`flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wide max-md:gap-1 max-md:text-[9px] ${
                 presence.online ? "text-emerald-300" : "text-yellow-300"
               }`}
             >
               <span
-                className={`h-2 w-2 shrink-0 rounded-full ${
+                className={`h-2 w-2 shrink-0 rounded-full max-md:h-1.5 max-md:w-1.5 ${
                   presence.online
                     ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.75)]"
                     : "bg-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.65)]"
@@ -147,89 +260,101 @@ export function OfferCard({
               {presence.primary}
             </p>
             {presence.secondary ? (
-              <p className="mt-0.5 pl-3.5 text-[10px] font-medium tabular-nums text-zinc-500">
+              <p className="mt-0.5 pl-3.5 text-[10px] font-medium tabular-nums text-zinc-500 max-md:hidden">
                 {presence.secondary}
               </p>
             ) : null}
           </div>
-          <p className="mt-1 text-[11px] font-medium tabular-nums text-zinc-400">
-            {formatFiat(minFiat, fiatCode)}–{formatFiat(maxFiat, fiatCode)}{" "}
-            <span className="uppercase tracking-wide text-zinc-600">{fiatCode} · limits</span>
+          <p className="mt-1 text-[12px] font-semibold tabular-nums text-zinc-300 max-md:mt-0.5 max-md:text-[9px] max-md:leading-tight">
+            {formatFiat(minFiat, fiatCode)} – {formatFiat(maxFiat, fiatCode)}
           </p>
-          <p className="text-[10px] tabular-nums text-zinc-500">
-            ≈ {fmtAssetAmount(offerAsset, fiatToCrypto(minFiat, fiatCode, offerAsset, rates))} –{" "}
-            {fmtAssetAmount(offerAsset, fiatToCrypto(maxFiat, fiatCode, offerAsset, rates))}
-          </p>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <span
-              className={`rounded-md px-2 py-0.5 text-[10px] font-bold tabular-nums ring-1 ${
-                flow === "sell" && ratePct >= 0
-                  ? "bg-emerald-500/15 text-emerald-200 ring-emerald-400/35"
-                  : flow === "sell" && ratePct < 0
-                    ? "bg-orange-500/15 text-orange-200 ring-orange-400/35"
-                    : "bg-red-500/15 text-red-200 ring-red-400/35"
-              }`}
-            >
-              {rateBadge}
-            </span>
-            <span
-              className="rounded-md bg-[#D4AF37]/12 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#F5E6B3] ring-1 ring-[#D4AF37]/35"
-              title={`Settles in ${getFiatCurrency(row.fiat_currency_code).name}`}
-            >
-              {getFiatCurrency(row.fiat_currency_code).flag} {row.fiat_currency_code}
-            </span>
-            <span className="truncate text-[10px] font-semibold uppercase tracking-wide leading-snug text-zinc-500">
-              {(methodsCompact || "—") + methodsMore}
-            </span>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5 max-md:mt-1 max-md:gap-1">
+            <OfferUnitPrice fiatPerCrypto={fiatPerCrypto} fiatCode={fiatCode} asset={offerAsset} />
+            <RateVsMpBadge ratePct={ratePct} />
           </div>
-          {row.advert_message?.trim() ? (
-            <p className="mt-2 line-clamp-2 text-[11px] leading-snug text-zinc-600" title={row.advert_message}>
-              “{row.advert_message.trim()}”
-            </p>
-          ) : null}
         </div>
       </div>
 
-      <div className="flex min-w-0 flex-wrap items-end gap-6 sm:flex-nowrap sm:justify-between lg:justify-start lg:gap-10">
-        {flow === "buy" ? (
-          <>
-            <PayReceiveCol
-              top={`Pay (${browsingMode ? "from " : ""}${fiatCode})`}
-              value={formatFiat(clampedFiat, fiatCode)}
-              sub={`≈ ${fmtAssetAmount(offerAsset, clampedCrypto)} · settle off-platform`}
-            />
-            <PayReceiveCol
-              top="Receive"
-              value={`≈ ${fmtAssetAmount(offerAsset, netCrypto)}`}
-              sub={`${feePct}% fee on sampled size`}
-            />
-          </>
-        ) : (
-          <>
-            <PayReceiveCol
-              top="Escrow lock"
-              value={fmtAssetAmount(offerAsset, sellLockCrypto)}
-              sub={`${ratePct >= 0 ? `${feePct}% above spot — lock less` : `${feePct}% below spot — lock more`} · after fiat settles`}
-            />
-            <PayReceiveCol
-              top={`Receive (${fiatCode})`}
-              value={formatFiat(clampedFiat, fiatCode)}
-              sub={`${methodsCompact}${methodsMore} · merchant sends fiat`}
-            />
-          </>
-        )}
+      <div
+        className="hidden md:flex md:min-h-[4.75rem] md:w-full md:flex-col md:px-3"
+        title={row.advert_message ?? undefined}
+      >
+        <p className={DETAIL_LABEL}>Note</p>
+        <div
+          className={`${NOTE_BOX_CLASS} w-full`}
+          aria-label={advertText ? `Note: ${advertText}` : "No merchant note"}
+        >
+          {advertText ? (
+            <p className="w-full text-[10px] font-bold uppercase leading-snug tracking-[0.1em] text-[#F5E6B3]">
+              {advertText}
+            </p>
+          ) : (
+            <p className="w-full text-[10px] font-semibold uppercase leading-snug tracking-[0.14em] text-[#D4AF37]/30">
+              Merchant note
+            </p>
+          )}
+        </div>
       </div>
 
-      <div className="flex flex-col items-stretch md:items-stretch md:justify-center">
-        <button type="button" disabled={busy} onClick={onTrade} className={flow === "buy" ? btnBuyClass : btnSellClass}>
-          {busy ? "…" : primaryLabel}{" "}
-          <span className="tabular-nums text-[11px] font-bold opacity-95">{offerAsset}</span>
+      <OfferDetailCol
+        label="Payment"
+        mobileLabel="Method"
+        className={`max-md:col-start-2 md:col-start-3 ${DETAIL_GAP}`}
+      >
+        <p className={PAYMENT_METHOD_CLASS} title={paymentMethods.title || paymentMethods.display}>
+          {paymentMethods.display}
+        </p>
+      </OfferDetailCol>
+
+      <OfferDetailCol
+        label={payLabel}
+        mobileLabel={payLabelMobile}
+        className={`max-md:col-start-3 md:col-start-4 ${DETAIL_GAP}`}
+        sub={
+          flow === "buy"
+            ? `≈ ${fmtAssetAmount(offerAsset, clampedCrypto)} · settle off-platform`
+            : `${ratePct >= 0 ? "Above MP — lock less" : "Below MP — lock more"} · after fiat settles`
+        }
+      >
+        <p className={AMOUNT_VALUE_CLASS}>
+          {flow === "buy" ? formatFiat(clampedFiat, fiatCode) : fmtAssetAmount(offerAsset, sellLockCrypto)}
+        </p>
+      </OfferDetailCol>
+
+      <OfferDetailCol
+        label={receiveLabel}
+        mobileLabel={receiveLabelMobile}
+        className={`max-md:col-start-4 md:col-start-5 ${DETAIL_GAP}`}
+        sub={flow === "buy" ? "After rate vs MP on sampled size" : "Merchant sends fiat after release"}
+      >
+        <p className={AMOUNT_VALUE_CLASS}>
+          {flow === "buy" ? `≈ ${fmtAssetAmount(offerAsset, netCrypto)}` : formatFiat(clampedFiat, fiatCode)}
+        </p>
+      </OfferDetailCol>
+
+      <div className="hidden md:block" aria-hidden />
+
+      <div className="flex min-w-0 flex-col items-stretch max-md:col-start-5 max-md:justify-start md:items-end">
+        <p className={`${DETAIL_LABEL} hidden md:block`} aria-hidden>
+          &nbsp;
+        </p>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={onTrade}
+          className={`max-md:mt-0 md:mt-1.5 ${flow === "buy" ? btnBuyClass : btnSellClass}`}
+        >
+          {busy ? (
+            "…"
+          ) : (
+            <>
+              <span>{primaryLabel}</span>
+              <span className="tabular-nums text-[11px] font-bold opacity-95 max-md:text-[7px] max-md:opacity-90">
+                {offerAsset}
+              </span>
+            </>
+          )}
         </button>
-        {browsingMode ? (
-          <p className="mt-2 text-center text-[9px] leading-snug text-zinc-600 md:max-w-[9.5rem] md:text-left">
-            We’ll ask for an amount before opening the trade.
-          </p>
-        ) : null}
       </div>
     </article>
   );

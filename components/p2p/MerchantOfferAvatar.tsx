@@ -8,11 +8,12 @@ import { merchantInitials } from "@/components/p2p/utils";
 type MerchantOfferAvatarProps = {
   avatarUrl: string | null | undefined;
   displayName: string | null | undefined;
-  size?: "sm" | "md";
+  size?: "xs" | "sm" | "md";
   className?: string;
 };
 
 const sizeClasses = {
+  xs: "h-8 w-8 text-[9px]",
   sm: "h-10 w-10 text-[11px]",
   md: "h-12 w-12 text-[12px]",
 } as const;
@@ -37,7 +38,7 @@ export function MerchantOfferAvatar({
           src={avatarUrl!}
           alt=""
           fill
-          sizes={size === "md" ? "48px" : "40px"}
+          sizes={size === "md" ? "48px" : size === "xs" ? "32px" : "40px"}
           className="object-cover"
           onError={() => setBroken(true)}
         />

@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { InvestorMarketplaceActiveTrades } from "@/components/p2p/InvestorMarketplaceActiveTrades";
 import { OffersScrollList } from "@/components/p2p/OffersScrollList";
 import { OfferCard, type OfferCardRow } from "@/components/p2p/OfferCard";
-import type { P2pListViewMode } from "@/components/p2p/P2pMarketToolbar";
+import type { OfferSortMode, P2pListViewMode } from "@/components/p2p/P2pMarketToolbar";
 import { P2pMarketToolbar } from "@/components/p2p/P2pMarketToolbar";
 import { resolveTradeAmount } from "@/components/p2p/resolveTradeAmount";
 import type { P2pAssetCode, P2pMarketTab } from "@/components/p2p/p2pTypes";
@@ -26,6 +26,25 @@ type P2pMarketplaceViewProps = {
   backLabel: string;
 };
 
+function compareOffersBySort(a: OfferCardRow, b: OfferCardRow, mode: OfferSortMode): number {
+  const rateA = Number(a.rate_percentage) || 0;
+  const rateB = Number(b.rate_percentage) || 0;
+  const onlineA = a.merchant_is_online ? 1 : 0;
+  const onlineB = b.merchant_is_online ? 1 : 0;
+
+  switch (mode) {
+    case "rate_desc":
+      return rateB - rateA;
+    case "online_first":
+      return onlineB - onlineA || rateA - rateB;
+    case "offline_first":
+      return onlineA - onlineB || rateA - rateB;
+    case "rate_asc":
+    default:
+      return rateA - rateB;
+  }
+}
+
 export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarketplaceViewProps) {
   const router = useRouter();
   const supabase = useSupabase();
@@ -42,9 +61,7 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
   const [listViewMode, setListViewMode] = useState<P2pListViewMode>("offers");
   const [activeTradesGen, setActiveTradesGen] = useState(0);
   const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
-  const [filtersOpen, setFiltersOpen] = useState(false);
-  const [feeCapInput, setFeeCapInput] = useState("");
-  const [sizeFloorInput, setSizeFloorInput] = useState("");
+  const [offerSort, setOfferSort] = useState<OfferSortMode>("rate_asc");
 
   const [amountPromptRow, setAmountPromptRow] = useState<OfferCardRow | null>(null);
   const [amountPromptValue, setAmountPromptValue] = useState("");
@@ -123,8 +140,6 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
     [bumpActiveTrades],
   );
 
-  const filterBadgeCount = [feeCapInput.trim(), sizeFloorInput.trim()].filter((s) => s !== "").length;
-
   useEffect(() => {
     setError(null);
   }, [tab]);
@@ -182,18 +197,8 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
         return fiatAmt >= Number(o.min_limit) && fiatAmt <= Number(o.max_limit);
       });
     }
-    const cap = Number(feeCapInput);
-    if (feeCapInput.trim() !== "" && Number.isFinite(cap) && cap >= 0) {
-      list = list.filter((o) => Number(o.rate_percentage) <= cap);
-    }
-    const floor = Number(sizeFloorInput);
-    if (sizeFloorInput.trim() !== "" && Number.isFinite(floor) && floor > 0) {
-      list = list.filter((o) => Number(o.max_limit) >= floor);
-    }
-    return [...list].sort(
-      (a, b) => Number(a.rate_percentage) - Number(b.rate_percentage),
-    );
-  }, [offersRaw, toolbarAmount, amountUnit, fxRates, feeCapInput, sizeFloorInput]);
+    return [...list].sort((a, b) => compareOffersBySort(a, b, offerSort));
+  }, [offersRaw, toolbarAmount, amountUnit, fxRates, offerSort]);
 
   async function executeOrder(row: OfferCardRow, fiatAmt: number) {
     setBusyOfferId(row.offer_id);
@@ -314,8 +319,8 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
   return (
     <div className="relative flex min-h-[100dvh] min-w-0 flex-col bg-[#03060c] pb-[max(0.5rem,env(safe-area-inset-bottom))] text-white">
       <main className="relative flex min-w-0 flex-1 flex-col">
-        <div className="relative z-50 shrink-0 border-b border-[#D4AF37]/10 bg-black/20 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6 sm:pb-4 sm:pt-6">
-          <div className="flex flex-wrap items-start justify-between gap-3 pb-3 sm:pb-0">
+        <div className="relative shrink-0 bg-black/20 px-4 pb-4 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6 sm:pb-5 sm:pt-6">
+          <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
               <Link href={backHref} className="text-sm font-medium text-[#D4AF37] transition hover:text-[#F5E6B3]">
                 ← {backLabel}
@@ -324,7 +329,7 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
                 <span className="text-emerald-500">Buy</span> / <span className="text-zinc-600">sell</span>{" "}
                 <span className="text-[#D4AF37]">crypto</span>
               </h1>
-              <p className="mt-1 max-w-xl text-sm text-zinc-500">
+              <p className="mt-1 hidden max-w-xl text-sm text-zinc-500 sm:block">
                 {subtitle}
               </p>
             </div>
@@ -335,7 +340,9 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
               Dashboard
             </Link>
           </div>
+        </div>
 
+        <div className="sticky top-[env(safe-area-inset-top)] z-[60] bg-[#03060c]/95 shadow-[0_12px_32px_-16px_rgba(0,0,0,0.85)] backdrop-blur-xl supports-[backdrop-filter]:bg-[#03060c]/88">
           <P2pMarketToolbar
             tab={tab}
             onTabChange={(t) => {
@@ -366,8 +373,8 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
               if (listViewMode !== "offers") bumpActiveTrades();
             }}
             loading={loading}
-            filterBadgeCount={filterBadgeCount}
-            onOpenAdvancedFilters={() => setFiltersOpen(true)}
+            offerSort={offerSort}
+            onOfferSortChange={setOfferSort}
             listViewMode={listViewMode}
             onListViewModeChange={handleListViewModeChange}
             hasActiveOrder={Boolean(activeOrderId)}
@@ -395,18 +402,17 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
                 />
               </div>
             ) : loading ? (
-              <div className="flex flex-col gap-0 overflow-hidden rounded-2xl border border-white/[0.07] bg-black/25">
+              <div className="-mx-4 flex flex-col border-t border-white/[0.06] sm:-mx-6">
                 {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="h-24 w-full animate-pulse border-b border-white/[0.06] bg-white/[0.02] last:border-0" />
+                  <div key={i} className="h-20 w-full animate-pulse border-b border-white/[0.06] bg-white/[0.02] last:border-0 md:h-28" />
                 ))}
               </div>
             )             : offersDisplayed.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-[#D4AF37]/25 bg-black/25 px-6 py-16 text-center backdrop-blur-sm">
+              <div className="-mx-4 border-t border-white/[0.06] px-2 py-20 text-center sm:-mx-6">
                 <p className="text-zinc-400">
                   {offersRaw.length === 0
                     ? "No live ads on this side yet. Try Refresh, switch Buy/Sell, or pick another payment method."
-                    : "No ads match your size or filters right now."}
-                  {filterBadgeCount > 0 ? " Try clearing advanced filters." : null}
+                    : "No ads match your size right now."}
                   {offersRaw.length > 0 && toolbarAmount != null ? (
                     <span className="block mt-2 text-zinc-500">
                       Widen your amount or change payment method — listings update as you adjust the toolbar.
@@ -415,47 +421,26 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
                 </p>
               </div>
             ) : (
-              <OffersScrollList>
-                {offersDisplayed.map((row) => (
-                  <OfferCard
-                    key={row.offer_id}
-                    row={row}
-                    flow={tab}
-                    toolbarAmount={amtNum}
-                    inputCurrency={amountUnit}
-                    asset={asset}
-                    busy={busyOfferId === row.offer_id}
-                    onTrade={() => void pickOffer(row)}
-                  />
-                ))}
-              </OffersScrollList>
+              <div className="-mx-4 border-t border-white/[0.06] sm:-mx-6">
+                <OffersScrollList fullPage>
+                  {offersDisplayed.map((row) => (
+                    <OfferCard
+                      key={row.offer_id}
+                      row={row}
+                      flow={tab}
+                      toolbarAmount={amtNum}
+                      inputCurrency={amountUnit}
+                      asset={asset}
+                      busy={busyOfferId === row.offer_id}
+                      onTrade={() => void pickOffer(row)}
+                    />
+                  ))}
+                </OffersScrollList>
+              </div>
             )}
           </div>
 
-          <details className="group mt-10 rounded-xl border border-white/[0.08] bg-black/35 px-4 py-3 text-sm text-zinc-400 lg:hidden [&_summary::-webkit-details-marker]:hidden">
-            <summary className="cursor-pointer list-none py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[#D4AF37]/90">
-              How Zuno P2P works<span className="ml-2 text-zinc-500 group-open:hidden">(+)</span>
-              <span className="ml-2 hidden text-zinc-500 group-open:inline">(-)</span>
-            </summary>
-            <ol className="mt-3 list-decimal space-y-2 pl-5 text-[12px] leading-relaxed text-zinc-500">
-              <li>Pick Buy or Sell — filters stay pinned to the toolbar.</li>
-              <li>Preview pay/receive columns per advert; fiat clears off-platform inside your rail.</li>
-              <li>Opening Buy/Sell routes you to full-screen chat escrow with Mark as Paid &amp; release steps.</li>
-              <li>Use only on-platform escrow + verified instructions — beware out-of-band account swaps.</li>
-            </ol>
-          </details>
-
-          <div className="mt-10 hidden lg:block lg:rounded-xl lg:border lg:border-white/[0.08] lg:bg-black/30 lg:p-5">
-            <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-[#D4AF37]/90">How Zuno P2P works</h3>
-            <ol className="mt-4 list-decimal space-y-2 pl-5 text-[12px] leading-relaxed text-zinc-500">
-              <li>Everything you need stays in one top strip.</li>
-              <li>Listings consolidate into one block so scanning feels Paxful-clean.</li>
-              <li>Tickets open fullscreen with trade summary, reminders, and chat.</li>
-              <li>Completed tickets roll into history automatically.</li>
-            </ol>
-          </div>
-
-          <p className="mt-8 text-center text-xs text-zinc-600">
+          <p className="mt-10 text-center text-xs text-zinc-600">
             <Link href="/p2p" className="text-[#D4AF37] hover:text-[#F5E6B3] hover:underline">
               Marketplace home
             </Link>
@@ -475,70 +460,11 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
         </div>
       </main>
 
-      {filtersOpen ? (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-sm sm:items-center"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="p2p-filter-title"
-        >
-          <div className="w-full max-w-md rounded-2xl border border-[#D4AF37]/25 bg-[#080c14] p-6 shadow-2xl">
-            <h2 id="p2p-filter-title" className="text-lg font-bold text-white">
-              Offer filters
-            </h2>
-            <p className="mt-2 text-xs text-zinc-500">
-              Applies on top of toolbar results — narrow by merchant fee tier or liquidity overlap.
-            </p>
-            <label className="mt-6 block">
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">Maximum merchant fee %</span>
-              <input
-                type="number"
-                inputMode="decimal"
-                value={feeCapInput}
-                onChange={(e) => setFeeCapInput(e.target.value)}
-                placeholder="e.g. 2.5"
-                className="mt-2 w-full rounded-xl border border-white/12 bg-black/45 px-3 py-3 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-[#D4AF37]/45 focus:ring-2 focus:ring-[#D4AF37]/20"
-              />
-            </label>
-            <label className="mt-4 block">
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">Minimum liquidity (their max ≥)</span>
-              <input
-                type="number"
-                inputMode="decimal"
-                value={sizeFloorInput}
-                onChange={(e) => setSizeFloorInput(e.target.value)}
-                placeholder="USDT notionally"
-                className="mt-2 w-full rounded-xl border border-white/12 bg-black/45 px-3 py-3 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-[#D4AF37]/45 focus:ring-2 focus:ring-[#D4AF37]/20"
-              />
-            </label>
-            <div className="mt-8 flex gap-3">
-              <button
-                type="button"
-                className="flex-1 rounded-xl border border-white/14 py-3 text-sm font-semibold text-zinc-300 transition hover:bg-white/[0.04]"
-                onClick={() => {
-                  setFeeCapInput("");
-                  setSizeFloorInput("");
-                }}
-              >
-                Clear
-              </button>
-              <button
-                type="button"
-                className="flex-1 rounded-xl bg-emerald-600 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-600/25 transition hover:bg-emerald-500"
-                onClick={() => setFiltersOpen(false)}
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
       {amountPromptRow ? (() => {
         const promptFiat = (amountPromptRow.fiat_currency_code || "USD").toUpperCase();
         const promptMinFiat = Number(amountPromptRow.min_limit);
         const promptMaxFiat = Number(amountPromptRow.max_limit);
-        const limitsLine = `Limits ${formatLimitRange(promptMinFiat, promptMaxFiat, promptFiat, asset, promptFiat, fxRates)}`;
+        const limitsLine = formatLimitRange(promptMinFiat, promptMaxFiat, promptFiat, asset, promptFiat, fxRates);
         const placeholderVal = minAmountPlaceholder(promptMinFiat, promptFiat);
 
         return (

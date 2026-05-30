@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, ChevronDown, ClipboardList, RefreshCcw, SlidersHorizontal } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, ClipboardList, RefreshCcw } from "lucide-react";
 
 import type { P2pAssetCode, P2pMarketTab } from "@/components/p2p/p2pTypes";
 import { P2P_PAYMENT_METHOD_OPTIONS } from "@/lib/p2pPaymentMethods";
@@ -14,7 +14,29 @@ const OFFER_ASSETS = [
 
 export type P2pListViewMode = "offers" | "active" | "completed" | "cancelled";
 
-type DropdownKey = "asset" | "currency" | "method" | "filters" | "trades";
+export type OfferSortMode = "rate_asc" | "rate_desc" | "online_first" | "offline_first";
+
+export const OFFER_SORT_OPTIONS: { value: OfferSortMode; label: string }[] = [
+  { value: "rate_asc", label: "Rate · low to high" },
+  { value: "rate_desc", label: "Rate · high to low" },
+  { value: "online_first", label: "Online first" },
+  { value: "offline_first", label: "Offline first" },
+];
+
+export function offerSortButtonLabel(mode: OfferSortMode): string {
+  switch (mode) {
+    case "rate_asc":
+      return "Rate ↑";
+    case "rate_desc":
+      return "Rate ↓";
+    case "online_first":
+      return "Online";
+    case "offline_first":
+      return "Offline";
+  }
+}
+
+type DropdownKey = "asset" | "currency" | "method" | "sort" | "trades";
 
 const LIST_VIEW_ROWS: { value: P2pListViewMode; label: string }[] = [
   { value: "offers", label: "Offers · browse ads" },
@@ -44,8 +66,8 @@ type P2pMarketToolbarProps = {
   onPaymentMethodChange: (code: string) => void;
   onRefreshOffers: () => void;
   loading?: boolean;
-  filterBadgeCount?: number;
-  onOpenAdvancedFilters: () => void;
+  offerSort: OfferSortMode;
+  onOfferSortChange: (mode: OfferSortMode) => void;
   listViewMode: P2pListViewMode;
   onListViewModeChange: (m: P2pListViewMode) => void;
   hasActiveOrder?: boolean;
@@ -104,8 +126,8 @@ export function P2pMarketToolbar({
   onPaymentMethodChange,
   onRefreshOffers,
   loading,
-  filterBadgeCount = 0,
-  onOpenAdvancedFilters,
+  offerSort,
+  onOfferSortChange,
   listViewMode,
   onListViewModeChange,
   hasActiveOrder = false,
@@ -123,10 +145,10 @@ export function P2pMarketToolbar({
   return (
     <div
       ref={rootRef}
-      className="sticky top-[env(safe-area-inset-top)] z-50 isolate border-b border-[#D4AF37]/12 bg-black/55 backdrop-blur-lg"
+      className="isolate border-b border-[#D4AF37]/12 bg-transparent"
     >
       <div className="overflow-visible">
-        <div className="flex flex-wrap items-center gap-2 px-3 py-2.5 sm:gap-2.5 sm:px-4 lg:flex-nowrap lg:gap-3">
+        <div className="flex flex-wrap items-center gap-1.5 px-3 py-2 max-md:gap-1.5 sm:gap-2.5 sm:px-6 sm:py-2.5 lg:flex-nowrap lg:gap-3">
           <div
             className="flex shrink-0 items-center rounded-xl border border-white/[0.08] bg-black/35 p-0.5 shadow-inner"
             role="tablist"
@@ -173,7 +195,7 @@ export function P2pMarketToolbar({
           >
             <button
               type="button"
-              className="flex min-h-[42px] min-w-[7rem] items-center justify-between gap-1.5 rounded-xl border border-white/[0.1] bg-black/35 px-2.5 py-2 text-left text-[12px] font-semibold text-[#F5E6B3] ring-1 ring-white/[0.04] hover:border-[#D4AF37]/35 sm:min-w-[10.5rem] sm:gap-2 sm:px-3"
+              className="flex min-h-[38px] min-w-[6.25rem] items-center justify-between gap-1 rounded-xl border border-white/[0.1] bg-black/35 px-2 py-1.5 text-left text-[11px] font-semibold text-[#F5E6B3] ring-1 ring-white/[0.04] hover:border-[#D4AF37]/35 sm:min-h-[42px] sm:min-w-[10.5rem] sm:gap-2 sm:px-3 sm:py-2 sm:text-[12px]"
               aria-expanded={openMenu === "asset"}
               onClick={() => setOpenMenu((k) => (k === "asset" ? null : "asset"))}
             >
@@ -215,7 +237,7 @@ export function P2pMarketToolbar({
               onChange={(e) => onAmountChange(e.target.value)}
               placeholder={amountUnitLabel === "USDT" ? "Amount" : `Amount (${amountUnitLabel})`}
               aria-label={`Trade amount in ${amountUnitLabel}`}
-              className="h-[42px] w-[5.25rem] rounded-xl border border-white/[0.1] bg-black/35 px-2.5 text-[16px] font-semibold tabular-nums text-white outline-none placeholder:text-zinc-600 focus:border-[#D4AF37]/40 focus:ring-2 focus:ring-[#D4AF37]/22 sm:w-[8rem] sm:px-3 sm:text-[13px]"
+              className="h-[38px] w-[4.75rem] rounded-xl border border-white/[0.1] bg-black/35 px-2 text-[15px] font-semibold tabular-nums text-white outline-none placeholder:text-zinc-600 focus:border-[#D4AF37]/40 focus:ring-2 focus:ring-[#D4AF37]/22 sm:h-[42px] sm:w-[8rem] sm:px-3 sm:text-[13px]"
             />
             <span
               className="hidden h-[42px] min-w-[2.75rem] items-center justify-center rounded-xl border border-white/[0.08] bg-black/25 px-2 text-[10px] font-bold uppercase tracking-wide text-zinc-400 sm:flex"
@@ -273,7 +295,7 @@ export function P2pMarketToolbar({
           </div>
 
           <div
-            className={`relative min-w-[8rem] flex-1 sm:min-w-[13rem] lg:flex-none lg:max-w-[16rem] ${
+            className={`relative min-w-[6.5rem] flex-1 sm:min-w-[13rem] lg:flex-none lg:max-w-[16rem] ${
               openMenu === "method" ? "z-[110]" : ""
             }`}
           >
@@ -318,30 +340,48 @@ export function P2pMarketToolbar({
           </div>
 
           <div className="flex shrink-0 items-center gap-1.5 ml-auto lg:ml-0">
-            <button
-              type="button"
-              title="Offers filter"
-              aria-label="Filter offers by fee and size overlap"
-              onClick={() => {
-                setOpenMenu(null);
-                onOpenAdvancedFilters();
-              }}
-              className="relative flex h-[42px] min-w-[42px] items-center justify-center rounded-xl border border-white/[0.1] bg-black/35 text-zinc-300 transition hover:border-[#D4AF37]/45 hover:text-[#F5E6B3]"
-            >
-              <SlidersHorizontal className="h-[18px] w-[18px]" aria-hidden />
-              {filterBadgeCount > 0 ? (
-                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#c45c26] px-1 text-[9px] font-bold text-white">
-                  {filterBadgeCount > 9 ? "9+" : filterBadgeCount}
-                </span>
+            <div className={`relative shrink-0 ${openMenu === "sort" ? "z-[110]" : ""}`}>
+              <button
+                type="button"
+                title="Sort offers"
+                aria-label="Sort offers"
+                aria-expanded={openMenu === "sort"}
+                onClick={() => setOpenMenu((k) => (k === "sort" ? null : "sort"))}
+                className="flex h-[38px] min-w-[4.75rem] items-center justify-between gap-1 rounded-xl border border-white/[0.1] bg-black/35 px-2 py-1.5 text-[10px] font-bold uppercase tracking-wide text-zinc-200 transition hover:border-[#D4AF37]/45 hover:text-[#F5E6B3] sm:h-[42px] sm:min-w-[5.5rem] sm:px-2.5 sm:text-[11px]"
+              >
+                <ArrowUpDown className="h-3.5 w-3.5 shrink-0 text-[#D4AF37]/90" aria-hidden />
+                <span className="truncate text-[#F5E6B3]">{offerSortButtonLabel(offerSort)}</span>
+                <ChevronDown className="h-3 w-3 shrink-0 opacity-75" aria-hidden />
+              </button>
+              {openMenu === "sort" ? (
+                <MenuPanel align="end">
+                  {OFFER_SORT_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      role="option"
+                      aria-selected={offerSort === opt.value}
+                      className={`block w-full px-3 py-2.5 text-left text-[13px] transition hover:bg-white/[0.05] ${
+                        offerSort === opt.value ? "bg-[#D4AF37]/12 text-[#F5E6B3]" : "text-zinc-300"
+                      }`}
+                      onClick={() => {
+                        onOfferSortChange(opt.value);
+                        setOpenMenu(null);
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </MenuPanel>
               ) : null}
-            </button>
+            </div>
             <button
               type="button"
               onClick={() => void onRefreshOffers()}
               disabled={loading}
               aria-label="Refresh offers"
               title="Refresh offers"
-              className="flex h-[42px] min-w-[42px] items-center justify-center rounded-xl border border-[#D4AF37]/28 bg-black/35 px-2 text-[11px] font-bold uppercase tracking-wide text-[#D4AF37] transition hover:bg-[#D4AF37]/15 disabled:opacity-45 sm:min-w-0 sm:px-3"
+              className="flex h-[38px] min-w-[38px] items-center justify-center rounded-xl border border-[#D4AF37]/28 bg-black/35 px-2 text-[10px] font-bold uppercase tracking-wide text-[#D4AF37] transition hover:bg-[#D4AF37]/15 disabled:opacity-45 sm:h-[42px] sm:min-w-[42px] sm:min-w-0 sm:px-3 sm:text-[11px]"
             >
               <RefreshCcw
                 className={`h-[18px] w-[18px] sm:hidden ${loading ? "animate-spin" : ""}`}
@@ -353,7 +393,7 @@ export function P2pMarketToolbar({
             <div className={`relative shrink-0 ${openMenu === "trades" ? "z-[110]" : ""}`}>
               <button
                 type="button"
-                className="flex h-[42px] min-w-[6.75rem] max-w-[12.5rem] items-center gap-1.5 rounded-xl border border-white/[0.1] bg-black/35 px-2 py-1 ring-1 ring-white/[0.04] hover:border-[#D4AF37]/35 sm:min-w-[8.75rem] sm:gap-2 sm:px-2.5"
+                className="flex h-[38px] min-w-[5.5rem] max-w-[10rem] items-center gap-1 rounded-xl border border-white/[0.1] bg-black/35 px-1.5 py-1 ring-1 ring-white/[0.04] hover:border-[#D4AF37]/35 sm:h-[42px] sm:min-w-[8.75rem] sm:max-w-[12.5rem] sm:gap-2 sm:px-2.5"
                 aria-expanded={openMenu === "trades"}
                 aria-label="Pick offers or trades list"
                 onClick={() => setOpenMenu((k) => (k === "trades" ? null : "trades"))}

@@ -62,7 +62,7 @@ export const FIAT_CURRENCIES: readonly FiatCurrency[] = [
   { code: "CHF", name: "Swiss Franc",       symbol: "Fr",  locale: "de-CH", decimals: 2, flag: "🇨🇭" },
   { code: "AUD", name: "Australian Dollar", symbol: "A$",  locale: "en-AU", decimals: 2, flag: "🇦🇺" },
   { code: "CAD", name: "Canadian Dollar",   symbol: "C$",  locale: "en-CA", decimals: 2, flag: "🇨🇦" },
-  { code: "KES", name: "Kenyan Shilling",   symbol: "KSh", locale: "en-KE", decimals: 2, flag: "🇰🇪" },
+  { code: "KES", name: "Kenyan Shilling",   symbol: "KES", locale: "en-KE", decimals: 2, flag: "🇰🇪" },
   { code: "UGX", name: "Ugandan Shilling",  symbol: "USh", locale: "en-UG", decimals: 0, flag: "🇺🇬" },
   { code: "TZS", name: "Tanzanian Shilling",symbol: "TSh", locale: "en-TZ", decimals: 0, flag: "🇹🇿" },
   { code: "RWF", name: "Rwandan Franc",     symbol: "RF",  locale: "en-RW", decimals: 0, flag: "🇷🇼" },
@@ -81,6 +81,9 @@ const FIAT_CURRENCY_INDEX: Record<string, FiatCurrency> = Object.fromEntries(
   FIAT_CURRENCIES.map((c) => [c.code, c]),
 );
 
+/** ISO code instead of locale symbol (e.g. KES not KSh). */
+const FIAT_DISPLAY_AS_CODE = new Set<FiatCurrencyCode>(["KES"]);
+
 export const DEFAULT_FIAT_CURRENCY: FiatCurrencyCode = "USD";
 
 export function isFiatCurrencyCode(value: unknown): value is FiatCurrencyCode {
@@ -92,7 +95,7 @@ export function getFiatCurrency(code: string): FiatCurrency {
 }
 
 /**
- * Format a fiat amount for display, e.g. `123456.789, "KES"` → `"KSh 123,457"`.
+ * Format a fiat amount for display, e.g. `123456.789, "KES"` → `"KES 123,457"`.
  * Falls back to a code-prefixed format if `Intl.NumberFormat` doesn't recognise
  * the currency in the runtime ICU build.
  */
@@ -107,6 +110,7 @@ export function formatFiat(
     const fmt = new Intl.NumberFormat(cur.locale, {
       style: "currency",
       currency: cur.code,
+      currencyDisplay: FIAT_DISPLAY_AS_CODE.has(cur.code as FiatCurrencyCode) ? "code" : "symbol",
       maximumFractionDigits: 2,
       minimumFractionDigits: 2,
       notation: options.compact ? "compact" : "standard",

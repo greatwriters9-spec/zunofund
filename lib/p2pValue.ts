@@ -86,3 +86,31 @@ export function inputToOfferFiat(
 ): number {
   return fiatAmountInOfferCurrency(value, inputUnit, offerFiatCode, rates);
 }
+
+/** Fiat cost (or proceeds) per 1 unit of crypto on this listing, including merchant rate vs MP. */
+export function offerFiatPerOneCrypto(
+  asset: P2pAssetCode,
+  fiatCode: string,
+  ratePct: number,
+  offerSide: string,
+  rates: FxRateMap,
+): number {
+  const spot = cryptoToFiat(1, asset, fiatCode, rates);
+  const isMerchantBuyOffer = offerSide === "buy_usdt" || offerSide === "buy_btc";
+  if (isMerchantBuyOffer) {
+    return spot * (1 + ratePct / 100);
+  }
+  return spot / Math.max(0.0001, 1 - ratePct / 100);
+}
+
+export function formatOfferUnitPriceAmount(value: number, fiatCode: string): string {
+  const abs = Math.abs(value);
+  if (!Number.isFinite(abs) || abs <= 0) return "—";
+  if (fiatCode === "USD" || abs < 50) {
+    return value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+  }
+  if (abs >= 1000) {
+    return value.toLocaleString("en-US", { maximumFractionDigits: 0 });
+  }
+  return value.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}

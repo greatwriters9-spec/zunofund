@@ -7,11 +7,22 @@ type OffersScrollListProps = {
   className?: string;
   /** When true, allow horizontal scroll for wide table-style strips (merchant console). */
   stripLayout?: boolean;
+  /** Marketplace: rows flow with the page — no inset card or inner scroll pane. */
+  fullPage?: boolean;
 };
 
-/** Scrollable offers list — refresh only via the toolbar Refresh control. */
-export function OffersScrollList({ children, className = "", stripLayout = false }: OffersScrollListProps) {
+/** Offers list — boxed scroll for merchant console; full-page flow for marketplace. */
+export function OffersScrollList({
+  children,
+  className = "",
+  stripLayout = false,
+  fullPage = false,
+}: OffersScrollListProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
+
+  if (fullPage) {
+    return <div className={`relative w-full min-w-0 ${className}`}>{children}</div>;
+  }
 
   return (
     <div className={`relative w-full min-w-0 ${className}`}>
