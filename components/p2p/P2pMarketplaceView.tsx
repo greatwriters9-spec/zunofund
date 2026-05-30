@@ -13,7 +13,7 @@ import { resolveTradeAmount } from "@/components/p2p/resolveTradeAmount";
 import type { P2pAssetCode, P2pMarketTab } from "@/components/p2p/p2pTypes";
 import { expireStaleP2pOrders, isP2pOrderActive } from "@/lib/p2pExpiry";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
-import { formatFiat, type FiatCurrencyCode } from "@/lib/currencies";
+import { isFiatCurrencyCode, type FiatCurrencyCode } from "@/lib/currencies";
 import { assetFromOfferSide, formatLimitRange, minAmountPlaceholder, p2pOfferSide } from "@/lib/p2pAssets";
 import { inputToOfferFiat } from "@/lib/p2pValue";
 import { getFxRates, useFxRates } from "@/lib/useFx";
@@ -272,10 +272,18 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
   function confirmAmountPrompt() {
     const row = amountPromptRow;
     if (!row) return;
-    const { fiatAmount, error: amtErr } = resolveTradeAmount(row, amountPromptValue, resolveOpts);
+    const promptFiat = (row.fiat_currency_code || "USD").toUpperCase();
+    const { fiatAmount, error: amtErr } = resolveTradeAmount(row, amountPromptValue, {
+      inputCurrency: promptFiat,
+      asset,
+      rates: fxRates,
+    });
     if (amtErr) {
       setAmountPromptError(amtErr);
       return;
+    }
+    if (isFiatCurrencyCode(promptFiat)) {
+      setFiatCurrency(promptFiat);
     }
     setAmount(amountPromptValue.trim());
     setAmountPromptRow(null);
@@ -530,8 +538,7 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
         const promptFiat = (amountPromptRow.fiat_currency_code || "USD").toUpperCase();
         const promptMinFiat = Number(amountPromptRow.min_limit);
         const promptMaxFiat = Number(amountPromptRow.max_limit);
-        const promptNative = amountUnit.toUpperCase() !== promptFiat;
-        const limitsLine = `Limits ${formatLimitRange(promptMinFiat, promptMaxFiat, promptFiat, asset, amountUnit, fxRates)}`;
+        const limitsLine = `Limits ${formatLimitRange(promptMinFiat, promptMaxFiat, promptFiat, asset, promptFiat, fxRates)}`;
         const placeholderVal = minAmountPlaceholder(promptMinFiat, promptFiat);
 
         return (
@@ -557,21 +564,14 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
               How much do you want to {tab === "buy" ? "buy" : "sell"} from{" "}
               <span className="font-semibold text-[#F5E6B3]">
                 {amountPromptRow.merchant_display_name}
-              </span>
-              {promptNative ? (
-                <>
-                  {" "}
-                  in <span className="font-semibold text-[#F5E6B3]">{amountUnit}</span>?
-                </>
-              ) : (
-                <> ({promptFiat})?</>
-              )}
+              </span>{" "}
+              in <span className="font-semibold text-[#F5E6B3]">{promptFiat}</span>?
             </p>
             <p className="mt-2 text-[11px] tabular-nums text-zinc-500">{limitsLine}</p>
 
             <label className="mt-4 block">
               <span className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
-                Amount ({promptNative ? amountUnit : promptFiat})
+                Amount ({promptFiat})
               </span>
               <input
                 type="number"
