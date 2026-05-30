@@ -121,9 +121,9 @@ function formatPaymentMethodsCompact(methods: string[]): { display: string; titl
 const DETAIL_LABEL =
   "text-[10px] font-semibold uppercase tracking-[0.12em] leading-[15px] text-zinc-500 max-md:text-[8px] max-md:tracking-[0.08em] max-md:leading-none";
 
-/** Mobile: same left-to-right zones as desktop (note hidden). */
+/** Mobile: merchant full width, then method | pay | receive | action (note hidden). */
 const OFFER_MOBILE_GRID_CLASS =
-  "grid grid-cols-[minmax(0,1.32fr)_minmax(0,1.02fr)_minmax(0,0.7fr)_minmax(0,0.7fr)_3.35rem] items-start gap-x-1.5 gap-y-0 py-3 text-[11px]";
+  "grid grid-cols-[minmax(0,1fr)_minmax(4.85rem,1.12fr)_minmax(4.85rem,1.12fr)_3.15rem] grid-rows-[auto_auto] items-start gap-x-2 gap-y-2.5 py-3 text-[11px]";
 
 /** Desktop columns: merchant | note (fixed) | payment | pay | receive | gap | action */
 export const OFFER_ROW_GRID_CLASS =
@@ -135,7 +135,7 @@ const PAYMENT_METHOD_CLASS =
 const DETAIL_GAP = "md:pl-4";
 
 const AMOUNT_VALUE_CLASS =
-  "tabular-nums text-[15px] font-bold leading-tight tracking-tight text-white max-md:text-[11px] max-md:font-semibold";
+  "w-full min-w-0 tabular-nums text-[15px] font-bold leading-tight tracking-tight text-white max-md:text-[10px] max-md:font-semibold max-md:leading-snug";
 
 const TRADE_BTN_CLASS =
   "inline-flex w-full items-center justify-center gap-1 rounded-xl px-2 py-2 text-center font-extrabold uppercase tracking-wide text-white transition disabled:pointer-events-none disabled:opacity-40 max-md:min-h-[2.125rem] max-md:flex-col max-md:gap-0 max-md:rounded-lg max-md:py-1.5 max-md:text-[8px] max-md:leading-tight md:min-h-[44px] md:flex-row md:gap-1 md:rounded-xl md:px-4 md:py-2.5 md:text-[12px] md:max-w-[9.5rem]";
@@ -229,7 +229,7 @@ export function OfferCard({
       aria-label={`Offer from ${name}`}
       className={`grid border-b border-white/[0.07] px-3 text-zinc-200 last:border-b-0 sm:px-6 ${OFFER_MOBILE_GRID_CLASS} ${OFFER_ROW_GRID_CLASS}`}
     >
-      <div className="flex min-w-0 items-start gap-2 max-md:col-start-1 md:min-h-[4.75rem] md:gap-3">
+      <div className="flex min-w-0 items-start gap-2 max-md:col-span-4 max-md:row-start-1 md:col-span-1 md:row-start-auto md:min-h-[4.75rem] md:gap-3">
         <MerchantOfferAvatar
           avatarUrl={row.merchant_avatar_url}
           displayName={name}
@@ -299,7 +299,7 @@ export function OfferCard({
       <OfferDetailCol
         label="Payment"
         mobileLabel="Method"
-        className={`max-md:col-start-2 md:col-start-3 ${DETAIL_GAP}`}
+        className={`max-md:col-start-1 max-md:row-start-2 md:col-start-3 md:row-start-auto ${DETAIL_GAP}`}
       >
         <p className={PAYMENT_METHOD_CLASS} title={paymentMethods.title || paymentMethods.display}>
           {paymentMethods.display}
@@ -309,7 +309,7 @@ export function OfferCard({
       <OfferDetailCol
         label={payLabel}
         mobileLabel={payLabelMobile}
-        className={`max-md:col-start-3 md:col-start-4 ${DETAIL_GAP}`}
+        className={`max-md:col-start-2 max-md:row-start-2 md:col-start-4 md:row-start-auto ${DETAIL_GAP}`}
         sub={
           flow === "buy"
             ? `≈ ${fmtAssetAmount(offerAsset, clampedCrypto)} · settle off-platform`
@@ -324,7 +324,7 @@ export function OfferCard({
       <OfferDetailCol
         label={receiveLabel}
         mobileLabel={receiveLabelMobile}
-        className={`max-md:col-start-4 md:col-start-5 ${DETAIL_GAP}`}
+        className={`max-md:col-start-3 max-md:row-start-2 md:col-start-5 md:row-start-auto ${DETAIL_GAP}`}
         sub={flow === "buy" ? "After rate vs MP on sampled size" : "Merchant sends fiat after release"}
       >
         <p className={AMOUNT_VALUE_CLASS}>
@@ -334,7 +334,7 @@ export function OfferCard({
 
       <div className="hidden md:block" aria-hidden />
 
-      <div className="flex min-w-0 flex-col items-stretch max-md:col-start-5 max-md:justify-start md:items-end">
+      <div className="flex min-w-0 flex-col items-stretch max-md:col-start-4 max-md:row-start-2 max-md:justify-start md:col-start-auto md:row-start-auto md:items-end">
         <p className={`${DETAIL_LABEL} hidden md:block`} aria-hidden>
           &nbsp;
         </p>
