@@ -28,6 +28,12 @@
       "schedule": "*/10 * * * *"
     }
   ],
+  "rewrites": [
+    {
+      "source": "/markets/:slug((?!detail$)[^/]+)",
+      "destination": "/markets/detail?slug=:slug"
+    }
+  ],
   "redirects": [
     {
       "source": "/",

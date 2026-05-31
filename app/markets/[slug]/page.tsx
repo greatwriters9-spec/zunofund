@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { MarketDetailView } from "@/components/markets/MarketDetailView";
 import { slugToSymbol } from "@/lib/markets/symbols";
 
-export default function MarketDetailPage() {
+export default function MarketSlugPage() {
   const params = useParams();
   const slug =
     typeof params.slug === "string"
