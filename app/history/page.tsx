@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
@@ -31,7 +31,7 @@ function isHistoryFilter(value: string | null): value is HistoryFilter {
   return value != null && (HISTORY_FILTERS as readonly string[]).includes(value);
 }
 
-export default function HistoryPage() {
+function HistoryPageContent() {
   const supabase = useSupabase();
   const searchParams = useSearchParams();
 
@@ -359,5 +359,23 @@ export default function HistoryPage() {
         </motion.div>
       </div>
     </div>
+  );
+}
+
+function HistoryPageFallback() {
+  return (
+    <div className="relative min-h-screen overflow-hidden text-white">
+      <div className="relative z-10 mx-auto max-w-7xl p-5 md:p-7">
+        <div className="px-4 py-12 text-center text-sm text-zinc-500">Loading transactions…</div>
+      </div>
+    </div>
+  );
+}
+
+export default function HistoryPage() {
+  return (
+    <Suspense fallback={<HistoryPageFallback />}>
+      <HistoryPageContent />
+    </Suspense>
   );
 }
