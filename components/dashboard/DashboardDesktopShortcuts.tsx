@@ -100,7 +100,7 @@ export function DashboardDesktopShortcuts({
     <>
       <nav
         aria-label="Dashboard shortcuts"
-        className="mb-7 hidden md:grid md:grid-cols-5 md:gap-x-4 md:gap-y-6"
+        className="mb-7 hidden lg:grid lg:grid-cols-5 lg:gap-x-4 lg:gap-y-6"
       >
         <DesktopShortcut
           label="Referral"

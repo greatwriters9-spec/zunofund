@@ -58,8 +58,8 @@ export function MerchantAppShell({
   const canTrade = merchantStatus === "active";
 
   return (
-    <div className="min-h-screen bg-[#03060c] text-white">
-      <div className="flex min-h-screen min-w-0 flex-col lg:flex-row">
+    <div className="min-h-screen bg-[#03060c] text-white lg:h-[100dvh] lg:overflow-hidden">
+      <div className="flex min-h-screen min-w-0 flex-col lg:h-full lg:min-h-0 lg:flex-row lg:overflow-hidden">
         <nav
           aria-label="Merchant shortcuts"
           className="sticky top-0 z-40 flex shrink-0 gap-2 overflow-x-auto border-b border-[#D4AF37]/15 bg-[#05080F]/95 px-3 pb-3 pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-md [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden"
@@ -90,7 +90,7 @@ export function MerchantAppShell({
           </Link>
         </div>
 
-        <aside className="hidden w-full shrink-0 flex-col gap-6 overflow-y-auto border-b border-[#D4AF37]/15 bg-[#05080F]/95 p-5 lg:flex lg:min-h-screen lg:max-w-[380px] lg:border-b-0 lg:border-r xl:max-w-[430px]">
+        <aside className="hidden w-full shrink-0 flex-col gap-6 border-b border-[#D4AF37]/15 bg-[#05080F]/95 p-5 lg:sticky lg:top-0 lg:flex lg:h-[100dvh] lg:max-h-[100dvh] lg:max-w-[380px] lg:overflow-y-auto lg:overscroll-contain lg:border-b-0 lg:border-r xl:max-w-[430px]">
           <Link href="/merchant" className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#D4AF37]/30 bg-black/35">
               <Store className="text-[#D4AF37]" size={22} aria-hidden />
@@ -158,7 +158,7 @@ export function MerchantAppShell({
           </p>
         </aside>
 
-        <main className="min-h-0 min-w-0 flex-1 px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-5 sm:px-6 sm:pb-8 sm:pt-8">
+        <main className="min-h-0 min-w-0 flex-1 px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-5 sm:px-6 sm:pb-8 sm:pt-8 lg:overflow-y-auto lg:overscroll-contain">
           {(heading !== undefined || description !== undefined) && (
             <header className="mb-8 border-b border-[#D4AF37]/10 pb-5">
               {heading !== undefined && heading !== "" ? (

@@ -106,7 +106,7 @@ export function InvestorBalanceBlock({
         {showAddFunds ? (
           <Link
             href="/deposit"
-            className="shrink-0 self-center rounded-lg border border-yellow-500/45 bg-yellow-500 px-3 py-2 text-xs font-bold uppercase tracking-wide text-black transition hover:bg-yellow-400"
+            className="shrink-0 self-center rounded-lg border border-yellow-500/45 bg-yellow-500 px-3 py-2 text-xs font-bold uppercase tracking-wide text-black transition hover:bg-yellow-400 lg:hidden"
           >
             Add Funds
           </Link>

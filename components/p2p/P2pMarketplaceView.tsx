@@ -320,32 +320,33 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
 
 
   return (
-    <div className="relative flex min-h-[100dvh] min-w-0 flex-col bg-[#03060c] pb-[max(0.5rem,env(safe-area-inset-bottom))] text-white">
-      <main className="relative flex min-w-0 flex-1 flex-col">
-        <div className="relative shrink-0 bg-black/20 px-4 pb-4 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6 sm:pb-5 sm:pt-6">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0">
-              <Link href={backHref} className="text-sm font-medium text-[#D4AF37] transition hover:text-[#F5E6B3]">
-                ← {backLabel}
+    <div className="relative flex min-h-[100dvh] min-w-0 flex-col bg-[#03060c] pb-[max(0.5rem,env(safe-area-inset-bottom))] text-white lg:h-[calc(100dvh-3.5rem-3rem)] lg:max-h-[calc(100dvh-3.5rem-3rem)] lg:overflow-hidden lg:pb-0">
+      <main className="relative flex min-h-0 min-w-0 flex-1 flex-col lg:overflow-hidden lg:flex lg:flex-col">
+        <div className="max-lg:contents lg:z-30 lg:shrink-0 lg:bg-[#03060c]">
+          <div className="relative shrink-0 bg-black/20 px-4 pb-4 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6 sm:pb-5 sm:pt-6 lg:bg-transparent lg:px-6 lg:pb-3 lg:pt-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <Link href={backHref} className="text-sm font-medium text-[#D4AF37] transition hover:text-[#F5E6B3]">
+                  ← {backLabel}
+                </Link>
+                <h1 className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-3xl">
+                  <span className="text-emerald-500">Buy</span> / <span className="text-zinc-600">sell</span>{" "}
+                  <span className="text-[#D4AF37]">crypto</span>
+                </h1>
+                <p className="mt-1 hidden max-w-xl text-sm text-zinc-500 sm:block lg:block">
+                  {subtitle}
+                </p>
+              </div>
+              <Link
+                href="/dashboard"
+                className="shrink-0 rounded-xl border border-[#D4AF37]/30 bg-black/30 px-4 py-2 text-sm font-medium text-[#F5E6B3] backdrop-blur-sm transition hover:border-[#D4AF37]/50 hover:bg-black/45"
+              >
+                Dashboard
               </Link>
-              <h1 className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-3xl">
-                <span className="text-emerald-500">Buy</span> / <span className="text-zinc-600">sell</span>{" "}
-                <span className="text-[#D4AF37]">crypto</span>
-              </h1>
-              <p className="mt-1 hidden max-w-xl text-sm text-zinc-500 sm:block">
-                {subtitle}
-              </p>
             </div>
-            <Link
-              href="/dashboard"
-              className="shrink-0 rounded-xl border border-[#D4AF37]/30 bg-black/30 px-4 py-2 text-sm font-medium text-[#F5E6B3] backdrop-blur-sm transition hover:border-[#D4AF37]/50 hover:bg-black/45"
-            >
-              Dashboard
-            </Link>
           </div>
-        </div>
 
-        <div className="sticky top-[env(safe-area-inset-top)] z-[60] bg-[#03060c]/95 shadow-[0_12px_32px_-16px_rgba(0,0,0,0.85)] backdrop-blur-xl supports-[backdrop-filter]:bg-[#03060c]/88">
+          <div className="z-[60] bg-[#03060c]/95 shadow-[0_12px_32px_-16px_rgba(0,0,0,0.85)] backdrop-blur-xl supports-[backdrop-filter]:bg-[#03060c]/88 max-lg:sticky max-lg:top-[env(safe-area-inset-top)] lg:shadow-none">
           <P2pMarketToolbar
             tab={tab}
             onTabChange={(t) => {
@@ -386,22 +387,25 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
               router.push(`/p2p/order/${activeOrderId}`);
             }}
           />
+          </div>
         </div>
 
         {tab === "sell" && listViewMode === "offers" ? (
-          <P2pSellableBalance defaultAsset={asset} refreshKey={sellableRefresh} />
+          <div className="max-lg:contents lg:shrink-0 lg:border-b lg:border-zinc-800/80 lg:bg-[#03060c]">
+            <P2pSellableBalance defaultAsset={asset} refreshKey={sellableRefresh} />
+          </div>
         ) : null}
 
-        <div className="relative z-0 flex min-w-0 flex-1 flex-col px-4 pb-6 pt-5 sm:px-6">
+        <div className="relative z-0 flex min-w-0 flex-1 flex-col px-4 pb-6 pt-5 sm:px-6 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain">
           {error ? (
             <div className="mb-4 rounded-2xl border border-red-500/35 bg-red-500/10 px-4 py-3 text-sm text-red-200">
               {error}
             </div>
           ) : null}
 
-          <div className="min-w-0 flex-1 pt-2">
+          <div className="min-w-0 flex-1 pt-2 lg:pt-0">
             {listViewMode !== "offers" ? (
-              <div className="overflow-y-auto pr-1 pb-2 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2">
+              <div className="overflow-y-auto pr-1 pb-2 [scrollbar-width:thin] max-lg:max-h-[min(68dvh,calc(100dvh-16rem))] lg:max-h-none [&::-webkit-scrollbar]:w-2">
                 <InvestorMarketplaceActiveTrades
                   bucket={listViewMode}
                   refreshKey={activeTradesGen}

@@ -38,7 +38,6 @@ import { useDisplayCurrency, useFxRates } from "@/lib/useFx";
 import { sumTodayPnlUsd, type ProfitRow } from "@/lib/investorBalanceMetrics";
 import { InvestorBalanceBlock } from "@/components/dashboard/InvestorBalanceBlock";
 import { DashboardHubButtons } from "@/components/dashboard/DashboardHubButtons";
-import { DashboardDesktopShortcuts } from "@/components/dashboard/DashboardDesktopShortcuts";
 import { DashboardNotificationsCard } from "@/components/dashboard/DashboardNotificationsCard";
 import { PortfolioGrowthPanel } from "@/components/dashboard/PortfolioGrowthPanel";
 import { DashboardTrendingMarkets } from "@/components/dashboard/DashboardTrendingMarkets";
@@ -108,8 +107,6 @@ export default function DashboardPage() {
       window.location.href = "/";
     }
   }
-
-  const [showNotifications, setShowNotifications] = useState(false);
 
   const [showWalletModal, setShowWalletModal] = useState(false)
   const [copiedReferral, setCopiedReferral] = useState(false);
@@ -475,11 +472,11 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="page-content-stable relative min-h-screen overflow-x-clip bg-[#05080F] text-white max-lg:bg-[#05080F] lg:bg-transparent">
-      <div className="relative z-10 mx-auto max-w-7xl p-5 max-md:pb-[calc(5.75rem+env(safe-area-inset-bottom))] md:p-7">
+    <div className="page-content-stable relative min-h-screen overflow-x-clip bg-[#05080F] text-white">
+      <div className="relative z-10 mx-auto max-w-7xl p-5 max-md:pb-[calc(5.75rem+env(safe-area-inset-bottom))] lg:mx-0 lg:max-w-none lg:p-0">
 
         {/* Mobile top toolbar: menu hard-left, profile+bell hard-right */}
-        <div className="mb-5 flex items-center justify-between gap-2 md:hidden">
+        <div className="mb-5 flex items-center justify-between gap-2 lg:hidden">
           <button
             type="button"
             className="surface-panel flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition hover:border-yellow-500"
@@ -533,151 +530,84 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Header (greeting + desktop action cluster) */}
-        <div className="mb-7 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-
+        {/* Desktop profile strip (Binance-style header card) */}
+        <div className="mb-6 hidden items-center gap-4 rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-4 lg:flex">
+          <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border border-yellow-500/30 bg-yellow-500/10">
+            {investor?.avatar_url && !profileAvatarBroken ? (
+              <Image
+                src={investor.avatar_url}
+                alt=""
+                fill
+                sizes="56px"
+                className="object-cover"
+                onError={() => setProfileAvatarBroken(true)}
+              />
+            ) : (
+              <span className="flex h-full w-full items-center justify-center">
+                <UserRound className="text-yellow-500" size={28} aria-hidden />
+              </span>
+            )}
+          </div>
           <div className="min-w-0 flex-1">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-yellow-500 mb-2">
-              {getGreeting()}, {investorGreetingName(investor)}
+            <h1 className="truncate text-lg font-bold text-white">
+              {investor?.full_name?.trim() || investorGreetingName(investor)}
             </h1>
-
-            <p className="text-gray-400">
-              Welcome back.
+            <p className="mt-0.5 text-sm text-zinc-500">
+              {getGreeting()} · {displayPlanName(planKey)}
             </p>
           </div>
-
-          <div className="hidden shrink-0 items-center gap-3 md:flex">
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-2.5 text-sm font-medium text-zinc-400 transition hover:border-red-500/50 hover:text-red-400"
-            >
-              Logout
-            </button>
-            <Link
-              href="/dashboard/profile"
-              className="surface-panel rounded-2xl p-3 transition hover:border-yellow-500"
-              aria-label="Profile and security"
-            >
-              <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl border border-yellow-500/25 bg-yellow-500/10">
-                {investor?.avatar_url && !profileAvatarBroken ? (
-                  <Image
-                    src={investor.avatar_url}
-                    alt=""
-                    fill
-                    sizes="40px"
-                    className="object-cover"
-                    onError={() => setProfileAvatarBroken(true)}
-                  />
-                ) : (
-                  <span className="flex h-full w-full items-center justify-center">
-                    <UserRound className="text-yellow-500" size={22} aria-hidden />
-                  </span>
-                )}
-              </div>
-            </Link>
-
-            <div className="relative">
-
-            <button
-              onClick={() =>
-                setShowNotifications(!showNotifications)
-              }
-              className="surface-panel relative rounded-2xl p-4 transition hover:border-yellow-500"
-            >
-              <Bell className="text-yellow-500" size={24} />
-
-              {unreadNotificationCount > 0 && (
-                <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-bold">
-                  {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
-                </div>
-              )}
-            </button>
-
-            {showNotifications && (
-              <div className="surface-panel-elevated absolute right-0 z-50 mt-4 w-[min(360px,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] overflow-hidden shadow-2xl lg:rounded-xl">
-
-                <div className="flex items-center justify-between gap-3 border-b border-zinc-800/80 px-4 py-3">
-                  <h2 className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
-                    Notifications
-                  </h2>
-                  <Link
-                    href="/notifications"
-                    className="text-xs font-semibold text-yellow-500 transition hover:text-yellow-400"
-                  >
-                    View all
-                  </Link>
-                </div>
-
-                <div className="max-h-[min(420px,55vh)] overflow-y-auto">
-                  {notifications.length > 0 ? (
-                    <div className="divide-y divide-zinc-800/80">
-                      {notifications.map((notification) => (
-                        <button
-                          key={notification.id}
-                          type="button"
-                          onClick={() =>
-                            markNotificationAsRead(notification.id)
-                          }
-                          className="w-full px-4 py-3 text-left transition hover:bg-zinc-900/50"
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <h3 className="text-sm font-semibold text-white">
-                              {notification.title}
-                            </h3>
-                            <span
-                              className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-yellow-500"
-                              aria-hidden
-                            />
-                          </div>
-                          <p className="mt-1 line-clamp-2 text-xs leading-snug text-zinc-500">
-                            {formatUsdAmountsInText(notification.message)}
-                          </p>
-                          <p className="mt-2 text-[11px] tabular-nums text-zinc-600">
-                            {new Date(notification.created_at).toLocaleString()}
-                          </p>
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="px-4 py-10 text-center text-sm text-zinc-500">
-                      No notifications.
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between gap-3 border-t border-zinc-800/80 px-4 py-3">
-                  <p className="text-xs text-zinc-500">
-                    {unreadNotificationCount > 0
-                      ? `${unreadNotificationCount} unread`
-                      : "No notifications."}
-                  </p>
-                  <Link
-                    href="/notifications"
-                    className="text-xs font-semibold text-yellow-500 transition hover:text-yellow-400"
-                  >
-                    View all
-                  </Link>
-                </div>
-              </div>
-            )}
-            </div>
+          <div
+            className={`shrink-0 rounded-md border px-2.5 py-1 text-xs font-medium ${
+              (investor?.status ?? "").toLowerCase() === "active"
+                ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-400"
+                : "border-amber-500/25 bg-amber-500/10 text-amber-300"
+            }`}
+          >
+            {(investor?.status ?? "unknown").toUpperCase()}
           </div>
         </div>
 
+        {/* Mobile greeting */}
+        <div className="mb-7 lg:hidden">
+          <h1 className="mb-2 text-2xl font-bold text-yellow-500 sm:text-3xl">
+            {getGreeting()}, {investorGreetingName(investor)}
+          </h1>
+          <p className="text-gray-400">Welcome back.</p>
+        </div>
+
         <div className="mb-8">
-          <InvestorBalanceBlock
-            balanceUsd={balance}
-            showBalance={showBalance}
-            onToggleShowBalance={() => setShowBalance((v) => !v)}
-            displayCrypto="USDT"
-            displayCurrency={displayCurrency}
-            fxRates={fxRates}
-            todayPnlUsd={todayPnlUsd}
-            amountLinksToBalance
-            showAddFunds
-          />
-          <p className="mt-4 text-xs text-zinc-600">
+          <div className="lg:rounded-xl lg:border lg:border-zinc-800/80 lg:bg-zinc-950/40 lg:p-6">
+            <div className="lg:flex lg:items-start lg:justify-between lg:gap-8">
+              <div className="min-w-0 flex-1">
+                <InvestorBalanceBlock
+                  balanceUsd={balance}
+                  showBalance={showBalance}
+                  onToggleShowBalance={() => setShowBalance((v) => !v)}
+                  displayCrypto="USDT"
+                  displayCurrency={displayCurrency}
+                  fxRates={fxRates}
+                  todayPnlUsd={todayPnlUsd}
+                  amountLinksToBalance
+                  showAddFunds
+                />
+              </div>
+              <div className="mt-4 hidden shrink-0 flex-col gap-2 sm:flex-row lg:mt-0 lg:flex lg:flex-col lg:pt-1">
+                <Link
+                  href="/deposit"
+                  className="inline-flex min-w-[7.5rem] items-center justify-center rounded-md bg-yellow-500 px-5 py-2.5 text-sm font-bold text-black transition hover:bg-yellow-400"
+                >
+                  Deposit
+                </Link>
+                <Link
+                  href="/withdraw"
+                  className="inline-flex min-w-[7.5rem] items-center justify-center rounded-md border border-zinc-600 bg-zinc-900/80 px-5 py-2.5 text-sm font-semibold text-zinc-100 transition hover:border-zinc-500"
+                >
+                  Withdraw
+                </Link>
+              </div>
+            </div>
+          </div>
+          <p className="mt-4 text-xs text-zinc-600 lg:px-1">
             Global crypto market cap{" "}
             <span className="font-medium text-zinc-400">
               {globalMarketCapUsd != null
@@ -705,7 +635,7 @@ export default function DashboardPage() {
           ) : null}
 
           <div
-            className={`mt-4 inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium ${
+            className={`mt-4 inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium lg:mx-1 ${
               (investor?.status ?? "").toLowerCase() === "active"
                 ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-400"
                 : "border-amber-500/25 bg-amber-500/10 text-amber-300"
@@ -715,7 +645,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="mb-6 grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4 lg:gap-4 items-stretch">
+        <div className="mb-6 grid grid-cols-2 items-stretch gap-2 sm:gap-3 lg:grid-cols-4 lg:gap-4">
 
 
     {/* WALLET — minimal */}
@@ -845,15 +775,6 @@ export default function DashboardPage() {
           
         </div>
 
-        <DashboardDesktopShortcuts
-          referralOpen={referralPanelOpen}
-          onReferralToggle={() => {
-            if (!referralCode) return;
-            setReferralPanelOpen((open) => !open);
-          }}
-          merchantStatus={merchantProfile?.status}
-        />
-
         {merchantProfile != null &&
         (merchantProfile.status === "active" || merchantProfile.status === "pending") ? (
           <div className="mb-7 rounded-xl border border-yellow-500/25 bg-yellow-500/[0.06] p-4 sm:p-5 lg:rounded-xl">
@@ -917,7 +838,7 @@ export default function DashboardPage() {
 
         <section
           id="portfolio-growth"
-          className="mb-7 hidden scroll-mt-24 md:grid md:grid-cols-3 md:gap-4"
+          className="mb-7 hidden scroll-mt-24 lg:grid lg:grid-cols-3 lg:gap-4"
           aria-labelledby="portfolio-growth-heading"
         >
           <div className="flex min-w-0 flex-col md:col-span-2">
@@ -1090,7 +1011,7 @@ export default function DashboardPage() {
 
       {mobileNavOpen ? (
         <div
-          className="surface-menu-mobile fixed inset-0 z-[210] flex flex-col pt-[env(safe-area-inset-top)] pb-[max(1.5rem,env(safe-area-inset-bottom))] px-6 md:hidden"
+          className="surface-menu-mobile fixed inset-0 z-[210] flex flex-col pt-[env(safe-area-inset-top)] pb-[max(1.5rem,env(safe-area-inset-bottom))] px-6 lg:hidden"
           role="dialog"
           aria-modal="true"
           aria-label="Dashboard navigation"

@@ -120,7 +120,7 @@ type DashboardQuickActionsProps = {
 
 export function DashboardQuickActions({ referralOpen, onReferralToggle }: DashboardQuickActionsProps) {
   return (
-    <div className="mt-4 grid w-full grid-cols-6 gap-0.5 md:hidden">
+    <div className="mt-4 grid w-full grid-cols-6 gap-0.5 lg:hidden">
       <QuickActionTile
         label="Referral"
         iconNode={<ReferralQuickIcon />}

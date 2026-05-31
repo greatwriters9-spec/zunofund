@@ -6,6 +6,10 @@ import { useSearchParams } from "next/navigation";
 
 import { MerchantAppShell } from "@/components/merchant/MerchantAppShell";
 import {
+  MerchantConsoleStickyNav,
+  type MerchantConsoleSection,
+} from "@/components/merchant/MerchantConsoleStickyNav";
+import {
   MerchantOfferHorizontalCard,
   MerchantOffersStripHeader,
   type MerchantOfferHorizontalRow,
@@ -27,7 +31,6 @@ import {
 import { expireStaleP2pOrders, P2P_CANCELLED_STATUSES } from "@/lib/p2pExpiry";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 
-type MerchantMainTab = "offers" | "active";
 type MerchantOfferSideTab = "buy" | "sell";
 type Profile = {
   user_id: string;
@@ -88,8 +91,10 @@ export default function MerchantDashboardPage() {
   const [activeTradeCount, setActiveTradeCount] = useState<number | null>(null);
   const [completedTradeCount, setCompletedTradeCount] = useState<number | null>(null);
   const [merchantActiveOrders, setMerchantActiveOrders] = useState<MerchantOrderCard[]>([]);
+  const [merchantCompletedOrders, setMerchantCompletedOrders] = useState<MerchantOrderCard[]>([]);
   const [activeOrdersError, setActiveOrdersError] = useState<string | null>(null);
-  const [mainTab, setMainTab] = useState<MerchantMainTab>("offers");
+  const [completedOrdersError, setCompletedOrdersError] = useState<string | null>(null);
+  const [consoleSection, setConsoleSection] = useState<MerchantConsoleSection>("offers");
   const [offerSideTab, setOfferSideTab] = useState<MerchantOfferSideTab>("sell");
   const [error, setError] = useState<string | null>(null);
   const [presenceBusy, setPresenceBusy] = useState(false);
@@ -140,7 +145,7 @@ export default function MerchantDashboardPage() {
     if (prof?.status === "active") {
       await expireStaleP2pOrders(supabase);
 
-      const [offersRes, activeTradeHead, completedTradeHead, activeFull] = await Promise.all([
+      const [offersRes, activeTradeHead, completedTradeHead, activeFull, completedFull] = await Promise.all([
         supabase
           .from("merchant_offers")
           .select("*")
@@ -157,6 +162,7 @@ export default function MerchantDashboardPage() {
           .eq("merchant_user_id", user.id)
           .in("status", ["completed", ...P2P_CANCELLED_STATUSES]),
         fetchMerchantOrdersWithInvestors(supabase, user.id, "active"),
+        fetchMerchantOrdersWithInvestors(supabase, user.id, "completed"),
       ]);
       const activeC = activeTradeHead.count;
       const completedC = completedTradeHead.count;
@@ -168,12 +174,16 @@ export default function MerchantDashboardPage() {
       }
       setActiveOrdersError(activeFull.error);
       setMerchantActiveOrders(activeFull.error ? [] : activeFull.orders);
+      setCompletedOrdersError(completedFull.error);
+      setMerchantCompletedOrders(completedFull.error ? [] : completedFull.orders);
       setActiveTradeCount(typeof activeC === "number" ? activeC : null);
       setCompletedTradeCount(typeof completedC === "number" ? completedC : null);
     } else {
       setOffers([]);
       setMerchantActiveOrders([]);
+      setMerchantCompletedOrders([]);
       setActiveOrdersError(null);
+      setCompletedOrdersError(null);
       setActiveTradeCount(null);
       setCompletedTradeCount(null);
     }
@@ -353,13 +363,26 @@ export default function MerchantDashboardPage() {
       void load();
     }
 
+    const activeOfferCount = offers.filter((o) => o.status === "active").length;
+
     body = (
       <>
-        <p className="mb-6 text-xs text-zinc-500 lg:hidden">
+        <p className="mb-4 text-xs text-zinc-500 lg:hidden">
           Logged in as <span className="text-zinc-300">{profile.display_name || "Merchant"}</span>
         </p>
 
-        <div className="mb-6 rounded-2xl border border-[#D4AF37]/18 bg-black/35 p-5 backdrop-blur-sm">
+        <MerchantConsoleStickyNav
+          section={consoleSection}
+          onSectionChange={setConsoleSection}
+          counts={{
+            offers: activeOfferCount,
+            active: activeTradeCount,
+            completed: completedTradeCount,
+          }}
+        />
+
+        {consoleSection === "visibility" ? (
+        <div className="rounded-2xl border border-[#D4AF37]/18 bg-black/35 p-5 backdrop-blur-sm">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
             Your visibility
           </p>
@@ -411,81 +434,22 @@ export default function MerchantDashboardPage() {
             <strong className="text-zinc-300">Go offline</strong> hides you even while this page is open.
           </p>
         </div>
+        ) : null}
 
-        <div className="mb-8 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-3">
-          <div className="rounded-2xl border border-[#D4AF37]/18 bg-black/35 p-5 backdrop-blur-sm">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Offers live</p>
-            <p className="mt-2 text-3xl font-bold tabular-nums text-[#F5E6B3]">{offers.filter((o) => o.status === "active").length}</p>
-            <div className="mt-3 flex flex-col gap-1.5">
-              <button
-                type="button"
-                onClick={() => setMainTab("offers")}
-                className="block text-left text-[11px] font-semibold uppercase tracking-wide text-zinc-400 hover:text-[#F5E6B3]"
-              >
-                View listings ↓
-              </button>
-              <Link href="/merchant/offers/new" className="text-[11px] font-bold uppercase tracking-wide text-[#D4AF37] hover:text-[#F5E6B3]">
-                + Publish another
-              </Link>
-            </div>
-          </div>
-          <div className="rounded-2xl border border-[#D4AF37]/18 bg-black/35 p-5 backdrop-blur-sm">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Active trades</p>
-            <p className="mt-2 text-3xl font-bold tabular-nums text-[#F5E6B3]">{activeTradeCount ?? "—"}</p>
-            <button
-              type="button"
-              onClick={() => setMainTab("active")}
-              className="mt-3 block text-left text-[11px] font-bold uppercase tracking-wide text-[#D4AF37] hover:text-[#F5E6B3]"
-            >
-              Manage here →
-            </button>
-          </div>
-          <div className="rounded-2xl border border-[#D4AF37]/18 bg-black/35 p-5 backdrop-blur-sm">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Ended trades</p>
-            <p className="mt-2 text-3xl font-bold tabular-nums text-[#F5E6B3]">{completedTradeCount ?? "—"}</p>
-            <Link href="/merchant/orders/completed" className="mt-3 inline-block text-[11px] text-zinc-500 hover:text-zinc-300">
-              History →
-            </Link>
-          </div>
-        </div>
-
-        <section>
-          <div
-            className="mb-4 flex flex-col gap-3 max-sm:grid max-sm:grid-cols-2 max-sm:gap-2 sm:flex-row sm:items-center sm:flex-wrap"
-            role="tablist"
-            aria-label="Console listings and trades"
-          >
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mainTab === "offers"}
-              className={`relative flex-1 touch-manipulation rounded-xl border px-4 py-2.5 text-center text-[11px] font-bold uppercase tracking-[0.14em] transition max-sm:min-h-[44px] sm:flex-none sm:min-w-[11rem] sm:py-3 sm:text-[12px] ${
-                mainTab === "offers"
-                  ? "border-[#D4AF37]/55 bg-black/55 text-[#F5E6B3] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ring-1 ring-emerald-500/20"
-                  : "border-white/12 bg-black/28 text-zinc-500 hover:border-[#D4AF37]/30 hover:text-zinc-300"
-              }`}
-              onClick={() => setMainTab("offers")}
-            >
-              Your offers
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mainTab === "active"}
-              className={`relative flex-1 touch-manipulation rounded-xl border px-4 py-2.5 text-center text-[11px] font-bold uppercase tracking-[0.14em] transition max-sm:min-h-[44px] sm:flex-none sm:min-w-[11rem] sm:py-3 sm:text-[12px] ${
-                mainTab === "active"
-                  ? "border-[#D4AF37]/55 bg-black/55 text-[#F5E6B3] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ring-1 ring-emerald-500/20"
-                  : "border-white/12 bg-black/28 text-zinc-500 hover:border-[#D4AF37]/30 hover:text-zinc-300"
-              }`}
-              onClick={() => setMainTab("active")}
-            >
-              Active trades
-            </button>
-          </div>
-
-          <div className="min-h-0 min-w-full">
-            {mainTab === "offers" ? (
+        <section className="min-h-0 min-w-full">
+            {consoleSection === "offers" ? (
               <>
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
+                    Live listings
+                  </p>
+                  <Link
+                    href="/merchant/offers/new"
+                    className="rounded-xl border border-[#D4AF37]/35 bg-[#D4AF37]/10 px-4 py-2 text-[11px] font-bold uppercase tracking-wide text-[#F5E6B3] transition hover:bg-[#D4AF37]/15"
+                  >
+                    + New offer
+                  </Link>
+                </div>
                 {offers.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-[#D4AF37]/22 bg-black/25 py-14 text-center text-sm text-zinc-500">
                     No offers yet —{" "}
@@ -577,8 +541,8 @@ export default function MerchantDashboardPage() {
                   </>
                 )}
               </>
-            ) : (
-              <div className="max-h-[min(60vh,calc(100vh-14rem))] overflow-y-auto pr-1 pb-2 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2">
+            ) : consoleSection === "active" ? (
+              <div className="max-h-[min(60vh,calc(100vh-14rem))] overflow-y-auto pr-1 pb-2 [scrollbar-width:thin] lg:max-h-none [&::-webkit-scrollbar]:w-2">
                 {activeOrdersError ? (
                   <div className="mb-4 rounded-xl border border-red-500/35 bg-red-500/10 px-4 py-3 text-sm text-red-200">
                     {activeOrdersError}
@@ -587,11 +551,23 @@ export default function MerchantDashboardPage() {
                 <MerchantTradesList
                   variant="console"
                   orders={merchantActiveOrders}
-                  emptyMessage="No active trades. When investors open tickets on your ads, they appear here — same panel as your offers."
+                  emptyMessage="No active trades. When investors open tickets on your ads, they appear here."
                 />
               </div>
-            )}
-          </div>
+            ) : consoleSection === "completed" ? (
+              <div className="max-h-[min(60vh,calc(100vh-14rem))] overflow-y-auto pr-1 pb-2 [scrollbar-width:thin] lg:max-h-none [&::-webkit-scrollbar]:w-2">
+                {completedOrdersError ? (
+                  <div className="mb-4 rounded-xl border border-red-500/35 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                    {completedOrdersError}
+                  </div>
+                ) : null}
+                <MerchantTradesList
+                  variant="console"
+                  orders={merchantCompletedOrders}
+                  emptyMessage="No completed or cancelled trades yet."
+                />
+              </div>
+            ) : null}
         </section>
 
         <p className="mt-10 text-[11px] leading-relaxed text-zinc-600">
@@ -612,7 +588,7 @@ export default function MerchantDashboardPage() {
   return (
     <MerchantAppShell
       heading="Console"
-      description="Same glass-and-glow rails as investor P2P · switch Your offers / Active trades in one lane without leaving home."
+      description="Sticky console nav — visibility, offers, active and completed trades in one lane."
       merchantStatus={profile?.status ?? null}
     >
       <Suspense fallback={null}>
