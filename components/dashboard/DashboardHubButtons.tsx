@@ -7,7 +7,10 @@ import type { LucideIcon } from "lucide-react";
 import { BarChart3, History, LineChart, Store, X } from "lucide-react";
 
 const LABEL_CLASS =
-  "text-center text-[10px] font-normal leading-tight tracking-tight text-zinc-100 max-md:line-clamp-2 md:text-sm md:leading-normal md:line-clamp-none";
+  "w-full px-0.5 text-center text-[9px] font-normal leading-[1.15] tracking-tight text-zinc-100 line-clamp-2";
+
+const ICON_CONTROL_CLASS =
+  "inline-flex items-center justify-center p-0 text-zinc-100 transition active:text-yellow-500";
 
 function HubTile({
   label,
@@ -20,25 +23,16 @@ function HubTile({
   href?: string;
   onClick?: () => void;
 }) {
-  const boxClass =
-    "flex w-full items-center justify-center rounded-xl border border-zinc-800/90 bg-zinc-950/50 transition hover:border-yellow-500/40 hover:bg-zinc-900/80 max-md:h-11 max-md:min-w-0 max-md:flex-1 md:h-12 md:max-w-none md:flex-1";
-
-  const inner = (
-    <Icon
-      className="h-5 w-5 text-zinc-100 md:h-[22px] md:w-[22px]"
-      strokeWidth={2.25}
-      aria-hidden
-    />
-  );
+  const inner = <Icon className="h-5 w-5 shrink-0" strokeWidth={2.25} aria-hidden />;
 
   return (
-    <div className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
+    <div className="flex min-w-0 flex-1 basis-0 flex-col items-center gap-0.5">
       {href ? (
-        <Link href={href} className={boxClass} aria-label={label}>
+        <Link href={href} className={ICON_CONTROL_CLASS} aria-label={label}>
           {inner}
         </Link>
       ) : (
-        <button type="button" onClick={onClick} className={boxClass} aria-label={label}>
+        <button type="button" onClick={onClick} className={ICON_CONTROL_CLASS} aria-label={label}>
           {inner}
         </button>
       )}
@@ -77,7 +71,7 @@ export function DashboardHubButtons({ merchantStatus }: DashboardHubButtonsProps
         aria-label="Dashboard shortcuts"
         className="max-md:fixed max-md:bottom-0 max-md:left-0 max-md:right-0 max-md:z-[100] max-md:border-t max-md:border-zinc-800/90 max-md:bg-[#05080F]/95 max-md:px-2 max-md:pt-2 max-md:pb-[max(0.5rem,env(safe-area-inset-bottom))] max-md:shadow-[0_-12px_40px_-12px_rgba(0,0,0,0.75)] max-md:backdrop-blur-md max-md:supports-[backdrop-filter]:bg-[#05080F]/90 md:hidden"
       >
-        <div className="flex w-full items-start justify-between gap-2 max-md:items-end max-md:gap-1.5 md:gap-3">
+        <div className="grid w-full grid-cols-4 gap-1">
           <HubTile label="Portfolio growth" icon={BarChart3} href="/dashboard/growth" />
           <HubTile label="Merchant" icon={Store} onClick={handleMerchant} />
           <HubTile label="Market" icon={LineChart} href="/markets" />

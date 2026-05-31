@@ -5,8 +5,9 @@ import type { LucideIcon } from "lucide-react";
 import { Headset, Star } from "lucide-react";
 import type { ReactNode } from "react";
 
-const QUICK_ACTION_LABEL_CLASS = "text-center text-base font-normal tracking-tight text-zinc-100";
-const QUICK_ACTION_ICON_CLASS = "h-5 w-5 sm:h-[22px] sm:w-[22px]";
+const QUICK_ACTION_LABEL_CLASS =
+  "w-full text-center text-[9px] font-normal leading-[1.15] tracking-tight text-zinc-100";
+const QUICK_ACTION_ICON_CLASS = "h-4 w-4 shrink-0";
 const ICON_STROKE = 2.25;
 const ICON_BASE = "stroke-zinc-100";
 const ICON_ACCENT = "stroke-yellow-500";
@@ -97,7 +98,7 @@ function QuickActionTile({ label, icon: Icon, iconNode, active, onClick, href }:
     ) : null);
 
   return (
-    <div className="flex min-w-[3.75rem] flex-1 flex-col items-center gap-1.5 sm:min-w-0">
+    <div className="flex min-w-0 flex-1 basis-0 flex-col items-center gap-1">
       {href ? (
         <Link href={href} className={boxClass} aria-label={label}>
           {inner}
@@ -119,7 +120,7 @@ type DashboardQuickActionsProps = {
 
 export function DashboardQuickActions({ referralOpen, onReferralToggle }: DashboardQuickActionsProps) {
   return (
-    <div className="mt-4 flex items-start justify-between gap-1.5 sm:gap-2 md:hidden">
+    <div className="mt-4 grid w-full grid-cols-6 gap-0.5 md:hidden">
       <QuickActionTile
         label="Referral"
         iconNode={<ReferralQuickIcon />}
