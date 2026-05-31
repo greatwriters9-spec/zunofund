@@ -17,6 +17,7 @@ import {
   TrendingUp,
   Users,
   Wallet,
+  Gift,
 } from "lucide-react";
 
 import { useSupabase } from "@/lib/supabase";
@@ -86,6 +87,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <Link href="/admin/profits" className={linkClass("/admin/profits")}>
               <TrendingUp className={iconCls} aria-hidden />
               Profits
+            </Link>
+            <Link href="/admin/rewards" className={linkClass("/admin/rewards")}>
+              <Gift className={iconCls} aria-hidden />
+              Rewards
             </Link>
             <Link href="/admin/support" className={linkClass("/admin/support")}>
               <MessageCircle className={iconCls} aria-hidden />

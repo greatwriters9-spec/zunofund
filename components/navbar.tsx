@@ -12,7 +12,11 @@ const NAV_DASHBOARD = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/investment-plans", label: "Investments" },
   { href: "/history", label: "Transactions" },
-  { href: "/dashboard#portfolio-growth", label: "Analytics" },
+  {
+    href: "/dashboard#portfolio-growth",
+    mobileHref: "/dashboard/growth",
+    label: "Analytics",
+  },
 ] as const;
 
 /* ✅ UPDATED BRAND (FIXED DESIGN) */
@@ -321,7 +325,8 @@ export function DashboardNavbar({
             {NAV_DASHBOARD.map((item) => (
               <NavLinkDash
                 key={item.href}
-                {...item}
+                href={item.href}
+                label={item.label}
                 pathname={pathname}
                 fragment={fragment}
               />
@@ -375,7 +380,8 @@ export function DashboardNavbar({
             {NAV_DASHBOARD.map((item) => (
               <NavLinkDash
                 key={item.href}
-                {...item}
+                href={"mobileHref" in item && item.mobileHref ? item.mobileHref : item.href}
+                label={item.label}
                 pathname={pathname}
                 fragment={fragment}
                 onNavigate={closeMobile}

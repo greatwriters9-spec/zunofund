@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 
 import {
@@ -16,22 +17,36 @@ import { useSupabase } from "@/lib/supabase";
 
 interface Transaction {
   id: string;
-  type: "deposit" | "withdrawal" | "profit" | "referral_bonus";
+  type: "deposit" | "withdrawal" | "profit" | "referral_bonus" | "reward";
   amount: number;
   status: string;
   description?: string;
   created_at: string;
 }
 
+const HISTORY_FILTERS = ["all", "deposit", "withdrawal", "profit", "referral_bonus", "reward"] as const;
+type HistoryFilter = (typeof HISTORY_FILTERS)[number];
+
+function isHistoryFilter(value: string | null): value is HistoryFilter {
+  return value != null && (HISTORY_FILTERS as readonly string[]).includes(value);
+}
+
 export default function HistoryPage() {
   const supabase = useSupabase();
+  const searchParams = useSearchParams();
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [activeFilter, setActiveFilter] = useState<
-    "all" | "deposit" | "withdrawal" | "profit" | "referral_bonus"
-  >("all");
+  const [activeFilter, setActiveFilter] = useState<HistoryFilter>(() => {
+    const q = searchParams.get("filter");
+    return isHistoryFilter(q) ? q : "all";
+  });
+
+  useEffect(() => {
+    const q = searchParams.get("filter");
+    if (isHistoryFilter(q)) setActiveFilter(q);
+  }, [searchParams]);
 
   const fetchHistory = useCallback(async () => {
     setLoading(true);
@@ -74,7 +89,8 @@ export default function HistoryPage() {
         t !== "deposit" &&
         t !== "withdrawal" &&
         t !== "profit" &&
-        t !== "referral_bonus"
+        t !== "referral_bonus" &&
+        t !== "reward"
       ) {
         return acc;
       }
@@ -140,6 +156,9 @@ export default function HistoryPage() {
       case "referral_bonus":
         return <Gift className="text-yellow-400" size={20} />;
 
+      case "reward":
+        return <Gift className="text-yellow-500" size={20} />;
+
       default:
         return null;
     }
@@ -158,6 +177,9 @@ export default function HistoryPage() {
 
       case "referral_bonus":
         return "text-yellow-400";
+
+      case "reward":
+        return "text-yellow-500";
 
       default:
         return "text-white";
@@ -178,7 +200,7 @@ export default function HistoryPage() {
                 Transaction history
               </h1>
               <p className="mt-1 text-sm text-zinc-600">
-                Combined deposits, withdrawals, profits, and referral bonuses — newest first (up to 250 rows).
+                Deposits, withdrawals, profits, referral bonuses, and loyalty rewards — newest first (up to 250 rows).
               </p>
             </div>
             <Link
@@ -191,7 +213,7 @@ export default function HistoryPage() {
         </header>
 
         <div className="-mx-1 mb-4 flex gap-1 overflow-x-auto border-b border-zinc-800/80 px-1 pb-px">
-          {(["all", "deposit", "withdrawal", "profit", "referral_bonus"] as const).map((filter) => (
+          {HISTORY_FILTERS.map((filter) => (
             <button
               key={filter}
               type="button"
@@ -202,7 +224,11 @@ export default function HistoryPage() {
                   : "border-transparent text-zinc-500 hover:text-zinc-300"
               }`}
             >
-              {filter === "referral_bonus" ? "referral bonus" : filter}
+              {filter === "referral_bonus"
+                ? "referral bonus"
+                : filter === "reward"
+                  ? "rewards"
+                  : filter}
             </button>
           ))}
         </div>
@@ -252,7 +278,11 @@ export default function HistoryPage() {
                       </div>
                       <div className="min-w-0">
                         <h3 className="text-sm font-semibold capitalize text-white">
-                          {transaction.type === "referral_bonus" ? "Referral bonus" : transaction.type}
+                          {transaction.type === "referral_bonus"
+                            ? "Referral bonus"
+                            : transaction.type === "reward"
+                              ? "Reward"
+                              : transaction.type}
                         </h3>
                         <p className="truncate text-xs text-zinc-600">
                           {transaction.description}
@@ -285,7 +315,11 @@ export default function HistoryPage() {
                         {getTransactionIcon(transaction.type)}
                       </div>
                       <span className="text-sm font-semibold capitalize text-white">
-                        {transaction.type === "referral_bonus" ? "Referral bonus" : transaction.type}
+                        {transaction.type === "referral_bonus"
+                          ? "Referral bonus"
+                          : transaction.type === "reward"
+                            ? "Reward"
+                            : transaction.type}
                       </span>
                     </div>
 

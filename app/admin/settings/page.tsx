@@ -288,11 +288,12 @@ export default function AdminSettingsPage() {
       <SettingsSection title="Locks & withdrawals">
         <ul className="list-disc list-inside text-zinc-300 text-sm space-y-2">
           <li>
-            Each <strong>approved deposit</strong> adds principal that stays{" "}
-            <strong>locked for 30 days</strong>; after maturity it moves to{" "}
-            <strong>withdrawable principal</strong> (profits sit in{" "}
-            <strong>withdrawable profit</strong>). Withdrawals take profit
-            first, then principal—principal withdrawals can lower tier.
+            Each <strong>approved deposit</strong> locks principal for{" "}
+            <strong>30 days</strong> for <strong>crypto wallet</strong> withdrawals
+            (profits in <strong>withdrawable profit</strong> are available sooner).
+            <strong> P2P sell</strong> can use the full portfolio balance, including
+            locked principal. Wallet withdrawals take profit first, then matured
+            principal.
           </li>
           <li>
             <strong>Daily automated profit</strong> uses the tier percentage on

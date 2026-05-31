@@ -44,6 +44,25 @@ function typeStyles(type: string) {
       iconWrap: "bg-yellow-500/10 text-yellow-400",
     };
   }
+  if (t.includes("reward_eligible")) {
+    return {
+      Icon: TrendingUp,
+      chip: "text-amber-300 bg-amber-500/15 border-amber-500/30",
+      iconWrap: "bg-amber-500/10 text-amber-400",
+    };
+  }
+  if (
+    t.includes("reward_unlocked") ||
+    t.includes("tier_upgraded") ||
+    t.includes("elite_status") ||
+    t.includes("merchant_access")
+  ) {
+    return {
+      Icon: TrendingUp,
+      chip: "text-[#F5E6B3] bg-[#D4AF37]/15 border-[#D4AF37]/30",
+      iconWrap: "bg-[#D4AF37]/10 text-[#D4AF37]",
+    };
+  }
   if (t.includes("p2p") || t.includes("trade")) {
     return {
       Icon: MessageCircle,

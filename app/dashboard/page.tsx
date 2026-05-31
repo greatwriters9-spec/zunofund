@@ -2,15 +2,12 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import dynamic from "next/dynamic";
 import { useEffect, useState, useCallback } from "react";
 import { X, Menu } from "lucide-react"
 import { usePathname, useRouter } from "next/navigation"
 
 import {
   Bell,
-  Eye,
-  EyeOff,
   Wallet,
   BarChart3,
   Headset,
@@ -18,11 +15,8 @@ import {
   UserRound,
   Store,
   ArrowLeftRight,
-  Copy,
-  Gift,
 } from "lucide-react";
 
-import type { ProfitChartDatum } from "@/components/dashboard/ProfitGrowthChart";
 import {
   formatMoneyAmount,
   formatSignedUsdAmount,
@@ -38,32 +32,22 @@ import {
 import { fetchInvestorNotificationSnapshot } from "@/lib/dashboardInvestorAlerts";
 import { notificationsOwnerOrFilter } from "@/lib/notificationQuery";
 import { fromUsd } from "@/lib/exchangeRates";
-import { fmtAssetAmount } from "@/lib/p2pAssets";
-import { formatFiat, getFiatCurrency } from "@/lib/currencies";
+import { formatFiat } from "@/lib/currencies";
 import { buildReferralSignupPath } from "@/lib/referrals";
-import { useDisplayCryptoUnit, useDisplayCurrency, useFxRates } from "@/lib/useFx";
-import { CryptoUnitPicker } from "@/components/currency/CryptoUnitPicker";
-import { CurrencyPicker } from "@/components/currency/CurrencyPicker";
+import { useDisplayCurrency, useFxRates } from "@/lib/useFx";
+import { sumTodayPnlUsd, type ProfitRow } from "@/lib/investorBalanceMetrics";
+import { InvestorBalanceBlock } from "@/components/dashboard/InvestorBalanceBlock";
+import { DashboardHubButtons } from "@/components/dashboard/DashboardHubButtons";
+import { DashboardDesktopShortcuts } from "@/components/dashboard/DashboardDesktopShortcuts";
+import { DashboardNotificationsCard } from "@/components/dashboard/DashboardNotificationsCard";
+import { PortfolioGrowthPanel } from "@/components/dashboard/PortfolioGrowthPanel";
+import { DashboardTrendingMarkets } from "@/components/dashboard/DashboardTrendingMarkets";
+import { DashboardQuickActions } from "@/components/dashboard/DashboardQuickActions";
+import { DashboardReferralPanel } from "@/components/dashboard/DashboardReferralPanel";
 import { PlatformContactDisplay } from "@/components/contact/PlatformContactDisplay";
 
 const PROFIT_FEED_COLUMNS =
   "id, amount, status, created_at, profit_origin, investment_plan_snapshot";
-
-const ProfitGrowthChart = dynamic(
-  () =>
-    import("@/components/dashboard/ProfitGrowthChart").then((m) => ({
-      default: m.ProfitGrowthChart,
-    })),
-  {
-    ssr: false,
-    loading: () => (
-      <div
-        className="min-h-[240px] w-full animate-pulse rounded-lg bg-zinc-900/40 sm:min-h-[280px] md:min-h-[300px]"
-        style={{ height: 300 }}
-      />
-    ),
-  },
-);
 
 interface Investor {
   id: string;
@@ -107,7 +91,6 @@ export default function DashboardPage() {
 
   const [activities, setActivities] = useState<Activity[]>([]);
 
-  const [chartData, setChartData] = useState<ProfitChartDatum[]>([]);
 
   const [showBalance, setShowBalance] = useState(true);
 
@@ -130,6 +113,7 @@ export default function DashboardPage() {
 
   const [showWalletModal, setShowWalletModal] = useState(false)
   const [copiedReferral, setCopiedReferral] = useState(false);
+  const [referralPanelOpen, setReferralPanelOpen] = useState(false);
   const [appOrigin] = useState(() =>
     typeof window === "undefined" ? "" : window.location.origin,
   );
@@ -148,10 +132,9 @@ export default function DashboardPage() {
   const lockedPrincipal = Number(investor?.locked_principal_balance ?? 0);
   const planKey = normalizeInvestmentPlan(investor?.investment_plan);
 
-  const [displayCurrency, setDisplayCurrency] = useDisplayCurrency();
-  const [displayCrypto, setDisplayCrypto] = useDisplayCryptoUnit();
+  const [displayCurrency] = useDisplayCurrency();
   const { rates: fxRates } = useFxRates();
-  const displayCurrencyMeta = getFiatCurrency(displayCurrency);
+  const [todayPnlUsd, setTodayPnlUsd] = useState(0);
 
   const router = useRouter();
   const pathname = usePathname();
@@ -323,23 +306,39 @@ export default function DashboardPage() {
 
       setActivities(mergedActivities);
 
-      let cumulativeProfit = 0;
-
-      const growthData = profitsChronoAsc.map((profit, index) => {
-        cumulativeProfit += Number(profit.amount);
-
-        return {
-          id: index + 1,
-          date: new Date(profit.created_at).toLocaleDateString(),
-          profit: cumulativeProfit,
-        };
-      });
-
-      setChartData(growthData);
+      setTodayPnlUsd(sumTodayPnlUsd(profitsChronoAsc));
     } catch (e) {
       console.error("Dashboard load failed:", e);
     } finally {
       setLoading(false);
+    }
+  }, [supabase]);
+
+  const syncBalanceAndTodayPnl = useCallback(async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user?.email || !user.id) return;
+
+    const profitOwner = notificationsOwnerOrFilter({
+      userId: user.id,
+      investorEmail: user.email.trim(),
+    });
+
+    const [investorRes, profitsRes] = await Promise.all([
+      supabase.from("investors").select("*").eq("user_id", user.id).single(),
+      supabase
+        .from("profits")
+        .select("amount, status, created_at")
+        .or(profitOwner)
+        .order("created_at", { ascending: true }),
+    ]);
+
+    if (!investorRes.error && investorRes.data) {
+      setInvestor(investorRes.data as Investor);
+    }
+    if (!profitsRes.error) {
+      setTodayPnlUsd(sumTodayPnlUsd((profitsRes.data ?? []) as ProfitRow[]));
     }
   }, [supabase]);
 
@@ -356,8 +355,13 @@ export default function DashboardPage() {
   }, [fetchDashboardData, supabase]);
 
   useEffect(() => {
-    const onRealtimeOrInsert = () => {
+    const onRealtimeOrInsert = (ev: Event) => {
       void syncInvestorAlerts();
+      const row = (ev as CustomEvent<Record<string, unknown>>).detail;
+      const type = typeof row?.type === "string" ? row.type : "";
+      if (type === "profit_compound" || type === "profit_bonus") {
+        void syncBalanceAndTodayPnl();
+      }
     };
     window.addEventListener("tp:investor-notification", onRealtimeOrInsert);
     window.addEventListener("tp:investor-notifications-sync", onRealtimeOrInsert);
@@ -371,17 +375,18 @@ export default function DashboardPage() {
         onRealtimeOrInsert,
       );
     };
-  }, [syncInvestorAlerts]);
+  }, [syncBalanceAndTodayPnl, syncInvestorAlerts]);
 
   useEffect(() => {
     const onVis = () => {
       if (document.visibilityState === "visible") {
         void syncInvestorAlerts();
+        void syncBalanceAndTodayPnl();
       }
     };
     document.addEventListener("visibilitychange", onVis);
     return () => document.removeEventListener("visibilitychange", onVis);
-  }, [syncInvestorAlerts]);
+  }, [syncBalanceAndTodayPnl, syncInvestorAlerts]);
 
   useEffect(() => {
     setProfileAvatarBroken(false);
@@ -438,30 +443,8 @@ export default function DashboardPage() {
 
   function walletMoneyLabel(value: number): string {
     if (!showBalance) return "••••••";
-    if (displayCrypto === "BTC") {
-      return fmtAssetAmount("BTC", fromUsd(value, "BTC", fxRates));
-    }
     const native = fromUsd(value, displayCurrency, fxRates);
     return formatFiat(native, displayCurrency);
-  }
-
-  function formatBalanceHeadline(): string {
-    if (!showBalance) return "••••••";
-    if (displayCrypto === "BTC") {
-      return fmtAssetAmount("BTC", fromUsd(balance, "BTC", fxRates));
-    }
-    return `${formatMoneyAmount(balance)} USDT`;
-  }
-
-  function formatBalanceSubline(): string {
-    if (!showBalance) return "••••••";
-    if (displayCrypto === "BTC") {
-      const usdt =
-        balance > 0 ? `${formatMoneyAmount(balance)} USDT` : null;
-      const fiat = `≈ ${formatFiat(fromUsd(balance, displayCurrency, fxRates), displayCurrency)}`;
-      return usdt ? `≈ ${usdt} · ${fiat}` : fiat;
-    }
-    return `≈ ${formatFiat(fromUsd(balance, displayCurrency, fxRates), displayCurrency)}`;
   }
 
   function formatMarketCapUsd(value: number): string {
@@ -493,7 +476,7 @@ export default function DashboardPage() {
 
   return (
     <div className="page-content-stable relative min-h-screen overflow-x-clip bg-[#05080F] text-white max-lg:bg-[#05080F] lg:bg-transparent">
-      <div className="relative z-10 mx-auto max-w-7xl p-5 md:p-7">
+      <div className="relative z-10 mx-auto max-w-7xl p-5 max-md:pb-[calc(5.75rem+env(safe-area-inset-bottom))] md:p-7">
 
         {/* Mobile top toolbar: menu hard-left, profile+bell hard-right */}
         <div className="mb-5 flex items-center justify-between gap-2 md:hidden">
@@ -682,53 +665,18 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="dashboard-balance-stable mb-8 border-b border-zinc-800/90 pb-8">
-          <p className="text-sm font-medium text-zinc-500">Total balance</p>
-
-          <div className="mt-2 flex items-center justify-between gap-3">
-            <p className="min-w-0 flex-1 text-4xl font-bold tabular-nums tracking-tight text-white sm:text-5xl md:text-[3.25rem]">
-              {formatBalanceHeadline()}
-            </p>
-            <button
-              type="button"
-              onClick={() => setShowBalance(!showBalance)}
-              className="flex h-8 shrink-0 items-center gap-1.5 self-center rounded-lg border border-zinc-700/80 bg-transparent px-2.5 text-sm text-zinc-300 transition hover:border-yellow-500/50 hover:text-white"
-              aria-pressed={showBalance}
-              aria-label={showBalance ? "Hide balance" : "Show balance"}
-            >
-              {showBalance ? (
-                <EyeOff size={16} aria-hidden />
-              ) : (
-                <Eye size={16} aria-hidden />
-              )}
-              <span className="text-xs">
-                {showBalance ? "Hide" : "Show"}
-              </span>
-            </button>
-          </div>
-
-          <p
-            className="mt-2 text-base tabular-nums text-zinc-500"
-            title={
-              displayCrypto === "BTC"
-                ? "Investment balance in USDT and fiat"
-                : `${displayCurrencyMeta.name} · ${displayCurrencyMeta.code}`
-            }
-          >
-            {formatBalanceSubline()}
-          </p>
-
-          <div className="mt-2 flex flex-row flex-wrap items-center gap-2">
-            <CryptoUnitPicker value={displayCrypto} onChange={setDisplayCrypto} size="sm" />
-            <CurrencyPicker
-              value={displayCurrency}
-              onChange={setDisplayCurrency}
-              size="sm"
-              align="start"
-              triggerVariant="code-only"
-            />
-          </div>
-
+        <div className="mb-8">
+          <InvestorBalanceBlock
+            balanceUsd={balance}
+            showBalance={showBalance}
+            onToggleShowBalance={() => setShowBalance((v) => !v)}
+            displayCrypto="USDT"
+            displayCurrency={displayCurrency}
+            fxRates={fxRates}
+            todayPnlUsd={todayPnlUsd}
+            amountLinksToBalance
+            showAddFunds
+          />
           <p className="mt-4 text-xs text-zinc-600">
             Global crypto market cap{" "}
             <span className="font-medium text-zinc-400">
@@ -738,6 +686,24 @@ export default function DashboardPage() {
             </span>
             <span className="text-zinc-600"> · CoinGecko</span>
           </p>
+
+          <DashboardQuickActions
+            referralOpen={referralPanelOpen}
+            onReferralToggle={() => {
+              if (!referralCode) return;
+              setReferralPanelOpen((open) => !open);
+            }}
+          />
+
+          {referralPanelOpen && referralCode ? (
+            <DashboardReferralPanel
+              referralCode={referralCode}
+              referralLink={referralLink}
+              copied={copiedReferral}
+              onCopy={() => void copyReferralLink()}
+            />
+          ) : null}
+
           <div
             className={`mt-4 inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium ${
               (investor?.status ?? "").toLowerCase() === "active"
@@ -749,48 +715,11 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {referralCode ? (
-          <div className="mb-6 rounded-xl border border-yellow-500/15 bg-yellow-500/[0.04] px-4 py-3">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="min-w-0">
-                <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-yellow-500/90">
-                  <Gift size={14} aria-hidden />
-                  5% Network Rewards
-                </p>
-                <p className="mt-1 text-xs text-zinc-500">
-                  Your network moves. You earn 5%.
-                </p>
-              </div>
-              <div className="flex min-w-0 flex-col gap-2 sm:w-[25rem]">
-                <div className="flex min-w-0 items-center gap-2 rounded-lg border border-zinc-800 bg-black/35 px-3 py-2">
-                  <span className="shrink-0 rounded bg-yellow-500/10 px-2 py-1 font-mono text-xs font-bold text-yellow-300">
-                    {referralCode}
-                  </span>
-                  <span className="truncate text-xs text-zinc-500" title={referralLink}>
-                    {referralLink}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => void copyReferralLink()}
-                    className="ml-auto shrink-0 text-zinc-400 transition hover:text-yellow-400"
-                    aria-label="Copy 5% Network Rewards link"
-                  >
-                    <Copy size={15} aria-hidden />
-                  </button>
-                </div>
-                {copiedReferral ? (
-                  <p className="text-right text-[11px] text-emerald-400">5% Network Rewards link copied.</p>
-                ) : null}
-              </div>
-            </div>
-          </div>
-        ) : null}
-
         <div className="mb-6 grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4 lg:gap-4 items-stretch">
 
 
     {/* WALLET — minimal */}
-<div className="flex flex-col border border-zinc-800/80 bg-zinc-950/40 p-4 sm:p-5 lg:rounded-xl">
+<div className="flex flex-col rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-4 sm:p-5">
 
   <div className="mb-3 flex items-start justify-between gap-2">
     <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
@@ -803,21 +732,20 @@ export default function DashboardPage() {
     {walletMoneyLabel(balance)}
   </p>
   <p className="mt-1 text-[11px] leading-snug text-emerald-400/90">
-    Withdrawable {walletMoneyLabel(withdrawable)}
+    Wallet withdrawable {walletMoneyLabel(withdrawable)}
   </p>
   <p className="text-[11px] leading-snug text-zinc-500">
-    Locked {walletMoneyLabel(lockedPrincipal)}
+    Locked (P2P OK) {walletMoneyLabel(lockedPrincipal)}
   </p>
-
   <p className="mt-3 line-clamp-2 text-[11px] leading-snug text-zinc-600">
-    Deposits plus compounded gains. Withdrawals use withdrawable funds;
-    principal unlocks after 30 days.
+    Crypto wallet: profits anytime; principal unlocks after 30 days. Sell full
+    balance anytime on P2P.
   </p>
 
   <button
     type="button"
     onClick={() => setShowWalletModal(true)}
-    className="mt-auto flex items-center justify-center gap-1.5 border border-zinc-700/90 py-2.5 text-xs font-semibold text-zinc-200 transition hover:border-yellow-500/40 hover:text-white lg:rounded-lg"
+    className="mt-auto flex items-center justify-center gap-1.5 rounded-lg border border-zinc-700/90 py-2.5 text-xs font-semibold text-zinc-200 transition hover:border-yellow-500/40 hover:text-white"
   >
     Wallet
     <ArrowRight size={14} aria-hidden />
@@ -826,7 +754,7 @@ export default function DashboardPage() {
 
 
 {/* PROFIT — minimal */}
-<div className="flex flex-col border border-zinc-800/80 bg-zinc-950/40 p-4 sm:p-5 lg:rounded-xl">
+<div className="flex flex-col rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-4 sm:p-5">
 
   <div className="mb-3 flex items-start justify-between gap-2">
     <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
@@ -844,7 +772,7 @@ export default function DashboardPage() {
 
   <Link
     href="/history"
-    className="mt-auto flex items-center justify-center gap-1.5 border border-zinc-700/90 py-2.5 text-xs font-semibold text-zinc-200 transition hover:border-yellow-500/40 hover:text-white lg:rounded-lg"
+    className="mt-auto flex items-center justify-center gap-1.5 rounded-lg border border-zinc-700/90 py-2.5 text-xs font-semibold text-zinc-200 transition hover:border-yellow-500/40 hover:text-white"
   >
     History
     <ArrowRight size={14} aria-hidden />
@@ -853,7 +781,7 @@ export default function DashboardPage() {
 
 
   {/* PLAN — minimal */}
-<div className="flex flex-col border border-yellow-500/15 bg-yellow-500/[0.03] p-4 sm:p-5 lg:rounded-xl">
+<div className="flex flex-col rounded-xl border border-yellow-500/15 bg-yellow-500/[0.03] p-4 sm:p-5">
 
   <div className="mb-3 flex items-start justify-between gap-2">
     <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
@@ -885,7 +813,7 @@ export default function DashboardPage() {
 
   <Link
     href="/investment-plans"
-    className="mt-auto flex items-center justify-center gap-1.5 border border-zinc-700/90 py-2.5 text-xs font-semibold text-zinc-200 transition hover:border-yellow-500/40 hover:text-white lg:rounded-lg"
+    className="mt-auto flex items-center justify-center gap-1.5 rounded-lg border border-zinc-700/90 py-2.5 text-xs font-semibold text-zinc-200 transition hover:border-yellow-500/40 hover:text-white"
   >
     Plans
     <ArrowRight size={14} aria-hidden />
@@ -894,7 +822,7 @@ export default function DashboardPage() {
 
 
 {/* SUPPORT — minimal */}
-<div className="flex flex-col border border-zinc-800/80 bg-zinc-950/40 p-4 sm:p-5 lg:rounded-xl">
+<div className="flex flex-col rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-4 sm:p-5">
 
   <div className="mb-3 flex items-start justify-between gap-2">
     <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
@@ -908,7 +836,7 @@ export default function DashboardPage() {
 
 <Link
   href="/support"
-  className="mt-auto flex items-center justify-center gap-1.5 border border-zinc-700/90 py-2.5 text-xs font-semibold text-zinc-200 transition hover:border-yellow-500/40 hover:text-white lg:rounded-lg"
+  className="mt-auto flex items-center justify-center gap-1.5 rounded-lg border border-zinc-700/90 py-2.5 text-xs font-semibold text-zinc-200 transition hover:border-yellow-500/40 hover:text-white"
 >
   Contact
   <ArrowRight size={14} aria-hidden />
@@ -917,47 +845,14 @@ export default function DashboardPage() {
           
         </div>
 
-        <div className="mb-7 grid grid-cols-5 gap-1.5 md:grid-cols-2 md:gap-3 xl:grid-cols-5 xl:gap-4">
-
-          <Link
-            href="/deposit"
-            className="rounded-xl bg-yellow-500 px-1.5 py-3 text-center text-[11px] font-bold text-black transition hover:bg-yellow-600 sm:text-[13px] md:px-4 md:text-sm"
-          >
-            Deposit
-          </Link>
-
-          <Link
-            href="/withdraw"
-            className="rounded-xl border border-zinc-800 bg-zinc-950/50 px-1.5 py-3 text-center text-[11px] font-semibold text-white transition hover:border-yellow-500/50 sm:text-[13px] md:px-4 md:text-sm"
-          >
-            Withdraw
-          </Link>
-
-          <Link
-            href="/p2p"
-            className="relative overflow-hidden rounded-xl border border-emerald-500/35 bg-gradient-to-br from-emerald-500/15 via-emerald-500/8 to-yellow-500/10 px-1.5 py-3 text-center text-[11px] font-bold text-emerald-300 shadow-[0_0_20px_-8px_rgba(16,185,129,0.55)] transition hover:border-emerald-400/70 hover:shadow-[0_0_28px_-6px_rgba(16,185,129,0.7)] sm:text-[13px] md:px-4 md:text-sm"
-          >
-            <span
-              aria-hidden
-              className="pointer-events-none absolute -right-2 -top-2 hidden h-10 w-10 rounded-full bg-emerald-500/20 blur-2xl lg:block"
-            />
-            <span className="relative">P2P</span>
-          </Link>
-
-          <Link
-            href="/investment-plans"
-            className="rounded-xl border border-zinc-800 bg-zinc-950/50 px-1.5 py-3 text-center text-[11px] font-semibold text-white transition hover:border-yellow-500/50 sm:text-[13px] md:px-4 md:text-sm"
-          >
-            Plans
-          </Link>
-
-          <Link
-            href="/support"
-            className="rounded-xl border border-zinc-800 bg-zinc-950/50 px-1.5 py-3 text-center text-[11px] font-semibold text-white transition hover:border-yellow-500/50 sm:text-[13px] md:px-4 md:text-sm"
-          >
-            Support
-          </Link>
-        </div>
+        <DashboardDesktopShortcuts
+          referralOpen={referralPanelOpen}
+          onReferralToggle={() => {
+            if (!referralCode) return;
+            setReferralPanelOpen((open) => !open);
+          }}
+          merchantStatus={merchantProfile?.status}
+        />
 
         {merchantProfile != null &&
         (merchantProfile.status === "active" || merchantProfile.status === "pending") ? (
@@ -1020,72 +915,46 @@ export default function DashboardPage() {
           </div>
         ) : null}
 
-        <div className="mb-7 grid grid-cols-1 gap-3 xl:grid-cols-3 xl:gap-4">
-
-          <div
-            id="portfolio-growth"
-            className="flex flex-col border border-zinc-800/80 bg-zinc-950/40 p-4 sm:p-5 lg:rounded-xl xl:col-span-2"
-          >
-            <div className="mb-4 border-b border-zinc-800/80 pb-3">
-              <h2 className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
-                Portfolio growth
-              </h2>
-              <p className="mt-0.5 text-xs text-zinc-600">
-                Real growth based on actual profits.
-              </p>
-            </div>
-
-            <div className="chart-panel-stable">
-              <ProfitGrowthChart data={chartData} />
-            </div>
-          </div>
-
-          <div className="flex max-h-[min(420px,55vh)] flex-col border border-zinc-800/80 bg-zinc-950/40 p-4 sm:p-5 lg:rounded-xl">
-            <div className="mb-0 flex shrink-0 items-center justify-between gap-3 border-b border-zinc-800/80 pb-3">
-              <h2 className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
-                Notifications
-              </h2>
+        <section
+          id="portfolio-growth"
+          className="mb-7 hidden scroll-mt-24 md:grid md:grid-cols-3 md:gap-4"
+          aria-labelledby="portfolio-growth-heading"
+        >
+          <div className="flex min-w-0 flex-col md:col-span-2">
+            <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2
+                  id="portfolio-growth-heading"
+                  className="text-[11px] font-medium uppercase tracking-wide text-zinc-500"
+                >
+                  Portfolio growth
+                </h2>
+                <p className="mt-1 text-sm text-zinc-500">
+                  Real growth based on profits credited to your account.
+                </p>
+              </div>
               <Link
-                href="/notifications"
-                className="text-xs font-semibold text-yellow-500 transition hover:text-yellow-400"
+                href="/dashboard/growth"
+                className="shrink-0 text-xs font-semibold text-yellow-500 transition hover:text-yellow-400"
               >
-                View all
+                Full view →
               </Link>
             </div>
-
-            <div className="scroll-panel-stable min-h-0 flex-1 overflow-y-auto">
-              {notifications.length > 0 ? (
-                <div className="divide-y divide-zinc-800/80">
-                  {notifications.map((notification) => (
-                    <button
-                      key={notification.id}
-                      type="button"
-                      className="w-full py-3 text-left transition first:pt-1 hover:bg-zinc-900/40"
-                      onClick={() => markNotificationAsRead(notification.id)}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="text-sm font-semibold text-white line-clamp-1">
-                          {notification.title}
-                        </span>
-                        <span
-                          className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-yellow-500"
-                          aria-hidden
-                        />
-                      </div>
-                      <p className="mt-1 line-clamp-2 text-xs leading-snug text-zinc-500">
-                        {formatUsdAmountsInText(notification.message)}
-                      </p>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="py-10 text-center text-sm text-zinc-500">
-                  No notifications.
-                </div>
-              )}
+            <div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-4 sm:p-5">
+              <PortfolioGrowthPanel />
             </div>
           </div>
-        </div>
+
+          <DashboardNotificationsCard
+            notifications={notifications}
+            unreadCount={unreadNotificationCount}
+            onMarkRead={(id) => void markNotificationAsRead(id)}
+          />
+        </section>
+
+        <DashboardHubButtons merchantStatus={merchantProfile?.status} />
+
+        <DashboardTrendingMarkets />
 
         <div className="overflow-hidden border border-zinc-800/80 bg-zinc-950/40 lg:rounded-xl">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800/80 px-4 py-3 sm:px-5">
@@ -1167,8 +1036,7 @@ export default function DashboardPage() {
                   Your wallet
                 </h2>
                 <p className="mt-1 text-sm text-zinc-500">
-                  Balances available for withdrawal and locked principal. Totals follow your
-                  dashboard privacy setting.
+                  Crypto wallet limits only — P2P can use your full portfolio.
                 </p>
               </div>
             </div>
@@ -1181,7 +1049,7 @@ export default function DashboardPage() {
                 </dd>
               </div>
               <div className="flex items-center justify-between gap-4 rounded-2xl border border-zinc-800 bg-black/30 px-4 py-3">
-                <dt className="text-sm text-zinc-400">Locked principal</dt>
+                <dt className="text-sm text-zinc-400">Locked principal (30 days)</dt>
                 <dd className="font-semibold text-yellow-500/95 tabular-nums">
                   {walletMoneyLabel(lockedPrincipal)}
                 </dd>
@@ -1195,8 +1063,9 @@ export default function DashboardPage() {
             </dl>
 
             <p className="mt-5 text-xs text-zinc-500 leading-relaxed">
-              Withdrawals use withdrawable funds only. Principal from each deposit unlocks after the
-              30-day holding period per the platform rules.
+              Wallet withdrawals use withdrawable funds only (profits first, then matured
+              principal). New deposit principal unlocks after 30 days. Use P2P to sell locked
+              principal anytime.
             </p>
 
             <div className="mt-6 flex gap-3">
@@ -1275,7 +1144,7 @@ export default function DashboardPage() {
               Transactions
             </Link>
             <Link
-              href="/dashboard#portfolio-growth"
+              href="/dashboard/growth"
               className="rounded-xl px-4 py-4 text-[#E5E7EB]/90 transition hover:bg-white/5 hover:text-[#D4AF37]"
               onClick={() => setMobileNavOpen(false)}
             >

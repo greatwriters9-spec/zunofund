@@ -55,6 +55,12 @@ function investorEmailSubject(
   if (t.includes("withdrawal_approved"))
     return `${base} Withdrawal completed`;
   if (t.includes("referral_bonus")) return `${base} Referral bonus credited`;
+  if (t.includes("reward_eligible")) return `${base} Reward eligible — pending activation`;
+  if (t.includes("reward_unlocked")) return `${base} Reward activated`;
+  if (t.includes("tier_upgraded")) return `${base} Tier upgraded`;
+  if (t.includes("elite_status")) return `${base} Elite status achieved`;
+  if (t.includes("merchant_access_granted")) return `${base} Merchant access`;
+  if (t.includes("referral_milestone")) return `${base} Referral milestone`;
   if (t.includes("profit_bonus")) return `${base} Profit recorded`;
   if (t.includes("profit_compound")) return `${base} Profit credited`;
   if (t.includes("p2p_dispute")) return `${base} P2P dispute update`;

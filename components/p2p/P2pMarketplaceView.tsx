@@ -9,6 +9,7 @@ import { OffersScrollList } from "@/components/p2p/OffersScrollList";
 import { OfferCard, type OfferCardRow } from "@/components/p2p/OfferCard";
 import type { OfferSortMode, P2pListViewMode } from "@/components/p2p/P2pMarketToolbar";
 import { P2pMarketToolbar } from "@/components/p2p/P2pMarketToolbar";
+import { P2pSellableBalance } from "@/components/p2p/P2pSellableBalance";
 import { resolveTradeAmount } from "@/components/p2p/resolveTradeAmount";
 import type { P2pAssetCode, P2pMarketTab } from "@/components/p2p/p2pTypes";
 import { expireStaleP2pOrders, isP2pOrderActive } from "@/lib/p2pExpiry";
@@ -67,6 +68,7 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
   const [amountPromptValue, setAmountPromptValue] = useState("");
   const [amountPromptError, setAmountPromptError] = useState<string | null>(null);
   const [merchantActive, setMerchantActive] = useState(false);
+  const [sellableRefresh, setSellableRefresh] = useState(0);
 
   useEffect(() => {
     async function loadMerchantAccess() {
@@ -254,6 +256,7 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
     }
     router.push(`/p2p/order/${String(oid)}`);
     bumpActiveTrades();
+    setSellableRefresh((n) => n + 1);
   }
 
   async function pickOffer(row: OfferCardRow) {
@@ -313,7 +316,7 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
           ? "Closed tickets — reopen for context anytime."
             : tab === "buy"
             ? `Tap Buy ${asset} to open chat — add amount here to filter, or we use each ad’s minimum.`
-            : `Tap Sell ${asset} to open chat — share your payout details in the trade thread.`;
+            : `Tap Sell ${asset} to open chat — you can sell up to your full portfolio balance; share payout details in the trade thread.`;
 
 
   return (
@@ -384,6 +387,10 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
             }}
           />
         </div>
+
+        {tab === "sell" && listViewMode === "offers" ? (
+          <P2pSellableBalance defaultAsset={asset} refreshKey={sellableRefresh} />
+        ) : null}
 
         <div className="relative z-0 flex min-w-0 flex-1 flex-col px-4 pb-6 pt-5 sm:px-6">
           {error ? (

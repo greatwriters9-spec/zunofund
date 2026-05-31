@@ -50,7 +50,7 @@ export default function WithdrawWalletPage() {
 
     const { data, error } = await supabase
       .from("investors")
-      .select("balance, withdrawable_balance, locked_principal_balance")
+      .select("balance, withdrawable_balance")
       .eq("email", user.email)
       .single();
 
@@ -91,7 +91,7 @@ export default function WithdrawWalletPage() {
 
     if (usdtNeeded > withdrawableBalance) {
       setErrorMessage(
-        "That amount exceeds what you can withdraw right now. New deposits unlock after 30 days; daily profits are withdrawable sooner — see totals below.",
+        "That amount exceeds what you can withdraw right now. Check your available balance below.",
       );
       return;
     }
@@ -172,14 +172,22 @@ export default function WithdrawWalletPage() {
                 : formatUsdAmount(displayWithdrawable)}
             </span>
           </p>
-          {!isBtc && (
+          {!isBtc && lockedPrincipal > 0 ? (
             <p>
-              Locked principal (30-day rule per deposit):{" "}
+              Locked principal (wallet, 30-day rule):{" "}
               <span className="font-semibold text-yellow-500/90">
                 {formatUsdAmount(lockedPrincipal)}
               </span>
+              <span className="text-zinc-500">
+                {" "}
+                — sell on{" "}
+                <Link href="/p2p/sell" className="text-yellow-500 hover:underline">
+                  P2P
+                </Link>{" "}
+                anytime
+              </span>
             </p>
-          )}
+          ) : null}
         </div>
 
         {errorMessage && (
