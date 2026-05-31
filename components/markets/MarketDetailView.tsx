@@ -86,9 +86,13 @@ export function MarketDetailView({ symbol }: MarketDetailViewProps) {
               <span className="text-sm font-normal text-zinc-500">24h</span>
             </p>
 
-            {(error || stale) && (
-              <p className="mt-2 text-xs text-amber-400/90">{error ?? "Cached price — refreshing…"}</p>
-            )}
+            {error && !ticker ? (
+              <p className="mt-2 text-xs text-amber-400/90">{error}</p>
+            ) : stale ? (
+              <p className="mt-2 text-xs text-amber-400/90">
+                {error ?? "Cached price — refreshing…"}
+              </p>
+            ) : null}
 
             <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
               {[

@@ -25,10 +25,13 @@ export function useMarketTickers(symbols: readonly string[]) {
         cache: "no-store",
       });
       const body = (await res.json()) as MarketTickersResponse;
-      setTickers(body.tickers ?? []);
+      const rows = body.tickers ?? [];
+      setTickers(rows);
       setFetchedAt(body.fetchedAt ?? null);
       setStale(Boolean(body.stale));
-      setError(body.error ?? null);
+      setError(
+        !body.stale && rows.length > 0 ? null : (body.error ?? null),
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load markets");
       if (firstLoad.current) setTickers([]);

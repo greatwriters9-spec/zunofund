@@ -96,7 +96,9 @@ export function MarketsView() {
             />
           </div>
 
-          {stale || error ? (
+          {error && tickers.length === 0 ? (
+            <p className="mt-2 text-xs text-amber-400/90">{error}</p>
+          ) : stale ? (
             <p className="mt-2 text-xs text-amber-400/90">
               {error ?? "Showing last cached prices — retrying…"}
             </p>

@@ -5,7 +5,11 @@ import {
 } from "@/lib/markets/symbols";
 import type { MarketDataProvider, MarketTicker } from "@/lib/markets/types";
 
-const BINANCE_TICKER_URL = "https://api.binance.com/api/v3/ticker/24hr";
+/** Market-data-only hosts work on serverless (api.binance.com is often geo-blocked on Vercel). */
+const BINANCE_TICKER_URLS = [
+  "https://data-api.binance.vision/api/v3/ticker/24hr",
+  "https://api.binance.com/api/v3/ticker/24hr",
+] as const;
 
 type BinanceTickerRow = {
   symbol?: string;
@@ -49,27 +53,39 @@ export async function fetchBinanceTickers24h(symbols: string[]): Promise<MarketT
     symbols: JSON.stringify([...wanted]),
   });
 
-  const res = await fetch(`${BINANCE_TICKER_URL}?${params.toString()}`, {
-    headers: { Accept: "application/json" },
-    cache: "no-store",
-  });
+  let lastError: Error | null = null;
 
-  if (!res.ok) {
-    throw new Error(`Binance API error (${res.status})`);
+  for (const baseUrl of BINANCE_TICKER_URLS) {
+    try {
+      const res = await fetch(`${baseUrl}?${params.toString()}`, {
+        headers: { Accept: "application/json" },
+        cache: "no-store",
+      });
+
+      if (!res.ok) {
+        lastError = new Error(`Binance API error (${res.status})`);
+        continue;
+      }
+
+      const raw = (await res.json()) as BinanceTickerRow[];
+      if (!Array.isArray(raw)) {
+        lastError = new Error("Invalid Binance response");
+        continue;
+      }
+
+      const out: MarketTicker[] = [];
+      for (const row of raw) {
+        const t = normalizeRow(row);
+        if (t && wanted.has(t.symbol)) out.push(t);
+      }
+
+      return out.sort((a, b) => a.baseAsset.localeCompare(b.baseAsset));
+    } catch (e) {
+      lastError = e instanceof Error ? e : new Error("Binance request failed");
+    }
   }
 
-  const raw = (await res.json()) as BinanceTickerRow[];
-  if (!Array.isArray(raw)) {
-    throw new Error("Invalid Binance response");
-  }
-
-  const out: MarketTicker[] = [];
-  for (const row of raw) {
-    const t = normalizeRow(row);
-    if (t && wanted.has(t.symbol)) out.push(t);
-  }
-
-  return out.sort((a, b) => a.baseAsset.localeCompare(b.baseAsset));
+  throw lastError ?? new Error("Market data unavailable");
 }
 
 export const binanceMarketProvider: MarketDataProvider = {
