@@ -154,11 +154,13 @@ type InvestorDesktopShellProps = {
  */
 export function InvestorDesktopShell({ children }: InvestorDesktopShellProps) {
   return (
-    <div className="min-h-screen bg-[#05080F] text-white lg:flex lg:h-[100dvh] lg:overflow-hidden">
+    <div className="min-h-screen bg-[#05080F] text-white max-lg:min-h-0 lg:flex lg:h-[100dvh] lg:overflow-hidden">
       <InvestorSidebar />
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-col max-lg:w-full lg:min-h-0 lg:flex-1">
         <InvestorTopBar />
-        <main className="min-h-0 flex-1 overflow-y-auto bg-[#05080F] lg:p-6">{children}</main>
+        <main className="w-full min-w-0 bg-[#05080F] max-lg:overflow-visible lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:p-6">
+          {children}
+        </main>
       </div>
     </div>
   );

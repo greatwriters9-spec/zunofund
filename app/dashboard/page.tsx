@@ -472,8 +472,8 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="page-content-stable relative min-h-screen overflow-x-clip bg-[#05080F] text-white">
-      <div className="relative z-10 mx-auto max-w-7xl p-5 max-md:pb-[calc(5.75rem+env(safe-area-inset-bottom))] lg:mx-0 lg:max-w-none lg:p-0">
+    <div className="page-content-stable relative w-full min-w-0 overflow-x-clip bg-[#05080F] text-white max-lg:min-h-0 lg:min-h-screen">
+      <div className="relative z-10 mx-auto w-full min-w-0 max-w-7xl p-4 max-md:pb-[calc(5.75rem+env(safe-area-inset-bottom))] min-[400px]:p-5 lg:mx-0 lg:max-w-none lg:p-0">
 
         {/* Mobile top toolbar: menu hard-left, profile+bell hard-right */}
         <div className="mb-5 flex items-center justify-between gap-2 lg:hidden">
@@ -575,10 +575,10 @@ export default function DashboardPage() {
           <p className="text-gray-400">Welcome back.</p>
         </div>
 
-        <div className="mb-8">
-          <div className="lg:rounded-xl lg:border lg:border-zinc-800/80 lg:bg-zinc-950/40 lg:p-6">
-            <div className="lg:flex lg:items-start lg:justify-between lg:gap-8">
-              <div className="min-w-0 flex-1">
+        <div className="mb-8 w-full min-w-0">
+          <div className="w-full min-w-0 lg:rounded-xl lg:border lg:border-zinc-800/80 lg:bg-zinc-950/40 lg:p-6">
+            <div className="w-full min-w-0 lg:flex lg:items-start lg:justify-between lg:gap-8">
+              <div className="min-w-0 w-full flex-1">
                 <InvestorBalanceBlock
                   balanceUsd={balance}
                   showBalance={showBalance}
@@ -645,11 +645,11 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="mb-6 grid grid-cols-2 items-stretch gap-2 sm:gap-3 lg:grid-cols-4 lg:gap-4">
+        <div className="dashboard-mobile-grid mb-6 grid w-full min-w-0 auto-rows-min grid-cols-1 items-start gap-3 min-[400px]:grid-cols-2 min-[400px]:gap-2 sm:gap-3 lg:grid-cols-4 lg:gap-4">
 
 
     {/* WALLET — minimal */}
-<div className="flex flex-col rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-4 sm:p-5">
+<div className="flex w-full min-w-0 flex-col rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-4 sm:p-5">
 
   <div className="mb-3 flex items-start justify-between gap-2">
     <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
@@ -684,7 +684,7 @@ export default function DashboardPage() {
 
 
 {/* PROFIT — minimal */}
-<div className="flex flex-col rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-4 sm:p-5">
+<div className="flex w-full min-w-0 flex-col rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-4 sm:p-5">
 
   <div className="mb-3 flex items-start justify-between gap-2">
     <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
@@ -711,7 +711,7 @@ export default function DashboardPage() {
 
 
   {/* PLAN — minimal */}
-<div className="flex flex-col rounded-xl border border-yellow-500/15 bg-yellow-500/[0.03] p-4 sm:p-5">
+<div className="flex w-full min-w-0 flex-col rounded-xl border border-yellow-500/15 bg-yellow-500/[0.03] p-4 sm:p-5">
 
   <div className="mb-3 flex items-start justify-between gap-2">
     <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
@@ -722,7 +722,7 @@ export default function DashboardPage() {
     </span>
   </div>
 
-  <p className="line-clamp-2 text-base font-bold leading-tight text-yellow-500">
+  <p className="break-words text-base font-bold leading-tight text-yellow-500">
     {investor ? displayPlanName(planKey) : "No active plan"}
   </p>
 
@@ -752,7 +752,7 @@ export default function DashboardPage() {
 
 
 {/* SUPPORT — minimal */}
-<div className="flex flex-col rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-4 sm:p-5">
+<div className="flex w-full min-w-0 flex-col rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-4 sm:p-5">
 
   <div className="mb-3 flex items-start justify-between gap-2">
     <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
@@ -777,8 +777,8 @@ export default function DashboardPage() {
 
         {merchantProfile != null &&
         (merchantProfile.status === "active" || merchantProfile.status === "pending") ? (
-          <div className="mb-7 rounded-xl border border-yellow-500/25 bg-yellow-500/[0.06] p-4 sm:p-5 lg:rounded-xl">
-            <div className="flex gap-3">
+          <div className="relative z-0 mb-7 w-full min-w-0 rounded-xl border border-yellow-500/25 bg-yellow-500/[0.06] p-4 sm:p-5 lg:rounded-xl">
+            <div className="flex w-full min-w-0 gap-3">
               <Store className="mt-0.5 h-5 w-5 shrink-0 text-yellow-500" aria-hidden />
               <div className="min-w-0">
                 <h2 className="text-[11px] font-medium uppercase tracking-wide text-yellow-600/90">

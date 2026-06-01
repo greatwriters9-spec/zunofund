@@ -66,7 +66,7 @@ export function InvestorBalanceBlock({
     : hidden;
 
   const amountClass =
-    "text-4xl font-bold tabular-nums tracking-tight text-white transition hover:text-yellow-100 sm:text-5xl md:text-[3.25rem]";
+    "break-words text-[1.75rem] font-bold tabular-nums tracking-tight text-white transition hover:text-yellow-100 min-[360px]:text-4xl sm:text-5xl md:text-[3.25rem]";
 
   const amountInner = <span className={amountClass}>{showBalance ? coreAmount : hidden}</span>;
 
@@ -84,7 +84,7 @@ export function InvestorBalanceBlock({
   );
 
   return (
-    <div className="dashboard-balance-stable border-b border-zinc-800/90 pb-8">
+    <div className="dashboard-balance-stable w-full min-w-0 border-b border-zinc-800/90 pb-8">
       <div className="flex min-w-0 items-center gap-2">
         <p className="text-base font-normal tracking-tight text-zinc-100">{estValueLabel(displayCrypto)}</p>
         {hideToggle}

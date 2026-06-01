@@ -99,6 +99,15 @@ body {
   position: relative;
 }
 
+/* Grid children with flex-1/basis-0 collapse row height on narrow mobile — force natural sizing */
+@media (max-width: 1023px) {
+  .dashboard-mobile-grid > * {
+    flex: none !important;
+    min-height: auto;
+    height: auto;
+  }
+}
+
 .dashboard-balance-stable {
   position: relative;
   z-index: 1;

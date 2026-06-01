@@ -26,7 +26,7 @@ function HubTile({
   const inner = <Icon className="h-5 w-5 shrink-0" strokeWidth={2.25} aria-hidden />;
 
   return (
-    <div className="flex min-w-0 flex-1 basis-0 flex-col items-center gap-0.5">
+    <div className="flex w-full min-w-0 flex-col items-center gap-0.5">
       {href ? (
         <Link href={href} className={ICON_CONTROL_CLASS} aria-label={label}>
           {inner}
@@ -71,7 +71,7 @@ export function DashboardHubButtons({ merchantStatus }: DashboardHubButtonsProps
         aria-label="Dashboard shortcuts"
         className="max-md:fixed max-md:bottom-0 max-md:left-0 max-md:right-0 max-md:z-[100] max-md:border-t max-md:border-zinc-800/90 max-md:bg-[#05080F]/95 max-md:px-2 max-md:pt-2 max-md:pb-[max(0.5rem,env(safe-area-inset-bottom))] max-md:shadow-[0_-12px_40px_-12px_rgba(0,0,0,0.75)] max-md:backdrop-blur-md max-md:supports-[backdrop-filter]:bg-[#05080F]/90 md:hidden"
       >
-        <div className="grid w-full grid-cols-4 gap-1">
+        <div className="dashboard-mobile-grid grid w-full min-w-0 auto-rows-min grid-cols-4 gap-1">
           <HubTile label="Portfolio growth" icon={BarChart3} href="/dashboard/growth" />
           <HubTile label="Merchant" icon={Store} onClick={handleMerchant} />
           <HubTile label="Market" icon={LineChart} href="/markets" />

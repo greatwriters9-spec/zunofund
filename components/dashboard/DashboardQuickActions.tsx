@@ -98,7 +98,7 @@ function QuickActionTile({ label, icon: Icon, iconNode, active, onClick, href }:
     ) : null);
 
   return (
-    <div className="flex min-w-0 flex-1 basis-0 flex-col items-center gap-1">
+    <div className="flex w-full min-w-0 flex-col items-center gap-1">
       {href ? (
         <Link href={href} className={boxClass} aria-label={label}>
           {inner}
@@ -120,7 +120,7 @@ type DashboardQuickActionsProps = {
 
 export function DashboardQuickActions({ referralOpen, onReferralToggle }: DashboardQuickActionsProps) {
   return (
-    <div className="mt-4 grid w-full grid-cols-6 gap-0.5 lg:hidden">
+    <div className="dashboard-mobile-grid mt-4 grid w-full min-w-0 auto-rows-min grid-cols-3 gap-2 min-[400px]:grid-cols-6 min-[400px]:gap-0.5 lg:hidden">
       <QuickActionTile
         label="Referral"
         iconNode={<ReferralQuickIcon />}
