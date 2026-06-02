@@ -136,5 +136,5 @@ export const ROADMAP_PHASES = [
 
 /** Early-member investment promotion — ends end of day before this date (display only). */
 export const EARLY_MEMBER_PROMOTION = {
-  endDateLabel: "January 1, 2027",
+  endDateLabel: "Jan 1, 2027",
 } as const;

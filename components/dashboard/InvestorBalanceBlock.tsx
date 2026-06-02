@@ -10,7 +10,6 @@ import { formatFiat, getFiatCurrency, type FiatCurrencyCode } from "@/lib/curren
 import { fromUsd } from "@/lib/exchangeRates";
 import type { FxRateMap } from "@/lib/exchangeRates";
 import { fmtAssetAmount, type P2pAssetCode } from "@/lib/p2pAssets";
-import { EARLY_MEMBER_PROMOTION } from "@/components/landing/landingData";
 import { todayPnlPercent } from "@/lib/investorBalanceMetrics";
 
 type InvestorBalanceBlockProps = {
@@ -31,14 +30,6 @@ type InvestorBalanceBlockProps = {
 
 function estValueLabel(unit: P2pAssetCode): string {
   return `Est. Total Value (${unit})`;
-}
-
-function PromoDeadlineDateLoud() {
-  return (
-    <span className="font-black uppercase tracking-wide text-yellow-300 drop-shadow-[0_0_14px_rgba(250,204,21,0.45)]">
-      {EARLY_MEMBER_PROMOTION.endDateLabel}
-    </span>
-  );
 }
 
 export function InvestorBalanceBlock({
@@ -133,18 +124,6 @@ export function InvestorBalanceBlock({
       >
         {pnlLine}
       </p>
-
-      <div className="mt-4 max-w-lg space-y-2 border-l border-amber-500/35 pl-3.5">
-        <p className="text-sm font-medium leading-snug text-zinc-300">
-          ⚡ Early Member Opportunity Ends <PromoDeadlineDateLoud />
-        </p>
-        <p className="text-sm leading-relaxed text-zinc-500">
-          Earn promotional growth rewards on eligible balances until{" "}
-          <span className="font-medium text-amber-400/90">{EARLY_MEMBER_PROMOTION.endDateLabel}</span>. After
-          this date, Zuno will transition to a pure P2P marketplace and new reward enrollments will close
-          permanently.
-        </p>
-      </div>
 
       {showCurrencyPickers && onDisplayCryptoChange && onDisplayCurrencyChange ? (
         <div className="mt-4 flex flex-row flex-wrap items-center gap-2">

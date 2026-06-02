@@ -37,6 +37,7 @@ import { buildReferralSignupPath } from "@/lib/referrals";
 import { useDisplayCurrency, useFxRates } from "@/lib/useFx";
 import { sumTodayPnlUsd, type ProfitRow } from "@/lib/investorBalanceMetrics";
 import { InvestorBalanceBlock } from "@/components/dashboard/InvestorBalanceBlock";
+import { InvestorEarlyMemberPromo } from "@/components/dashboard/InvestorEarlyMemberPromo";
 import { DashboardHubButtons } from "@/components/dashboard/DashboardHubButtons";
 import { DashboardNotificationsCard } from "@/components/dashboard/DashboardNotificationsCard";
 import { PortfolioGrowthPanel } from "@/components/dashboard/PortfolioGrowthPanel";
@@ -645,6 +646,8 @@ export default function DashboardPage() {
             Account {(investor?.status ?? "unknown").toUpperCase()}
           </div>
         </div>
+
+        <InvestorEarlyMemberPromo className="mb-6 lg:mx-1" />
 
         <div className="dashboard-mobile-grid mb-6 grid grid-cols-2 items-stretch gap-2 sm:gap-3 lg:grid-cols-4 lg:gap-4">
 
