@@ -22,18 +22,16 @@ const NAV_DASHBOARD = [
 /* ✅ UPDATED BRAND (FIXED DESIGN) */
 function BrandLockup({ href }: { href: string }) {
   return (
-    <Link href={href} className="flex items-center gap-2 h-10">
+    <Link href={href} className="flex h-12 items-center gap-2.5">
       <Image
         src="/logo.png"
         alt="Zuno"
-        width={40}
-        height={40}
-        className="h-9 w-auto object-contain drop-shadow-[0_2px_6px_rgba(212,175,55,0.25)]"
+        width={48}
+        height={48}
+        className="h-11 w-auto object-contain drop-shadow-[0_2px_8px_rgba(212,175,55,0.28)]"
         priority
       />
-      <span className="text-white text-[16px] font-semibold tracking-[0.25em] leading-none">
-  ZUNO
-</span>
+      <span className="text-[16px] font-semibold leading-none tracking-[0.25em] text-white">ZUNO</span>
     </Link>
   );
 }
@@ -126,8 +124,8 @@ function MarketingNavbarInner() {
 
   return (
     <>
-      <header className="surface-panel sticky top-0 z-[200] border-b border-white/5 bg-black/80 pt-[env(safe-area-inset-top)] lg:backdrop-blur-xl">
-        <nav className="mx-auto flex h-[80px] max-w-[1600px] items-center gap-4 px-4 md:px-8">
+      <header className="navbar-glass sticky top-0 z-[200] pt-[env(safe-area-inset-top)]">
+        <nav className="mx-auto flex h-[88px] max-w-[1600px] items-center gap-4 px-4 md:px-8">
           <button
             type="button"
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-[#E5E7EB] transition hover:bg-white/5 md:hidden"
@@ -141,22 +139,35 @@ function MarketingNavbarInner() {
 
           <BrandLockup href="/" />
 
-          <div className="hidden md:flex md:flex-1 md:justify-center">
-            <div className="flex items-center gap-10 text-[15px] font-medium text-[#E5E7EB]/90">
-              <a href="#home" className="hover:text-[#D4AF37] transition font-medium">
+          <div className="hidden lg:flex lg:flex-1 lg:justify-center">
+            <div className="flex items-center gap-10 text-[14px] font-medium text-[#E5E7EB]/90">
+              <a href="#home" className="group relative py-1 transition hover:text-[#D4AF37]">
                 Home
+                <span className="pointer-events-none absolute -bottom-1 left-1/2 h-px w-0 -translate-x-1/2 bg-[#D4AF37] transition-all duration-300 group-hover:w-full" />
               </a>
-              <a href="#plans" className="hover:text-[#D4AF37] transition">
-                Investment Plans
-              </a>
-              <a href="#how-it-works" className="hover:text-[#D4AF37] transition">
-                How It Works
-              </a>
-              <Link href="/download" className="hover:text-[#D4AF37] transition">
-                Get the app
+              <Link href={signupUrl} className="group relative py-1 transition hover:text-[#D4AF37]">
+                Marketplace
+                <span className="pointer-events-none absolute -bottom-1 left-1/2 h-px w-0 -translate-x-1/2 bg-[#D4AF37] transition-all duration-300 group-hover:w-full" />
               </Link>
-              <Link href="/contact" className="hover:text-[#D4AF37] transition">
+              <a href="#plans" className="group relative py-1 transition hover:text-[#D4AF37]">
+                Investment Plans
+                <span className="pointer-events-none absolute -bottom-1 left-1/2 h-px w-0 -translate-x-1/2 bg-[#D4AF37] transition-all duration-300 group-hover:w-full" />
+              </a>
+              <a href="#how-it-works" className="group relative py-1 transition hover:text-[#D4AF37]">
+                How it Works
+                <span className="pointer-events-none absolute -bottom-1 left-1/2 h-px w-0 -translate-x-1/2 bg-[#D4AF37] transition-all duration-300 group-hover:w-full" />
+              </a>
+              <Link href="/merchant-requirements" className="group relative py-1 transition hover:text-[#D4AF37]">
+                Merchant Program
+                <span className="pointer-events-none absolute -bottom-1 left-1/2 h-px w-0 -translate-x-1/2 bg-[#D4AF37] transition-all duration-300 group-hover:w-full" />
+              </Link>
+              <a href="#about" className="group relative py-1 transition hover:text-[#D4AF37]">
+                About Us
+                <span className="pointer-events-none absolute -bottom-1 left-1/2 h-px w-0 -translate-x-1/2 bg-[#D4AF37] transition-all duration-300 group-hover:w-full" />
+              </a>
+              <Link href="/contact" className="group relative py-1 transition hover:text-[#D4AF37]">
                 Support
+                <span className="pointer-events-none absolute -bottom-1 left-1/2 h-px w-0 -translate-x-1/2 bg-[#D4AF37] transition-all duration-300 group-hover:w-full" />
               </Link>
             </div>
           </div>
@@ -172,16 +183,16 @@ function MarketingNavbarInner() {
 
             <Link
               href={loginUrl}
-              className="hidden sm:block text-sm text-[#E5E7EB]/90 hover:text-[#D4AF37]"
+              className="hidden sm:block text-sm text-[#E5E7EB]/90 transition hover:text-[#D4AF37]"
             >
-              Login
+              Log In
             </Link>
 
             <Link
               href={signupUrl}
-              className="flex items-center gap-2 rounded-lg bg-[#D4AF37] px-4 py-2 text-sm font-semibold text-black hover:opacity-90 hover:shadow-[0_0_22px_rgba(212,175,55,0.45)] transition"
+              className="flex items-center gap-2 rounded-lg bg-[linear-gradient(135deg,#F7E3A0_0%,#D4AF37_50%,#EAC54F_100%)] px-4 py-2 text-sm font-semibold text-black shadow-[0_0_25px_rgba(212,175,55,0.35)] transition duration-200 hover:-translate-y-[1px]"
             >
-              Sign up
+              Create Account
               <ArrowRight size={16} />
             </Link>
           </div>
@@ -216,6 +227,13 @@ function MarketingNavbarInner() {
             >
               Home
             </a>
+            <Link
+              href={signupUrl}
+              className="rounded-xl px-4 py-4 text-[#E5E7EB]/90 transition hover:bg-white/5 hover:text-[#D4AF37]"
+              onClick={closeMobile}
+            >
+              Marketplace
+            </Link>
             <a
               href="#plans"
               className="rounded-xl px-4 py-4 text-[#E5E7EB]/90 transition hover:bg-white/5 hover:text-[#D4AF37]"
@@ -228,15 +246,22 @@ function MarketingNavbarInner() {
               className="rounded-xl px-4 py-4 text-[#E5E7EB]/90 transition hover:bg-white/5 hover:text-[#D4AF37]"
               onClick={closeMobile}
             >
-              How It Works
+              How it Works
             </a>
             <Link
-              href="/download"
+              href="/merchant-requirements"
               className="rounded-xl px-4 py-4 text-[#E5E7EB]/90 transition hover:bg-white/5 hover:text-[#D4AF37]"
               onClick={closeMobile}
             >
-              Get the app
+              Merchant Program
             </Link>
+            <a
+              href="#about"
+              className="rounded-xl px-4 py-4 text-[#E5E7EB]/90 transition hover:bg-white/5 hover:text-[#D4AF37]"
+              onClick={closeMobile}
+            >
+              About Us
+            </a>
             <Link
               href="/contact"
               className="rounded-xl px-4 py-4 text-[#E5E7EB]/90 transition hover:bg-white/5 hover:text-[#D4AF37]"
@@ -259,7 +284,7 @@ function MarketingNavbarInner() {
               onClick={closeMobile}
               className="flex h-12 items-center justify-center gap-2 rounded-xl bg-[#D4AF37] text-base font-semibold text-black transition hover:opacity-90 hover:shadow-[0_0_22px_rgba(212,175,55,0.45)]"
             >
-              Sign up
+              Create Account
               <ArrowRight size={18} />
             </Link>
           </div>
@@ -273,7 +298,7 @@ export function MarketingNavbar() {
   return (
     <Suspense
       fallback={
-        <header className="surface-panel sticky top-0 z-[200] h-[80px] border-b border-white/5 bg-black/80 lg:backdrop-blur-xl" />
+        <header className="navbar-glass sticky top-0 z-[200] h-[88px]" />
       }
     >
       <MarketingNavbarInner />

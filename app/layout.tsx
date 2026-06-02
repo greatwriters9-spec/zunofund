@@ -79,14 +79,6 @@ export default function RootLayout({
           <div className="ambient-blur-orb absolute -top-40 -right-32 h-[720px] w-[720px] rounded-full bg-[#D4AF37]/20 blur-[170px]" />
           <div className="ambient-blur-orb absolute top-[40%] -left-32 h-[520px] w-[520px] rounded-full bg-[#F5E6B3]/8 blur-[180px]" />
           <div className="ambient-blur-orb absolute -bottom-48 left-[20%] h-[640px] w-[640px] rounded-full bg-[#1E293B]/60 blur-[200px]" />
-          <div
-            className="ambient-grid-overlay absolute inset-0 opacity-[0.025]"
-            style={{
-              backgroundImage:
-                "linear-gradient(to right, rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.08) 1px, transparent 1px)",
-              backgroundSize: "80px 80px",
-            }}
-          />
         </div>
 
         <RealtimeNotificationBridge />

@@ -421,10 +421,10 @@ export default function DashboardPage() {
 
   function formatGreetingFirstName(segment: string): string {
     const t = segment.trim();
-    if (!t) return "Investor…";
+    if (!t) return "Investor";
     const lower = t.toLocaleLowerCase();
     const first = lower.charAt(0).toLocaleUpperCase();
-    return `${first}${lower.slice(1)}…`;
+    return `${first}${lower.slice(1)}`;
   }
 
   function investorGreetingName(inv: Investor | null): string {
@@ -569,8 +569,9 @@ export default function DashboardPage() {
 
         {/* Mobile greeting */}
         <div className="mb-7 lg:hidden">
-          <h1 className="mb-2 text-2xl font-bold text-yellow-500 sm:text-3xl">
-            {getGreeting()}, {investorGreetingName(investor)}
+          <h1 className="mb-2 text-2xl sm:text-3xl">
+            <span className="font-normal text-zinc-400">{getGreeting()}, </span>
+            <span className="font-bold text-white">{investorGreetingName(investor)}</span>
           </h1>
           <p className="text-gray-400">Welcome back.</p>
         </div>

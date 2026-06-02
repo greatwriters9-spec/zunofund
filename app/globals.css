@@ -65,6 +65,18 @@ body {
   box-shadow: none;
 }
 
+/* Marketing navbar — floating glass (no hard box edges) */
+.navbar-glass {
+  background-color: rgba(5, 8, 15, 0.75);
+  border: none;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.08);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+}
+
 @media (min-width: 1024px) {
   .surface-panel {
     background-color: rgb(9 9 11 / 0.7);
@@ -128,8 +140,7 @@ body {
 
 @media (max-width: 1023px), ((hover: none) and (pointer: coarse)) {
   .ambient-background-root,
-  .ambient-blur-orb,
-  .ambient-grid-overlay {
+  .ambient-blur-orb {
     display: none !important;
   }
 
@@ -192,6 +203,54 @@ body {
   }
 }
 
+@keyframes hero-gold-particle-drift {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(var(--dx, 0), var(--dy, 0));
+  }
+}
+
+.hero-gold-particle {
+  animation: hero-gold-particle-drift ease-in-out infinite;
+}
+
+.gold-gradient {
+  position: relative;
+  display: inline-block;
+  background-image: linear-gradient(
+    180deg,
+    #fff4c2 0%,
+    #f7e3a0 15%,
+    #d4af37 55%,
+    #b8860b 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.gold-gradient::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  top: 50%;
+  width: 2.4em;
+  height: 2.4em;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(212, 175, 55, 0.18) 0%,
+    rgba(212, 175, 55, 0.08) 35%,
+    transparent 75%
+  );
+  filter: blur(80px);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -200,5 +259,9 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  .hero-gold-particles {
+    display: none;
   }
 }

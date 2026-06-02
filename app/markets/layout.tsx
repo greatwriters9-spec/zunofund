@@ -1,9 +1,9 @@
-import { InvestorDesktopShell } from "@/components/investor/InvestorDesktopShell";
+import { InvestorShellGate } from "@/components/investor/InvestorShellGate";
 
 export default function MarketsLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <InvestorDesktopShell>{children}</InvestorDesktopShell>;
+  return <InvestorShellGate>{children}</InvestorShellGate>;
 }
