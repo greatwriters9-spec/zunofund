@@ -20,206 +20,166 @@ import {
   Gem,
   Rocket,
   Shield,
+  Sparkles,
 } from "lucide-react";
 
-/** Visual ladder: basic utilitarian → premium gold (layout stays minimal). */
 type PlanTheme = {
-  cardBorder: string;
-  cardHover: string;
-  divider: string;
+  ambient: string;
+  card: string;
+  cardActive: string;
   iconWrap: string;
   iconClass: string;
-  rangeClass: string;
+  rangePill: string;
   yieldLabelClass: string;
   rateClass: string;
   expandClass: string;
   checkClass: string;
   benefitTextClass: string;
   descriptionClass: string;
-  secondaryCta: string;
+  cta: string;
   currentBadge: string;
   focusRingClass: string;
 };
 
 const plans = [
   {
-    /** Stored on `investors.investment_plan` — matches compound-rate SQL. */
     slug: "Starter" satisfies CanonicalInvestmentPlan,
-
     name: "Starter Level",
-
     range: formatDepositRangeDescription("Starter"),
-
     yield: "Projected Daily Yield",
-
     rate: dailyCompoundLabel("Starter"),
-
     description:
       "Perfect for new investors looking to begin building consistent market exposure with manageable capital risk.",
-
     benefits: [
       "Entry-level investment access",
       "Stable growth potential",
       "Beginner-friendly exposure",
       "Portfolio monitoring support",
     ],
-
     button: "Start Investing",
-
     theme: {
-      cardBorder: "border-zinc-700/90",
-      cardHover: "hover:border-zinc-500/50",
-      divider: "border-t border-zinc-800/80",
-      iconWrap: "border-zinc-600/70 bg-zinc-900/70",
-      iconClass: "text-zinc-400",
-      rangeClass: "text-zinc-400",
+      ambient: "bg-zinc-500/20",
+      card: "border-white/[0.08] bg-[linear-gradient(165deg,rgba(32,36,48,0.92)_0%,rgba(10,14,22,0.98)_55%,rgba(6,9,15,1)_100%)] shadow-[0_24px_60px_-28px_rgba(0,0,0,0.85)]",
+      cardActive:
+        "ring-1 ring-white/15 shadow-[0_28px_70px_-24px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.06)]",
+      iconWrap: "border-white/10 bg-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]",
+      iconClass: "text-zinc-300",
+      rangePill: "border-zinc-600/40 bg-zinc-800/50 text-zinc-300",
       yieldLabelClass: "text-zinc-500",
-      rateClass: "text-zinc-200",
+      rateClass: "text-zinc-100",
       expandClass: "text-zinc-500",
-      checkClass: "text-zinc-500",
-      benefitTextClass: "text-zinc-500",
+      checkClass: "text-[#D4AF37]/70",
+      benefitTextClass: "text-zinc-400",
       descriptionClass: "text-zinc-500",
-      secondaryCta:
-        "border-zinc-600/90 bg-zinc-900 text-zinc-100 hover:border-zinc-400/55",
-      currentBadge:
-        "border-zinc-500/35 bg-zinc-800/55 text-zinc-300",
-      focusRingClass: "focus-visible:ring-zinc-500/45",
+      cta: "border-white/12 bg-white/[0.06] text-zinc-100 hover:border-[#D4AF37]/40 hover:bg-[#D4AF37]/10",
+      currentBadge: "border-zinc-500/30 bg-zinc-800/60 text-zinc-200",
+      focusRingClass: "focus-visible:ring-[#D4AF37]/35",
     },
   },
-
   {
     slug: "Growth" satisfies CanonicalInvestmentPlan,
-
     name: "Growth Level",
-
     range: formatDepositRangeDescription("Growth"),
-
     yield: "Projected Daily Yield",
-
     rate: dailyCompoundLabel("Growth"),
-
     description:
       "Designed for investors seeking stronger growth opportunities with enhanced portfolio scaling.",
-
     benefits: [
       "Increased growth potential",
       "Fast portfolio expansion",
       "Priority account monitoring",
       "Enhanced trading allocation",
     ],
-
     button: "Upgrade to Growth",
-
     theme: {
-      cardBorder: "border-emerald-950/70",
-      cardHover: "hover:border-emerald-600/45",
-      divider: "border-t border-emerald-950/35",
-      iconWrap: "border-emerald-800/35 bg-emerald-950/40",
-      iconClass: "text-emerald-500",
-      rangeClass: "text-emerald-400/95",
-      yieldLabelClass: "text-emerald-600/85",
-      rateClass: "text-emerald-300",
-      expandClass: "text-emerald-500/90",
-      checkClass: "text-emerald-600",
-      benefitTextClass: "text-emerald-100/75",
-      descriptionClass: "text-emerald-200/45",
-      secondaryCta:
-        "border-emerald-800/55 bg-emerald-950/35 text-emerald-50 hover:border-emerald-500/50",
-      currentBadge:
-        "border-emerald-500/35 bg-emerald-500/10 text-emerald-300",
-      focusRingClass: "focus-visible:ring-emerald-500/45",
+      ambient: "bg-[#D4AF37]/14",
+      card: "border-[#D4AF37]/18 bg-[linear-gradient(165deg,rgba(42,38,24,0.55)_0%,rgba(14,16,24,0.98)_48%,rgba(6,9,15,1)_100%)] shadow-[0_24px_60px_-28px_rgba(212,175,55,0.18)]",
+      cardActive:
+        "ring-1 ring-[#D4AF37]/25 shadow-[0_28px_70px_-24px_rgba(212,175,55,0.22),inset_0_1px_0_rgba(212,175,55,0.12)]",
+      iconWrap: "border-[#D4AF37]/25 bg-[#D4AF37]/10",
+      iconClass: "text-[#E8C96A]",
+      rangePill: "border-[#D4AF37]/30 bg-[#D4AF37]/12 text-[#F5E6B3]",
+      yieldLabelClass: "text-[#D4AF37]/65",
+      rateClass: "text-[#F5E6B3]",
+      expandClass: "text-[#D4AF37]/80",
+      checkClass: "text-[#D4AF37]",
+      benefitTextClass: "text-zinc-300",
+      descriptionClass: "text-zinc-500",
+      cta: "border-[#D4AF37]/35 bg-[#D4AF37]/12 text-[#F5E6B3] hover:border-[#D4AF37]/55 hover:bg-[#D4AF37]/20",
+      currentBadge: "border-[#D4AF37]/35 bg-[#D4AF37]/12 text-[#F5E6B3]",
+      focusRingClass: "focus-visible:ring-[#D4AF37]/45",
     },
   },
-
   {
     slug: "Pro" satisfies CanonicalInvestmentPlan,
-
     name: "Pro Level",
-
     range: formatDepositRangeDescription("Pro"),
-
     yield: "Projected Daily Yield",
-
     rate: dailyCompoundLabel("Pro"),
-
     description:
       "Built for experienced investors focused on maximizing capital performance through advanced market participation.",
-
     benefits: [
       "Premium growth structure",
       "Advanced market positioning",
       "Accelerated capital scaling",
       "Priority withdrawal processing",
     ],
-
     button: "Go Pro",
-
     theme: {
-      cardBorder: "border-amber-950/55",
-      cardHover: "hover:border-amber-600/50",
-      divider: "border-t border-amber-950/30",
-      iconWrap: "border-amber-800/40 bg-amber-950/35",
-      iconClass: "text-amber-400",
-      rangeClass: "text-amber-400",
-      yieldLabelClass: "text-amber-600/80",
-      rateClass: "text-amber-300",
-      expandClass: "text-amber-500",
-      checkClass: "text-amber-500",
-      benefitTextClass: "text-amber-100/78",
-      descriptionClass: "text-amber-200/48",
-      secondaryCta:
-        "border-amber-800/50 bg-amber-950/28 text-amber-50 hover:border-amber-500/55",
-      currentBadge:
-        "border-amber-500/38 bg-amber-500/12 text-amber-300",
-      focusRingClass: "focus-visible:ring-amber-500/45",
+      ambient: "bg-[#D4AF37]/22",
+      card: "border-[#D4AF37]/28 bg-[linear-gradient(165deg,rgba(58,48,22,0.65)_0%,rgba(16,14,22,0.98)_45%,rgba(6,9,15,1)_100%)] shadow-[0_28px_64px_-26px_rgba(212,175,55,0.28)]",
+      cardActive:
+        "ring-1 ring-[#D4AF37]/35 shadow-[0_32px_80px_-28px_rgba(212,175,55,0.35),inset_0_1px_0_rgba(212,175,55,0.18)]",
+      iconWrap: "border-[#D4AF37]/35 bg-[#D4AF37]/16",
+      iconClass: "text-[#F5E6B3]",
+      rangePill: "border-[#D4AF37]/40 bg-[#D4AF37]/16 text-[#F5E6B3]",
+      yieldLabelClass: "text-[#D4AF37]/75",
+      rateClass: "text-[#FFE9A8]",
+      expandClass: "text-[#D4AF37]",
+      checkClass: "text-[#D4AF37]",
+      benefitTextClass: "text-zinc-200",
+      descriptionClass: "text-zinc-500",
+      cta: "border-[#D4AF37]/45 bg-[#D4AF37]/18 text-white hover:bg-[#D4AF37]/28",
+      currentBadge: "border-[#D4AF37]/45 bg-[#D4AF37]/16 text-[#F5E6B3]",
+      focusRingClass: "focus-visible:ring-[#D4AF37]/50",
     },
   },
-
   {
     slug: "Elite" satisfies CanonicalInvestmentPlan,
-
     name: "Elite Level",
-
     range: formatDepositRangeDescription("Elite"),
-
     yield: "Projected Daily Yield",
-
     rate: dailyCompoundLabel("Elite"),
-
     description:
       "Exclusive access for high-capital investors seeking premium portfolio management and advanced investment opportunities.",
-
     benefits: [
       "Highest growth potential",
       "VIP account management",
       "Exclusive investment access",
       "Maximum portfolio allocation",
     ],
-
     button: "Join Elite",
-
     theme: {
-      cardBorder: "border-yellow-500/45",
-      cardHover: "hover:border-yellow-400/70",
-      divider: "border-t border-yellow-900/30",
-      iconWrap: "border-yellow-500/35 bg-yellow-500/14",
-      iconClass: "text-yellow-400",
-      rangeClass: "text-yellow-400",
-      yieldLabelClass: "text-yellow-600/75",
-      rateClass: "text-yellow-300",
-      expandClass: "text-yellow-500",
-      checkClass: "text-yellow-500",
-      benefitTextClass: "text-yellow-100/88",
-      descriptionClass: "text-yellow-100/48",
-      secondaryCta: "",
-      currentBadge:
-        "border-yellow-500/45 bg-yellow-500/15 text-yellow-300",
-      focusRingClass: "focus-visible:ring-yellow-500/55",
+      ambient: "bg-[#D4AF37]/32",
+      card: "border-[#D4AF37]/40 bg-[linear-gradient(165deg,rgba(72,58,18,0.75)_0%,rgba(22,18,12,0.98)_40%,rgba(8,10,16,1)_100%)] shadow-[0_32px_72px_-24px_rgba(212,175,55,0.42)]",
+      cardActive:
+        "ring-1 ring-[#D4AF37]/50 shadow-[0_36px_90px_-28px_rgba(212,175,55,0.5),inset_0_1px_0_rgba(255,236,180,0.2)]",
+      iconWrap: "border-[#D4AF37]/50 bg-[#D4AF37]/22 shadow-[0_0_24px_-6px_rgba(212,175,55,0.45)]",
+      iconClass: "text-[#FFE9A8]",
+      rangePill: "border-[#D4AF37]/50 bg-[#D4AF37]/20 text-white",
+      yieldLabelClass: "text-[#D4AF37]",
+      rateClass: "gold-gradient text-2xl sm:text-3xl",
+      expandClass: "text-[#F5E6B3]",
+      checkClass: "text-[#FFE9A8]",
+      benefitTextClass: "text-zinc-100",
+      descriptionClass: "text-zinc-400",
+      cta: "border-transparent bg-[#D4AF37] text-black shadow-[0_12px_32px_-8px_rgba(212,175,55,0.65)] hover:bg-[#E5BD45]",
+      currentBadge: "border-[#D4AF37]/55 bg-[#D4AF37]/20 text-[#FFE9A8]",
+      focusRingClass: "focus-visible:ring-[#D4AF37]/60",
     },
-
     elite: true,
   },
-];
+] as const;
 
 const PLAN_ICONS = [Shield, Rocket, Gem, Crown] as const;
 
@@ -249,10 +209,6 @@ export default function InvestmentPlansPage() {
     });
   };
 
-  // Seed expansion based on viewport: desktop (≥ lg, 1024px) shows every plan
-  // open by default so the full ladder is visible; phones/tablets keep cards
-  // collapsed so the page stays scannable. Runs once on mount to avoid SSR
-  // hydration mismatches and to not fight user toggles on subsequent resizes.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
@@ -306,8 +262,6 @@ export default function InvestmentPlansPage() {
         Boolean((data as { tier_manual_override?: unknown })?.tier_manual_override),
       );
 
-      // Auto-expand the investor's current plan so the CTA + status is in view
-      // without forcing them to tap first.
       if (normalized) {
         setExpandedSlugs((prev) => {
           if (prev.has(normalized)) return prev;
@@ -322,45 +276,54 @@ export default function InvestmentPlansPage() {
   }, [supabase]);
 
   return (
-    <div className="relative min-h-screen overflow-hidden text-white">
-      <div className="relative z-10 mx-auto max-w-7xl p-5 md:p-7">
-        <header className="mb-5 border-b border-zinc-800/80 pb-5">
+    <div className="relative min-h-full overflow-hidden text-white">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_50%_at_50%_-8%,rgba(212,175,55,0.16)_0%,transparent_55%)]"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -left-32 top-1/4 h-72 w-72 rounded-full bg-[#D4AF37]/8 blur-3xl"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-24 bottom-1/4 h-80 w-80 rounded-full bg-[#D4AF37]/6 blur-3xl"
+      />
+
+      <div className="relative z-10 mx-auto max-w-7xl px-4 py-6 sm:px-5 md:py-8 lg:px-0 lg:py-2">
+        <header className="mb-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
-                Investments
-              </p>
-              <h1 className="mt-1 text-2xl font-bold text-white sm:text-3xl">
-                Investment plans
+            <div className="min-w-0 flex-1">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#D4AF37]/25 bg-[#D4AF37]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#F5E6B3]">
+                <Sparkles className="h-3.5 w-3.5 text-[#D4AF37]" aria-hidden />
+                ZunoFund
+              </div>
+              <h1 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+                Investment <span className="gold-gradient">Plans</span>
               </h1>
-              <p className="mt-1 max-w-2xl text-sm leading-relaxed text-zinc-600">
-                Tiers show yield brackets for qualifying principal. Your active tier is assigned automatically from deposits (principal only)—you cannot pick a lower yield to bypass funding rules.
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-zinc-400">
+                Tiers reflect yield brackets for qualifying principal. Your active tier is assigned
+                automatically from approved deposits (principal only)—you cannot select a lower
+                yield to bypass funding rules.
               </p>
             </div>
 
-            <div className="flex shrink-0 flex-wrap gap-2">
-              {isLoggedIn ? (
-                <Link
-                  href="/dashboard"
-                  className="text-xs font-semibold text-yellow-500 transition hover:text-yellow-400"
-                >
-                  ← Dashboard
-                </Link>
-              ) : (
-                <Link
-                  href="/"
-                  className="text-xs font-semibold text-yellow-500 transition hover:text-yellow-400"
-                >
-                  ← Home
-                </Link>
-              )}
-            </div>
+            <Link
+              href={isLoggedIn ? "/dashboard" : "/"}
+              className="inline-flex shrink-0 items-center rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold text-[#D4AF37] transition hover:border-[#D4AF37]/35 hover:bg-[#D4AF37]/10"
+            >
+              {isLoggedIn ? "← Dashboard" : "← Home"}
+            </Link>
           </div>
+          <div
+            aria-hidden
+            className="mt-8 h-px w-full max-w-xl bg-gradient-to-r from-[#D4AF37]/50 via-[#D4AF37]/15 to-transparent"
+          />
         </header>
 
         {planLoadError ? (
           <div
-            className="mb-4 border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300"
+            className="mb-6 rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300"
             role="alert"
           >
             {planLoadError}
@@ -368,32 +331,31 @@ export default function InvestmentPlansPage() {
         ) : null}
 
         {isLoggedIn && currentPlanSlug ? (
-          <div className="mb-5 border border-zinc-800/80 bg-zinc-950/40 px-4 py-3 lg:rounded-lg">
-            <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
-              Current plan
+          <div className="mb-8 overflow-hidden rounded-3xl border border-[#D4AF37]/25 bg-[linear-gradient(135deg,rgba(212,175,55,0.12)_0%,rgba(12,16,26,0.95)_45%,rgba(8,11,18,0.98)_100%)] p-5 shadow-[0_20px_50px_-24px_rgba(212,175,55,0.35)] ring-1 ring-[#D4AF37]/15">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#D4AF37]/80">
+              Your current plan
             </p>
-            <p className="mt-1 text-sm text-zinc-300">
-              <span className="font-semibold text-yellow-500">
+            <p className="mt-2 text-sm leading-relaxed text-zinc-300">
+              <span className="text-lg font-bold text-[#F5E6B3]">
                 {displayPlanName(currentPlanSlug)}
               </span>
-              <span className="text-zinc-600">
+              <span className="text-zinc-500">
                 {" "}
-                — assigned from approved principal (not from profits).
+                — assigned from approved principal, not from profits.
                 {qualifyingPrincipal !== null ? (
                   <>
                     {" "}
-                    Qualifying principal ≈ {formatUsdAmount(qualifyingPrincipal)}
-                    .
+                    Qualifying principal ≈ {formatUsdAmount(qualifyingPrincipal)}.
                   </>
                 ) : null}{" "}
                 {tierManualOverride ? (
-                  <span className="text-amber-400">
+                  <span className="text-amber-300/90">
                     Support has locked manual tier override on your account.
                   </span>
                 ) : (
                   <Link
                     href="/deposit"
-                    className="font-medium text-yellow-500 hover:text-yellow-400"
+                    className="font-semibold text-[#D4AF37] underline-offset-2 hover:text-[#E5BD45] hover:underline"
                   >
                     Deposit or top up
                   </Link>
@@ -404,7 +366,7 @@ export default function InvestmentPlansPage() {
           </div>
         ) : null}
 
-        <div className="mb-4 flex items-center justify-end">
+        <div className="mb-5 flex items-center justify-end">
           <button
             type="button"
             onClick={() =>
@@ -413,14 +375,13 @@ export default function InvestmentPlansPage() {
                 return new Set(plans.map((p) => p.slug));
               })
             }
-            className="text-xs font-semibold text-yellow-500 transition hover:text-yellow-400"
+            className="rounded-full border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-4 py-2 text-xs font-semibold text-[#F5E6B3] transition hover:border-[#D4AF37]/50 hover:bg-[#D4AF37]/16"
           >
             {expandedSlugs.size === plans.length ? "Collapse all" : "Expand all"}
           </button>
         </div>
 
-        {/* Plans Grid */}
-        <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-2 xl:grid-cols-4 xl:gap-4">
+        <div className="grid grid-cols-1 items-start gap-5 md:grid-cols-2 xl:grid-cols-4 xl:gap-6">
           {plans.map((plan, index) => {
             const Icon = PLAN_ICONS[index] ?? Shield;
             const isExpanded = expandedSlugs.has(plan.slug);
@@ -430,36 +391,41 @@ export default function InvestmentPlansPage() {
             const detailsId = `plan-details-${plan.slug}`;
 
             return (
-              <div
+              <article
                 key={plan.slug}
-                className={`relative flex flex-col overflow-hidden border bg-zinc-950/40 transition lg:rounded-lg ${plan.theme.cardBorder} ${plan.theme.cardHover}`}
+                className={`group relative flex flex-col overflow-hidden rounded-3xl border backdrop-blur-sm transition duration-300 hover:-translate-y-0.5 ${plan.theme.card} ${isCurrentPlan ? plan.theme.cardActive : ""}`}
               >
+                <div
+                  aria-hidden
+                  className={`pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full blur-3xl ${plan.theme.ambient}`}
+                />
+
                 <button
                   type="button"
                   id={summaryId}
                   aria-expanded={isExpanded}
                   aria-controls={detailsId}
                   onClick={() => togglePlanExpansion(plan.slug)}
-                  className={`relative z-10 w-full p-4 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 sm:p-5 ${plan.theme.focusRingClass}`}
+                  className={`relative z-10 w-full p-5 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05080F] sm:p-6 ${plan.theme.focusRingClass}`}
                 >
-                  <div className="mb-3 flex items-start justify-between gap-2">
+                  <div className="mb-4 flex items-start justify-between gap-2">
                     <div
-                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border ${plan.theme.iconWrap}`}
+                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border ${plan.theme.iconWrap}`}
                     >
-                      <Icon size={18} className={plan.theme.iconClass} aria-hidden />
+                      <Icon size={20} className={plan.theme.iconClass} aria-hidden />
                     </div>
 
                     <div className="flex flex-wrap items-center justify-end gap-1.5">
                       {isCurrentPlan ? (
                         <span
-                          className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${plan.theme.currentBadge}`}
+                          className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${plan.theme.currentBadge}`}
                         >
                           Your plan
                         </span>
                       ) : null}
 
                       {plan.elite ? (
-                        <span className="inline-flex items-center gap-0.5 rounded-md bg-yellow-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-black">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-[#D4AF37] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-black shadow-[0_4px_14px_-4px_rgba(212,175,55,0.55)]">
                           <Crown size={10} aria-hidden />
                           VIP
                         </span>
@@ -467,29 +433,29 @@ export default function InvestmentPlansPage() {
                     </div>
                   </div>
 
-                  <h2 className="mb-0.5 text-base font-bold text-white sm:text-lg">
-                    {plan.name}
-                  </h2>
+                  <h2 className="text-lg font-bold text-white sm:text-xl">{plan.name}</h2>
 
-                  <p className={`mb-3 text-sm font-semibold ${plan.theme.rangeClass}`}>
+                  <p
+                    className={`mt-2 inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${plan.theme.rangePill}`}
+                  >
                     {plan.range}
                   </p>
 
-                  <div className="mb-1">
+                  <div className="mt-5 rounded-2xl border border-white/[0.06] bg-black/25 px-4 py-3">
                     <p
-                      className={`text-[11px] uppercase tracking-wide ${plan.theme.yieldLabelClass}`}
+                      className={`text-[10px] font-semibold uppercase tracking-[0.16em] ${plan.theme.yieldLabelClass}`}
                     >
                       {plan.yield}
                     </p>
                     <p
-                      className={`text-xl font-bold tabular-nums sm:text-2xl ${plan.theme.rateClass}`}
+                      className={`mt-1 text-2xl font-black tabular-nums sm:text-3xl ${plan.theme.rateClass}`}
                     >
                       {plan.rate}
                     </p>
                   </div>
 
                   <div
-                    className={`mt-3 flex items-center justify-between pt-3 text-xs font-semibold ${plan.theme.divider} ${plan.theme.expandClass}`}
+                    className={`mt-4 flex items-center justify-between border-t border-white/[0.06] pt-4 text-xs font-semibold ${plan.theme.expandClass}`}
                   >
                     <span>{isExpanded ? "Hide details" : "View details"}</span>
                     <ChevronDown
@@ -518,28 +484,28 @@ export default function InvestmentPlansPage() {
                       }}
                       className="relative z-10 overflow-hidden"
                     >
-                      <div
-                        className={`px-4 pb-4 pt-3 sm:px-5 sm:pb-5 ${plan.theme.divider}`}
-                      >
+                      <div className="border-t border-white/[0.06] px-5 pb-5 pt-4 sm:px-6 sm:pb-6">
                         <p
                           className={`mb-4 text-xs leading-relaxed ${plan.theme.descriptionClass}`}
                         >
                           {plan.description}
                         </p>
 
-                        <ul className="mb-4 space-y-2">
+                        <ul className="mb-5 space-y-2.5">
                           {plan.benefits.map((benefit) => (
                             <li
                               key={benefit}
-                              className="flex items-start gap-2"
+                              className="flex items-start gap-2.5"
                             >
-                              <Check
-                                size={14}
-                                className={`mt-0.5 shrink-0 ${plan.theme.checkClass}`}
-                                aria-hidden
-                              />
+                              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#D4AF37]/12">
+                                <Check
+                                  size={12}
+                                  className={plan.theme.checkClass}
+                                  aria-hidden
+                                />
+                              </span>
                               <span
-                                className={`text-xs ${plan.theme.benefitTextClass}`}
+                                className={`text-xs leading-relaxed ${plan.theme.benefitTextClass}`}
                               >
                                 {benefit}
                               </span>
@@ -549,12 +515,7 @@ export default function InvestmentPlansPage() {
 
                         <Link
                           href={isLoggedIn ? "/deposit" : "/auth"}
-                          className={`flex w-full items-center justify-center rounded-lg border py-2.5 text-xs font-bold transition ${
-                            plan.elite
-                              ? "border-transparent bg-yellow-500 text-black hover:bg-yellow-600"
-                              : plan.theme.secondaryCta ||
-                                "border-zinc-600 bg-zinc-900 text-zinc-100 hover:border-zinc-400"
-                          }`}
+                          className={`flex w-full items-center justify-center rounded-2xl border py-3 text-xs font-bold transition ${plan.theme.cta}`}
                         >
                           {isLoggedIn ? "Go to deposit" : plan.button}
                         </Link>
@@ -562,15 +523,15 @@ export default function InvestmentPlansPage() {
                     </motion.div>
                   ) : null}
                 </AnimatePresence>
-              </div>
+              </article>
             );
           })}
         </div>
 
-        <div className="mt-10 border-t border-zinc-800/80 pt-6">
-          <p className="mx-auto max-w-3xl text-center text-xs leading-relaxed text-zinc-600">
-            Investment performance varies with market conditions and portfolio activity.
-            Withdrawal rules and holding periods may apply by tier and allocation.
+        <div className="mt-12 rounded-3xl border border-white/[0.06] bg-white/[0.02] px-5 py-6 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+          <p className="mx-auto max-w-3xl text-xs leading-relaxed text-zinc-500">
+            Investment performance varies with market conditions and portfolio activity. Withdrawal
+            rules and holding periods may apply by tier and allocation.
           </p>
         </div>
       </div>

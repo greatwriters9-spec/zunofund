@@ -4,7 +4,8 @@ import { useEffect, useId, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, ClipboardList, RefreshCcw } from "lucide-react";
 
 import type { P2pAssetCode, P2pMarketTab } from "@/components/p2p/p2pTypes";
-import { P2P_PAYMENT_METHOD_OPTIONS } from "@/lib/p2pPaymentMethods";
+import { CryptoPicker } from "@/components/market-pickers/CryptoPicker";
+import { PaymentMethodPicker } from "@/components/payment-methods/PaymentMethodPicker";
 import { FIAT_CURRENCIES, getFiatCurrency, type FiatCurrencyCode } from "@/lib/currencies";
 
 const OFFER_ASSETS = [
@@ -36,7 +37,7 @@ export function offerSortButtonLabel(mode: OfferSortMode): string {
   }
 }
 
-type DropdownKey = "asset" | "currency" | "method" | "sort" | "trades";
+type DropdownKey = "currency" | "sort" | "trades";
 
 const LIST_VIEW_ROWS: { value: P2pListViewMode; label: string }[] = [
   { value: "offers", label: "Offers · browse ads" },
@@ -135,11 +136,6 @@ export function P2pMarketToolbar({
 }: P2pMarketToolbarProps) {
   const [openMenu, setOpenMenu] = useState<DropdownKey | null>(null);
   const rootRef = useDismissOnOutside(openMenu, setOpenMenu);
-  const payLabel =
-    paymentMethod.trim() !== ""
-      ? (P2P_PAYMENT_METHOD_OPTIONS.find((x) => x.code === paymentMethod)?.label ?? "Method")
-      : "All methods";
-
   const amtId = useId();
 
   return (
@@ -190,39 +186,19 @@ export function P2pMarketToolbar({
             </button>
           </div>
 
-          <div
-            className={`relative shrink-0 ${openMenu === "asset" ? "z-[110]" : ""}`}
-          >
-            <button
-              type="button"
-              className="flex min-h-[38px] min-w-[6.25rem] items-center justify-between gap-1 rounded-xl border border-white/[0.1] bg-black/35 px-2 py-1.5 text-left text-[11px] font-semibold text-[#F5E6B3] ring-1 ring-white/[0.04] hover:border-[#D4AF37]/35 sm:min-h-[42px] sm:min-w-[10.5rem] sm:gap-2 sm:px-3 sm:py-2 sm:text-[12px]"
-              aria-expanded={openMenu === "asset"}
-              onClick={() => setOpenMenu((k) => (k === "asset" ? null : "asset"))}
-            >
-              <span className="truncate">{OFFER_ASSETS.find((x) => x.code === asset)?.label ?? asset}</span>
-              <ChevronDown className="h-4 w-4 shrink-0 opacity-75" aria-hidden />
-            </button>
-            {openMenu === "asset" ? (
-              <MenuPanel alignMobile="end">
-                {OFFER_ASSETS.map((a) => (
-                  <button
-                    key={a.code}
-                    type="button"
-                    role="option"
-                    aria-selected={asset === a.code}
-                    className={`flex w-full items-center px-3 py-2.5 text-left text-[13px] transition hover:bg-white/[0.05] ${
-                      asset === a.code ? "bg-emerald-500/10 text-emerald-200" : "text-zinc-200"
-                    }`}
-                    onClick={() => {
-                      onAssetChange(a.code);
-                      setOpenMenu(null);
-                    }}
-                  >
-                    {a.label}
-                  </button>
-                ))}
-              </MenuPanel>
-            ) : null}
+          <div className="relative shrink-0">
+            <CryptoPicker
+              value={asset}
+              onChange={(code) => {
+                if (code === "USDT" || code === "BTC") onAssetChange(code);
+              }}
+              context="portal"
+              variant="toolbar"
+              displayLabel={OFFER_ASSETS.find((x) => x.code === asset)?.label ?? asset}
+              onOpenChange={(isOpen) => {
+                if (isOpen) setOpenMenu(null);
+              }}
+            />
           </div>
 
           <div className="flex shrink-0 items-center gap-1.5">
@@ -294,49 +270,16 @@ export function P2pMarketToolbar({
             </div>
           </div>
 
-          <div
-            className={`relative min-w-[6.5rem] flex-1 sm:min-w-[13rem] lg:flex-none lg:max-w-[16rem] ${
-              openMenu === "method" ? "z-[110]" : ""
-            }`}
-          >
-            <button
-              type="button"
-              className="flex h-[42px] w-full items-center justify-between gap-2 rounded-xl border border-white/[0.1] bg-black/35 px-3 py-2 text-left text-[12px] font-medium text-zinc-200 hover:border-[#D4AF37]/35"
-              aria-expanded={openMenu === "method"}
-              onClick={() => setOpenMenu((k) => (k === "method" ? null : "method"))}
-            >
-              <span className="truncate">{payLabel}</span>
-              <ChevronDown className="h-4 w-4 shrink-0 opacity-75" aria-hidden />
-            </button>
-            {openMenu === "method" ? (
-              <MenuPanel alignMobile="end">
-                <button
-                  type="button"
-                  className="block w-full px-3 py-2.5 text-left text-[13px] text-zinc-200 hover:bg-white/[0.05]"
-                  onClick={() => {
-                    onPaymentMethodChange("");
-                    setOpenMenu(null);
-                  }}
-                >
-                  All payment methods
-                </button>
-                {P2P_PAYMENT_METHOD_OPTIONS.map((o) => (
-                  <button
-                    key={o.code}
-                    type="button"
-                    className={`block w-full px-3 py-2 text-left text-[13px] hover:bg-white/[0.05] ${
-                      paymentMethod === o.code ? "bg-[#D4AF37]/10 text-[#F5E6B3]" : "text-zinc-300"
-                    }`}
-                    onClick={() => {
-                      onPaymentMethodChange(o.code);
-                      setOpenMenu(null);
-                    }}
-                  >
-                    {o.label}
-                  </button>
-                ))}
-              </MenuPanel>
-            ) : null}
+          <div className="relative min-w-[6.5rem] flex-1 sm:min-w-[13rem] lg:flex-none lg:max-w-[16rem]">
+            <PaymentMethodPicker
+              value={paymentMethod}
+              onChange={onPaymentMethodChange}
+              allowAllMethods
+              variant="toolbar"
+              onOpenChange={(isOpen) => {
+                if (isOpen) setOpenMenu(null);
+              }}
+            />
           </div>
 
           <div className="flex shrink-0 items-center gap-1.5 ml-auto lg:ml-0">

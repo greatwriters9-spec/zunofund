@@ -5,21 +5,44 @@ import { ArrowRight, CheckCircle2, Gift } from "lucide-react";
 
 import { EARLY_MEMBER_PROMOTION } from "@/components/landing/landingData";
 
-export function GrowthProgramSection() {
+type GrowthProgramSectionProps = {
+  sectionId?: string;
+};
+
+export function GrowthProgramSection({ sectionId }: GrowthProgramSectionProps) {
+  const isMobileInvest = sectionId === "mobile-invest";
+
   return (
-    <section className="relative px-6 py-20 lg:px-10 lg:py-28">
+    <section
+      id={sectionId}
+      className={
+        isMobileInvest
+          ? "relative scroll-mt-24 border-t border-[#D4AF37]/12 bg-[radial-gradient(ellipse_80%_40%_at_50%_0%,rgba(212,175,55,0.06)_0%,transparent_50%)] px-4 py-8 lg:border-t-0 lg:px-10 lg:py-28 lg:scroll-mt-0"
+          : "relative px-6 py-20 lg:px-10 lg:py-28"
+      }
+    >
       <div className="mx-auto max-w-7xl">
         <header className="mx-auto max-w-5xl text-center">
           <div
             aria-hidden
-            className="mx-auto mb-8 h-px w-28 bg-gradient-to-r from-transparent via-[#D4AF37]/70 to-transparent sm:w-40"
+            className={`mx-auto h-px bg-gradient-to-r from-transparent via-[#D4AF37]/70 to-transparent sm:w-40 ${
+              isMobileInvest ? "mb-4 w-20 lg:mb-8 lg:w-40" : "mb-8 w-28"
+            }`}
           />
-          <h2 className="gold-gradient text-[2.25rem] font-semibold leading-[1.1] tracking-[0.02em] sm:text-5xl md:text-6xl lg:text-[4.5rem]">
+          <h2
+            className={`gold-gradient font-semibold leading-[1.1] tracking-[0.02em] ${
+              isMobileInvest
+                ? "text-[1.75rem] sm:text-5xl md:text-6xl lg:text-[4.5rem]"
+                : "text-[2.25rem] sm:text-5xl md:text-6xl lg:text-[4.5rem]"
+            }`}
+          >
             Early Member Growth Program
           </h2>
           <div
             aria-hidden
-            className="mx-auto mt-8 flex items-center justify-center gap-4"
+            className={`mx-auto flex items-center justify-center gap-4 ${
+              isMobileInvest ? "mt-4 lg:mt-8" : "mt-8"
+            }`}
           >
             <span className="h-px w-12 bg-[#D4AF37]/25 sm:w-20" />
             <span className="text-[10px] font-medium uppercase tracking-[0.35em] text-zinc-500">
@@ -27,19 +50,37 @@ export function GrowthProgramSection() {
             </span>
             <span className="h-px w-12 bg-[#D4AF37]/25 sm:w-20" />
           </div>
-          <p className="gold-gradient mt-6 text-[2.5rem] font-black leading-[1.05] tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
+          <p
+            className={`gold-gradient font-black leading-[1.05] tracking-tight ${
+              isMobileInvest
+                ? "mt-3 text-[2rem] sm:text-5xl md:text-6xl lg:mt-6 lg:text-7xl"
+                : "mt-6 text-[2.5rem] sm:text-5xl md:text-6xl lg:text-7xl"
+            }`}
+          >
             Ends {EARLY_MEMBER_PROMOTION.endDateLabel}
           </p>
-          <p className="mx-auto mt-8 max-w-2xl text-xl font-medium leading-snug text-white/90 md:text-2xl">
+          <p
+            className={`mx-auto max-w-2xl font-medium leading-snug text-white/90 ${
+              isMobileInvest
+                ? "mt-4 text-base sm:text-xl lg:mt-8 lg:text-2xl"
+                : "mt-8 text-xl md:text-2xl"
+            }`}
+          >
             Unlock Exclusive Benefits As An Early Member
           </p>
           <div
             aria-hidden
-            className="mx-auto mt-10 h-px w-full max-w-md bg-gradient-to-r from-transparent via-[#D4AF37]/30 to-transparent"
+            className={`mx-auto h-px w-full max-w-md bg-gradient-to-r from-transparent via-[#D4AF37]/30 to-transparent ${
+              isMobileInvest ? "mt-5 lg:mt-10" : "mt-10"
+            }`}
           />
         </header>
 
-        <div className="mt-14 grid items-center gap-10 lg:mt-20 lg:grid-cols-2">
+        <div
+          className={`grid items-center gap-8 lg:grid-cols-2 ${
+            isMobileInvest ? "mt-8 lg:mt-20 lg:gap-10" : "mt-14 gap-10 lg:mt-20"
+          }`}
+        >
           <div className="lg:pr-6">
             <p className="text-center text-base leading-relaxed text-zinc-400 lg:text-left lg:text-lg">
               This launch promotion is for people who join early. Enroll before{" "}

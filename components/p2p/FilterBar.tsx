@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { Search } from "lucide-react";
 
-import { P2P_PAYMENT_METHOD_OPTIONS } from "@/lib/p2pPaymentMethods";
+import { PaymentMethodPicker } from "@/components/payment-methods/PaymentMethodPicker";
 import type { P2pMarketTab } from "@/components/p2p/p2pTypes";
 
 export type { P2pMarketTab } from "@/components/p2p/p2pTypes";
@@ -82,23 +82,15 @@ export function FilterBar({
             />
           </label>
 
-          <label className="block flex-1 min-w-0 sm:max-w-[240px]">
-            <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-zinc-500">
-              Payment method
-            </span>
-            <select
+          <div className="block min-w-0 flex-1 sm:max-w-[240px]">
+            <PaymentMethodPicker
+              variant="field"
+              fieldLabel="Payment method"
               value={method}
-              onChange={(e) => onMethodChange(e.target.value)}
-              className="w-full cursor-pointer rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-[#D4AF37]/45 focus:ring-2 focus:ring-[#D4AF37]/20 sm:py-2.5"
-            >
-              <option value="">All methods</option>
-              {P2P_PAYMENT_METHOD_OPTIONS.map((o) => (
-                <option key={o.code} value={o.code}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </label>
+              onChange={onMethodChange}
+              allowAllMethods
+            />
+          </div>
 
           <button
             type="button"

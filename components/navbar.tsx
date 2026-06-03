@@ -19,7 +19,7 @@ const NAV_DASHBOARD = [
   },
 ] as const;
 
-/* ✅ UPDATED BRAND (FIXED DESIGN) */
+/* ✅ UPDATED BRAND (FIXED DESIGN) — dashboard & desktop marketing */
 function BrandLockup({ href }: { href: string }) {
   return (
     <Link href={href} className="flex h-12 items-center gap-2.5">
@@ -32,6 +32,28 @@ function BrandLockup({ href }: { href: string }) {
         priority
       />
       <span className="text-[16px] font-semibold leading-none tracking-[0.25em] text-white">ZUNO</span>
+    </Link>
+  );
+}
+
+/** Compact lockup for marketing navbar below md only; desktop uses BrandLockup via responsive classes. */
+function MarketingBrandLockup({ href }: { href: string }) {
+  return (
+    <Link
+      href={href}
+      className="flex h-9 shrink-0 items-center gap-1.5 md:h-12 md:gap-2.5"
+    >
+      <Image
+        src="/logo.png"
+        alt="Zuno"
+        width={48}
+        height={48}
+        className="h-8 w-auto object-contain drop-shadow-[0_2px_8px_rgba(212,175,55,0.28)] md:h-11"
+        priority
+      />
+      <span className="text-[13px] font-semibold leading-none tracking-[0.22em] text-white md:text-[16px] md:tracking-[0.25em]">
+        ZUNO
+      </span>
     </Link>
   );
 }
@@ -125,19 +147,21 @@ function MarketingNavbarInner() {
   return (
     <>
       <header className="navbar-glass sticky top-0 z-[200] pt-[env(safe-area-inset-top)]">
-        <nav className="mx-auto flex h-[88px] max-w-[1600px] items-center gap-4 px-4 md:px-8">
+        <nav className="mx-auto flex h-14 max-w-[1600px] items-center gap-2 px-3 md:h-[88px] md:gap-4 md:px-8">
           <button
             type="button"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-[#E5E7EB] transition hover:bg-white/5 md:hidden"
+            className="-ml-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-[#E5E7EB] transition hover:bg-white/5 md:hidden"
             aria-expanded={mobileOpen}
             aria-controls="marketing-mobile-nav"
             aria-label={mobileOpen ? "Close menu" : "Open menu"}
             onClick={() => setMobileOpen((o) => !o)}
           >
-            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
 
-          <BrandLockup href="/" />
+          <MarketingBrandLockup href="/" />
+
+          <div className="min-w-0 flex-1 md:hidden" aria-hidden />
 
           <div className="hidden lg:flex lg:flex-1 lg:justify-center">
             <div className="flex items-center gap-10 text-[14px] font-medium text-[#E5E7EB]/90">
@@ -172,7 +196,7 @@ function MarketingNavbarInner() {
             </div>
           </div>
 
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex shrink-0 items-center gap-2 md:gap-3">
             <Link
               href="/contact"
               className="hidden lg:flex items-center gap-2 text-[15px] font-medium text-[#F5E6B3]/90"
@@ -190,10 +214,10 @@ function MarketingNavbarInner() {
 
             <Link
               href={signupUrl}
-              className="flex items-center gap-2 rounded-lg bg-[linear-gradient(135deg,#F7E3A0_0%,#D4AF37_50%,#EAC54F_100%)] px-4 py-2 text-sm font-semibold text-black shadow-[0_0_25px_rgba(212,175,55,0.35)] transition duration-200 hover:-translate-y-[1px]"
+              className="flex items-center gap-1 rounded-md bg-[linear-gradient(135deg,#F7E3A0_0%,#D4AF37_50%,#EAC54F_100%)] px-2.5 py-1.5 text-xs font-semibold text-black shadow-[0_0_12px_rgba(212,175,55,0.22)] transition duration-200 md:gap-2 md:rounded-lg md:px-4 md:py-2 md:text-sm md:shadow-[0_0_25px_rgba(212,175,55,0.35)] md:hover:-translate-y-[1px]"
             >
-              Create Account
-              <ArrowRight size={16} />
+              <span className="whitespace-nowrap">Join Us</span>
+              <ArrowRight size={16} className="hidden shrink-0 md:block" aria-hidden />
             </Link>
           </div>
         </nav>
@@ -284,7 +308,7 @@ function MarketingNavbarInner() {
               onClick={closeMobile}
               className="flex h-12 items-center justify-center gap-2 rounded-xl bg-[#D4AF37] text-base font-semibold text-black transition hover:opacity-90 hover:shadow-[0_0_22px_rgba(212,175,55,0.45)]"
             >
-              Create Account
+              Join Us
               <ArrowRight size={18} />
             </Link>
           </div>
@@ -298,7 +322,7 @@ export function MarketingNavbar() {
   return (
     <Suspense
       fallback={
-        <header className="navbar-glass sticky top-0 z-[200] h-[88px]" />
+        <header className="navbar-glass sticky top-0 z-[200] h-14 md:h-[88px]" />
       }
     >
       <MarketingNavbarInner />

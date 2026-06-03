@@ -6,6 +6,7 @@ import { landingAuthForwardPath } from "@/lib/auth/supabaseEmailLink";
 
 import { MarketingNavbar } from "@/components/navbar";
 import { LandingFooter } from "@/components/landing/LandingFooter";
+import { MobileLandingExperience } from "@/components/landing/mobile/MobileLandingExperience";
 import { DownloadAppSection } from "@/components/landing/sections/DownloadAppSection";
 import { FinalCTASection } from "@/components/landing/sections/FinalCTASection";
 import { GrowthProgramSection } from "@/components/landing/sections/GrowthProgramSection";
@@ -35,13 +36,28 @@ export default function HomePage() {
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-[#05080F] text-white">
       <MarketingNavbar />
-      <HeroSection />
+
+      {/* Mobile-first landing (below lg) */}
+      <div className="lg:hidden">
+        <MobileLandingExperience />
+        <GrowthProgramSection sectionId="mobile-invest" />
+      </div>
+
+      {/* Desktop hero — unchanged */}
+      <div className="hidden lg:block">
+        <HeroSection />
+      </div>
+
       <ProblemSection />
       <VisionSection />
       <HowItWorksSection />
-      <GrowthProgramSection />
+
+      <div className="hidden lg:block">
+        <GrowthProgramSection />
+      </div>
+
       <InvestmentPlansSection />
-      <RewardsMerchantSection />
+      <RewardsMerchantSection sectionId="mobile-rewards" />
       <RoadmapSection />
       <DownloadAppSection />
       <FinalCTASection />

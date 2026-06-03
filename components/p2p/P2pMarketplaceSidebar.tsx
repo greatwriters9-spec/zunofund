@@ -4,7 +4,8 @@ import Link from "next/link";
 import { ArrowRight, ClipboardList, Search } from "lucide-react";
 
 import type { P2pAssetCode, P2pMarketTab } from "@/components/p2p/p2pTypes";
-import { P2P_PAYMENT_METHOD_OPTIONS } from "@/lib/p2pPaymentMethods";
+import { CryptoPicker } from "@/components/market-pickers/CryptoPicker";
+import { PaymentMethodPicker } from "@/components/payment-methods/PaymentMethodPicker";
 
 type P2pMarketplaceSidebarProps = {
   tab: P2pMarketTab;
@@ -41,27 +42,16 @@ export function P2pMarketplaceSidebar({
 }: P2pMarketplaceSidebarProps) {
   return (
     <aside className="flex w-full shrink-0 flex-col gap-4 overflow-y-auto border-b border-[#D4AF37]/15 bg-[#05080F]/90 p-4 max-lg:touch-pan-y lg:min-h-[100dvh] lg:gap-5 lg:border-b-0 lg:border-r lg:p-5 lg:pt-6 lg:max-w-[380px] xl:max-w-[430px]">
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">Asset</p>
-        <div className="mt-2 flex flex-row gap-2">
-          {(["USDT", "BTC"] as const satisfies readonly P2pAssetCode[]).map((a) => {
-            return (
-              <button
-                key={a}
-                type="button"
-                onClick={() => onAssetChange(a)}
-                className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl border px-2 py-3 text-sm font-bold transition ${
-                  asset === a
-                    ? "border-[#D4AF37]/50 bg-black/45 text-[#F5E6B3] ring-1 ring-[#D4AF37]/35"
-                    : "border-white/10 bg-black/25 text-zinc-300 hover:border-[#D4AF37]/25"
-                }`}
-              >
-                <span>{a}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <CryptoPicker
+        variant="field"
+        fieldLabel="Asset"
+        value={asset}
+        onChange={(code) => {
+          if (code === "USDT" || code === "BTC") onAssetChange(code);
+        }}
+        context="portal"
+        displayLabel={asset}
+      />
 
       <div>
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">Direction</p>
@@ -114,32 +104,18 @@ export function P2pMarketplaceSidebar({
           />
         </label>
 
-        <label className="block min-w-0">
-          <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
-            Pay method
-          </span>
-          <select
+        <div className="min-w-0">
+          <PaymentMethodPicker
+            variant="field"
+            fieldLabel="Pay method"
             value={paymentMethod}
-            onChange={(e) => onPaymentMethodChange(e.target.value)}
-            className="w-full cursor-pointer appearance-none rounded-xl border border-[#D4AF37]/28 bg-black/45 py-3 pl-3 pr-8 text-[13px] font-semibold tracking-wide text-[#F5E6B3] outline-none focus:border-[#D4AF37]/55 focus:ring-2 focus:ring-[#D4AF37]/22"
-            style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%23D4AF37' stroke-opacity='0.85' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
-              backgroundRepeat: "no-repeat",
-              backgroundPosition: "right 0.65rem center",
-              backgroundSize: "14px",
-            }}
-          >
-            <option value="" className="bg-zinc-900 text-white">
-              All methods
-            </option>
-            {P2P_PAYMENT_METHOD_OPTIONS.map((o) => (
-              <option key={o.code} value={o.code} className="bg-zinc-900 text-white font-normal">
-                {o.label}
-              </option>
-            ))}
-          </select>
-          <p className="mt-2 text-[9px] leading-snug text-zinc-600">Including Airtel Money, Sendwave, banks & wallets.</p>
-        </label>
+            onChange={onPaymentMethodChange}
+            allowAllMethods
+          />
+          <p className="mt-2 text-[9px] leading-snug text-zinc-600">
+            Including Airtel Money, Sendwave, banks & wallets.
+          </p>
+        </div>
       </div>
 
       <div className="rounded-xl border border-white/10 bg-black/25 py-1">

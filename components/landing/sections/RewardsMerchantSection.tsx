@@ -4,9 +4,16 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Store, Trophy } from "lucide-react";
 
-export function RewardsMerchantSection() {
+type RewardsMerchantSectionProps = {
+  sectionId?: string;
+};
+
+export function RewardsMerchantSection({ sectionId }: RewardsMerchantSectionProps) {
   return (
-    <section className="bg-white px-6 py-20 text-zinc-900 lg:px-10 lg:py-28">
+    <section
+      id={sectionId}
+      className={`bg-white px-6 py-20 text-zinc-900 lg:px-10 lg:py-28 ${sectionId === "mobile-rewards" ? "scroll-mt-28 lg:scroll-mt-0" : ""}`}
+    >
       <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-2">
         <article className="overflow-hidden rounded-3xl border border-zinc-200 bg-zinc-50 shadow-[0_12px_40px_rgba(0,0,0,0.08)]">
           <div className="flex items-center justify-center bg-gradient-to-br from-[#D4AF37]/20 to-zinc-100 py-12">
