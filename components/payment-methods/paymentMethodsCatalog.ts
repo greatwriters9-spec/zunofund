@@ -25,12 +25,10 @@ export type PaymentMethodCategory = {
 };
 
 const fromP2p = (codes: string[]): PaymentMethodItem[] =>
-  codes
-    .map((code) => {
-      const opt = P2P_PAYMENT_METHOD_OPTIONS.find((o) => o.code === code);
-      return opt ? { code: opt.code, label: opt.label } : null;
-    })
-    .filter((m): m is PaymentMethodItem => m !== null);
+  codes.flatMap((code) => {
+    const opt = P2P_PAYMENT_METHOD_OPTIONS.find((o) => o.code === code);
+    return opt ? [{ code: opt.code, label: opt.label }] : [];
+  });
 
 const giftCards: PaymentMethodItem[] = [
   { code: "apple_gift_us", label: "Apple Gift Card (US)" },

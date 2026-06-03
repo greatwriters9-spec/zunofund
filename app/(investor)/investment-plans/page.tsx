@@ -424,7 +424,7 @@ export default function InvestmentPlansPage() {
                         </span>
                       ) : null}
 
-                      {plan.elite ? (
+                      {plan.slug === "Elite" ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-[#D4AF37] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-black shadow-[0_4px_14px_-4px_rgba(212,175,55,0.55)]">
                           <Crown size={10} aria-hidden />
                           VIP
