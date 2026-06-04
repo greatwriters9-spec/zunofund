@@ -14,6 +14,11 @@ import { resolveTradeAmount } from "@/components/p2p/resolveTradeAmount";
 import type { P2pAssetCode, P2pMarketTab } from "@/components/p2p/p2pTypes";
 import { expireStaleP2pOrders, isP2pOrderActive } from "@/lib/p2pExpiry";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
+import {
+  formatP2pTradeError,
+  logP2pTradeError,
+  validateBuyOrderPayload,
+} from "@/lib/p2p/tradeOrderErrors";
 import { isFiatCurrencyCode, type FiatCurrencyCode } from "@/lib/currencies";
 import { assetFromOfferSide, formatLimitRange, minAmountPlaceholder, p2pOfferSide } from "@/lib/p2pAssets";
 import { inputToOfferFiat } from "@/lib/p2pValue";
@@ -69,12 +74,14 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
   const [amountPromptError, setAmountPromptError] = useState<string | null>(null);
   const [merchantActive, setMerchantActive] = useState(false);
   const [sellableRefresh, setSellableRefresh] = useState(0);
+  const [investorUserId, setInvestorUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    async function loadMerchantAccess() {
+    async function loadSessionContext() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
+      setInvestorUserId(user?.id ?? null);
       if (!user?.id) {
         setMerchantActive(false);
         return;
@@ -86,7 +93,7 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
         .maybeSingle();
       setMerchantActive((data as { status?: string } | null)?.status === "active");
     }
-    void loadMerchantAccess();
+    void loadSessionContext();
   }, [supabase]);
 
   const rpcSide = p2pOfferSide(tab, asset);
@@ -207,16 +214,29 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
     setError(null);
 
     const pm = method.trim() || row.payment_methods[0] || "";
-    if (!pm) {
+    const offerCcy = (row.fiat_currency_code || "USD").toUpperCase();
+
+    const validationError = validateBuyOrderPayload(
+      {
+        offerId: row.offer_id,
+        fiatAmount: fiatAmt,
+        paymentMethod: pm,
+        fxRateUsdAtOpen: null,
+      },
+      {
+        offerPaymentMethods: row.payment_methods ?? [],
+        minFiat: Number(row.min_limit),
+        maxFiat: Number(row.max_limit),
+        merchantUserId: row.merchant_user_id,
+        investorUserId,
+      },
+    );
+    if (validationError) {
       setBusyOfferId(null);
-      setError("Pick a payment method in the toolbar, or choose an ad that lists your rail.");
+      setError(validationError);
       return;
     }
 
-    // Snapshot the rate the investor is looking at right now so it's the same
-    // number stored on the order row. The RPC has its own fallback, but
-    // sending the visible rate guarantees no drift between UI and DB.
-    const offerCcy = row.fiat_currency_code || "USD";
     const fxRates = await getFxRates();
     const lockedRate =
       offerCcy === "USD"
@@ -225,38 +245,50 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
           ? fxRates[offerCcy]
           : null;
 
-    if (tab === "buy") {
-      const { data: oid, error: e } = await supabase.rpc("investor_create_merchant_buy_order", {
+    try {
+      if (tab === "buy") {
+        const { data: oid, error: e } = await supabase.rpc("investor_create_merchant_buy_order", {
+          p_offer_id: row.offer_id,
+          p_fiat_amount: fiatAmt,
+          p_payment_method: pm,
+          p_fx_rate_usd_at_open: lockedRate,
+        });
+        if (e) {
+          logP2pTradeError("investor_create_merchant_buy_order", e);
+          setError(formatP2pTradeError(e));
+          return;
+        }
+        if (!oid) {
+          setError("Trade was created but no order id was returned. Please refresh active trades.");
+          return;
+        }
+        router.push(`/p2p/order/${String(oid)}`);
+        bumpActiveTrades();
+        return;
+      }
+
+      const { data: oid, error: e } = await supabase.rpc("investor_create_merchant_sell_order", {
         p_offer_id: row.offer_id,
         p_fiat_amount: fiatAmt,
         p_payment_method: pm,
+        p_investor_payout_instructions: null,
         p_fx_rate_usd_at_open: lockedRate,
       });
-      setBusyOfferId(null);
       if (e) {
-        setError(formatSupabaseError(e));
+        logP2pTradeError("investor_create_merchant_sell_order", e);
+        setError(formatP2pTradeError(e));
+        return;
+      }
+      if (!oid) {
+        setError("Trade was created but no order id was returned. Please refresh active trades.");
         return;
       }
       router.push(`/p2p/order/${String(oid)}`);
       bumpActiveTrades();
-      return;
+      setSellableRefresh((n) => n + 1);
+    } finally {
+      setBusyOfferId(null);
     }
-
-    const { data: oid, error: e } = await supabase.rpc("investor_create_merchant_sell_order", {
-      p_offer_id: row.offer_id,
-      p_fiat_amount: fiatAmt,
-      p_payment_method: pm,
-      p_investor_payout_instructions: null,
-      p_fx_rate_usd_at_open: lockedRate,
-    });
-    setBusyOfferId(null);
-    if (e) {
-      setError(formatSupabaseError(e));
-      return;
-    }
-    router.push(`/p2p/order/${String(oid)}`);
-    bumpActiveTrades();
-    setSellableRefresh((n) => n + 1);
   }
 
   async function pickOffer(row: OfferCardRow) {
