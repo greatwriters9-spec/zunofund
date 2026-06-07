@@ -26,7 +26,12 @@ const ProfitGrowthChart = dynamic(
 
 const PROFIT_COLUMNS = "amount, status, created_at";
 
-export function PortfolioGrowthPanel() {
+type PortfolioGrowthPanelProps = {
+  /** Visual filter only — trims chart to the last N days. */
+  rangeDays?: number;
+};
+
+export function PortfolioGrowthPanel({ rangeDays }: PortfolioGrowthPanelProps) {
   const supabase = useSupabase();
   const [chartData, setChartData] = useState<ProfitChartDatum[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,9 +84,18 @@ export function PortfolioGrowthPanel() {
     );
   }
 
+  const filtered =
+    rangeDays && rangeDays > 0
+      ? chartData.filter((row) => {
+          const at = new Date(row.date).getTime();
+          if (!Number.isFinite(at)) return true;
+          return at >= Date.now() - rangeDays * 86_400_000;
+        })
+      : chartData;
+
   return (
     <div className="chart-panel-stable">
-      <ProfitGrowthChart data={chartData} />
+      <ProfitGrowthChart data={filtered.length > 0 ? filtered : chartData} />
     </div>
   );
 }

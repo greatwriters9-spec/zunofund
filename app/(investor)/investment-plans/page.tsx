@@ -4,16 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  normalizeInvestmentPlan,
-  displayPlanName,
-  dailyCompoundLabel,
-  formatDepositRangeDescription,
-  type CanonicalInvestmentPlan,
-} from "@/lib/investmentPlans";
-import { formatUsdAmount } from "@/lib/formatMoney";
-import { formatSupabaseError, useSupabase } from "@/lib/supabase";
-
-import {
+  ArrowLeft,
   Check,
   ChevronDown,
   Crown,
@@ -22,6 +13,17 @@ import {
   Shield,
   Sparkles,
 } from "lucide-react";
+
+import { DASHBOARD_CARD, DASHBOARD_MUTED } from "@/components/dashboard/premium/dashboardStyles";
+import {
+  normalizeInvestmentPlan,
+  displayPlanName,
+  dailyCompoundLabel,
+  formatDepositRangeDescription,
+  type CanonicalInvestmentPlan,
+} from "@/lib/investmentPlans";
+import { formatUsdAmount } from "@/lib/formatMoney";
+import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 
 type PlanTheme = {
   ambient: string;
@@ -276,54 +278,45 @@ export default function InvestmentPlansPage() {
   }, [supabase]);
 
   return (
-    <div className="relative min-h-full overflow-hidden text-white">
+    <div className="relative min-h-full bg-[#05070D] text-white">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_50%_at_50%_-8%,rgba(212,175,55,0.16)_0%,transparent_55%)]"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -left-32 top-1/4 h-72 w-72 rounded-full bg-[#D4AF37]/8 blur-3xl"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -right-24 bottom-1/4 h-80 w-80 rounded-full bg-[#D4AF37]/6 blur-3xl"
+        className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(ellipse_70%_50%_at_50%_-20%,rgba(212,175,55,0.08)_0%,transparent_70%)]"
       />
 
-      <div className="relative z-10 mx-auto max-w-7xl px-4 py-6 sm:px-5 md:py-8 lg:px-0 lg:py-2">
-        <header className="mb-8">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="min-w-0 flex-1">
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#D4AF37]/25 bg-[#D4AF37]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#F5E6B3]">
-                <Sparkles className="h-3.5 w-3.5 text-[#D4AF37]" aria-hidden />
-                ZunoFund
-              </div>
-              <h1 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
-                Investment <span className="gold-gradient">Plans</span>
-              </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-zinc-400">
-                Tiers reflect yield brackets for qualifying principal. Your active tier is assigned
-                automatically from approved deposits (principal only)—you cannot select a lower
-                yield to bypass funding rules.
-              </p>
-            </div>
+      <div className="relative z-10 mx-auto max-w-[1400px] space-y-5 px-4 py-5 pb-6 sm:space-y-6 sm:px-6 sm:pb-8 lg:py-8">
+        <motion.header
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-4"
+        >
+          <Link
+            href={isLoggedIn ? "/dashboard" : "/"}
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 transition hover:text-[#D4AF37]"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
+            {isLoggedIn ? "Dashboard" : "Home"}
+          </Link>
 
-            <Link
-              href={isLoggedIn ? "/dashboard" : "/"}
-              className="inline-flex shrink-0 items-center rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold text-[#D4AF37] transition hover:border-[#D4AF37]/35 hover:bg-[#D4AF37]/10"
-            >
-              {isLoggedIn ? "← Dashboard" : "← Home"}
-            </Link>
+          <div className="max-w-2xl">
+            <p className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#D4AF37]/90">
+              <Sparkles className="h-3.5 w-3.5 text-[#D4AF37]" aria-hidden />
+              ZunoFund
+            </p>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-[1.75rem]">
+              Investment <span className="text-[#D4AF37]">plans</span>
+            </h1>
+            <p className="mt-1.5 text-sm leading-relaxed" style={{ color: DASHBOARD_MUTED }}>
+              Tiers reflect yield brackets for qualifying principal. Your active tier is assigned
+              automatically from approved deposits (principal only)—you cannot select a lower yield to
+              bypass funding rules.
+            </p>
           </div>
-          <div
-            aria-hidden
-            className="mt-8 h-px w-full max-w-xl bg-gradient-to-r from-[#D4AF37]/50 via-[#D4AF37]/15 to-transparent"
-          />
-        </header>
+        </motion.header>
 
         {planLoadError ? (
           <div
-            className="mb-6 rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300"
+            className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300"
             role="alert"
           >
             {planLoadError}
@@ -331,15 +324,17 @@ export default function InvestmentPlansPage() {
         ) : null}
 
         {isLoggedIn && currentPlanSlug ? (
-          <div className="mb-8 overflow-hidden rounded-3xl border border-[#D4AF37]/25 bg-[linear-gradient(135deg,rgba(212,175,55,0.12)_0%,rgba(12,16,26,0.95)_45%,rgba(8,11,18,0.98)_100%)] p-5 shadow-[0_20px_50px_-24px_rgba(212,175,55,0.35)] ring-1 ring-[#D4AF37]/15">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#D4AF37]/80">
+          <div
+            className={`${DASHBOARD_CARD} border-[#D4AF37]/20 bg-[linear-gradient(135deg,rgba(212,175,55,0.08)_0%,rgba(12,17,28,0.85)_50%)] p-5`}
+          >
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#D4AF37]/90">
               Your current plan
             </p>
             <p className="mt-2 text-sm leading-relaxed text-zinc-300">
-              <span className="text-lg font-bold text-[#F5E6B3]">
+              <span className="text-lg font-semibold text-[#F5E6B3]">
                 {displayPlanName(currentPlanSlug)}
               </span>
-              <span className="text-zinc-500">
+              <span style={{ color: DASHBOARD_MUTED }}>
                 {" "}
                 — assigned from approved principal, not from profits.
                 {qualifyingPrincipal !== null ? (
@@ -355,7 +350,7 @@ export default function InvestmentPlansPage() {
                 ) : (
                   <Link
                     href="/deposit"
-                    className="font-semibold text-[#D4AF37] underline-offset-2 hover:text-[#E5BD45] hover:underline"
+                    className="font-semibold text-[#D4AF37] underline-offset-2 hover:text-[#F5E6B3] hover:underline"
                   >
                     Deposit or top up
                   </Link>
@@ -366,7 +361,7 @@ export default function InvestmentPlansPage() {
           </div>
         ) : null}
 
-        <div className="mb-5 flex items-center justify-end">
+        <div className="flex items-center justify-end">
           <button
             type="button"
             onClick={() =>
@@ -375,13 +370,18 @@ export default function InvestmentPlansPage() {
                 return new Set(plans.map((p) => p.slug));
               })
             }
-            className="rounded-full border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-4 py-2 text-xs font-semibold text-[#F5E6B3] transition hover:border-[#D4AF37]/50 hover:bg-[#D4AF37]/16"
+            className="rounded-full border border-[#D4AF37]/35 bg-[#D4AF37]/15 px-4 py-2 text-xs font-semibold text-[#F5E6B3] shadow-[0_0_20px_rgba(212,175,55,0.12)] transition hover:border-[#D4AF37]/50 hover:bg-[#D4AF37]/20"
           >
             {expandedSlugs.size === plans.length ? "Collapse all" : "Expand all"}
           </button>
         </div>
 
-        <div className="grid grid-cols-1 items-start gap-5 md:grid-cols-2 xl:grid-cols-4 xl:gap-6">
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          className="grid grid-cols-1 items-start gap-5 md:grid-cols-2 xl:grid-cols-4 xl:gap-6"
+        >
           {plans.map((plan, index) => {
             const Icon = PLAN_ICONS[index] ?? Shield;
             const isExpanded = expandedSlugs.has(plan.slug);
@@ -393,7 +393,7 @@ export default function InvestmentPlansPage() {
             return (
               <article
                 key={plan.slug}
-                className={`group relative flex flex-col overflow-hidden rounded-3xl border backdrop-blur-sm transition duration-300 hover:-translate-y-0.5 ${plan.theme.card} ${isCurrentPlan ? plan.theme.cardActive : ""}`}
+                className={`group relative flex flex-col overflow-hidden rounded-2xl border backdrop-blur-md transition duration-300 hover:-translate-y-0.5 ${plan.theme.card} ${isCurrentPlan ? plan.theme.cardActive : ""}`}
               >
                 <div
                   aria-hidden
@@ -406,7 +406,7 @@ export default function InvestmentPlansPage() {
                   aria-expanded={isExpanded}
                   aria-controls={detailsId}
                   onClick={() => togglePlanExpansion(plan.slug)}
-                  className={`relative z-10 w-full p-5 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05080F] sm:p-6 ${plan.theme.focusRingClass}`}
+                  className={`relative z-10 w-full p-5 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05070D] sm:p-6 ${plan.theme.focusRingClass}`}
                 >
                   <div className="mb-4 flex items-start justify-between gap-2">
                     <div
@@ -526,10 +526,10 @@ export default function InvestmentPlansPage() {
               </article>
             );
           })}
-        </div>
+        </motion.div>
 
-        <div className="mt-12 rounded-3xl border border-white/[0.06] bg-white/[0.02] px-5 py-6 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-          <p className="mx-auto max-w-3xl text-xs leading-relaxed text-zinc-500">
+        <div className={`${DASHBOARD_CARD} px-5 py-6 text-center`}>
+          <p className="mx-auto max-w-3xl text-xs leading-relaxed" style={{ color: DASHBOARD_MUTED }}>
             Investment performance varies with market conditions and portfolio activity. Withdrawal
             rules and holding periods may apply by tier and allocation.
           </p>

@@ -146,8 +146,8 @@ function MarketingNavbarInner() {
 
   return (
     <>
-      <header className="navbar-glass sticky top-0 z-[200] pt-[env(safe-area-inset-top)]">
-        <nav className="mx-auto flex h-14 max-w-[1600px] items-center gap-2 px-3 md:h-[88px] md:gap-4 md:px-8">
+      <header className="navbar-glass sticky top-0 z-[220] pt-[env(safe-area-inset-top)] supports-[backdrop-filter]:backdrop-blur-xl">
+        <nav className="mx-auto flex h-12 max-w-[1600px] items-center gap-2 px-3 md:h-[88px] md:gap-4 md:px-8">
           <button
             type="button"
             className="-ml-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-[#E5E7EB] transition hover:bg-white/5 md:hidden"
@@ -165,30 +165,30 @@ function MarketingNavbarInner() {
 
           <div className="hidden lg:flex lg:flex-1 lg:justify-center">
             <div className="flex items-center gap-10 text-[14px] font-medium text-[#E5E7EB]/90">
-              <a href="#home" className="group relative py-1 transition hover:text-[#D4AF37]">
+              <Link href="/#home" className="group relative py-1 transition hover:text-[#D4AF37]">
                 Home
                 <span className="pointer-events-none absolute -bottom-1 left-1/2 h-px w-0 -translate-x-1/2 bg-[#D4AF37] transition-all duration-300 group-hover:w-full" />
-              </a>
+              </Link>
               <Link href={signupUrl} className="group relative py-1 transition hover:text-[#D4AF37]">
                 Marketplace
                 <span className="pointer-events-none absolute -bottom-1 left-1/2 h-px w-0 -translate-x-1/2 bg-[#D4AF37] transition-all duration-300 group-hover:w-full" />
               </Link>
-              <a href="#plans" className="group relative py-1 transition hover:text-[#D4AF37]">
+              <Link href="/#plans" className="group relative py-1 transition hover:text-[#D4AF37]">
                 Investment Plans
                 <span className="pointer-events-none absolute -bottom-1 left-1/2 h-px w-0 -translate-x-1/2 bg-[#D4AF37] transition-all duration-300 group-hover:w-full" />
-              </a>
-              <a href="#how-it-works" className="group relative py-1 transition hover:text-[#D4AF37]">
+              </Link>
+              <Link href="/#how-it-works" className="group relative py-1 transition hover:text-[#D4AF37]">
                 How it Works
                 <span className="pointer-events-none absolute -bottom-1 left-1/2 h-px w-0 -translate-x-1/2 bg-[#D4AF37] transition-all duration-300 group-hover:w-full" />
-              </a>
+              </Link>
               <Link href="/merchant-requirements" className="group relative py-1 transition hover:text-[#D4AF37]">
                 Merchant Program
                 <span className="pointer-events-none absolute -bottom-1 left-1/2 h-px w-0 -translate-x-1/2 bg-[#D4AF37] transition-all duration-300 group-hover:w-full" />
               </Link>
-              <a href="#about" className="group relative py-1 transition hover:text-[#D4AF37]">
+              <Link href="/#about" className="group relative py-1 transition hover:text-[#D4AF37]">
                 About Us
                 <span className="pointer-events-none absolute -bottom-1 left-1/2 h-px w-0 -translate-x-1/2 bg-[#D4AF37] transition-all duration-300 group-hover:w-full" />
-              </a>
+              </Link>
               <Link href="/contact" className="group relative py-1 transition hover:text-[#D4AF37]">
                 Support
                 <span className="pointer-events-none absolute -bottom-1 left-1/2 h-px w-0 -translate-x-1/2 bg-[#D4AF37] transition-all duration-300 group-hover:w-full" />
@@ -207,7 +207,7 @@ function MarketingNavbarInner() {
 
             <Link
               href={loginUrl}
-              className="hidden sm:block text-sm text-[#E5E7EB]/90 transition hover:text-[#D4AF37]"
+              className="text-[11px] text-[#E5E7EB]/90 transition hover:text-[#D4AF37] md:text-sm"
             >
               Log In
             </Link>
@@ -217,7 +217,7 @@ function MarketingNavbarInner() {
               className="flex items-center gap-1 rounded-md bg-[linear-gradient(135deg,#F7E3A0_0%,#D4AF37_50%,#EAC54F_100%)] px-2.5 py-1.5 text-xs font-semibold text-black shadow-[0_0_12px_rgba(212,175,55,0.22)] transition duration-200 md:gap-2 md:rounded-lg md:px-4 md:py-2 md:text-sm md:shadow-[0_0_25px_rgba(212,175,55,0.35)] md:hover:-translate-y-[1px]"
             >
               <span className="whitespace-nowrap">Join Us</span>
-              <ArrowRight size={16} className="hidden shrink-0 md:block" aria-hidden />
+              <ArrowRight size={12} className="hidden shrink-0 md:block" aria-hidden />
             </Link>
           </div>
         </nav>
@@ -244,13 +244,13 @@ function MarketingNavbarInner() {
           </div>
 
           <nav className="mt-6 flex flex-col gap-1 text-[15px] font-medium">
-            <a
-              href="#home"
+            <Link
+              href="/#home"
               className="rounded-xl px-4 py-4 text-[#E5E7EB]/90 transition hover:bg-white/5 hover:text-[#D4AF37]"
               onClick={closeMobile}
             >
               Home
-            </a>
+            </Link>
             <Link
               href={signupUrl}
               className="rounded-xl px-4 py-4 text-[#E5E7EB]/90 transition hover:bg-white/5 hover:text-[#D4AF37]"
@@ -258,20 +258,20 @@ function MarketingNavbarInner() {
             >
               Marketplace
             </Link>
-            <a
-              href="#plans"
+            <Link
+              href="/#plans"
               className="rounded-xl px-4 py-4 text-[#E5E7EB]/90 transition hover:bg-white/5 hover:text-[#D4AF37]"
               onClick={closeMobile}
             >
               Investment Plans
-            </a>
-            <a
-              href="#how-it-works"
+            </Link>
+            <Link
+              href="/#how-it-works"
               className="rounded-xl px-4 py-4 text-[#E5E7EB]/90 transition hover:bg-white/5 hover:text-[#D4AF37]"
               onClick={closeMobile}
             >
               How it Works
-            </a>
+            </Link>
             <Link
               href="/merchant-requirements"
               className="rounded-xl px-4 py-4 text-[#E5E7EB]/90 transition hover:bg-white/5 hover:text-[#D4AF37]"
@@ -279,13 +279,13 @@ function MarketingNavbarInner() {
             >
               Merchant Program
             </Link>
-            <a
-              href="#about"
+            <Link
+              href="/#about"
               className="rounded-xl px-4 py-4 text-[#E5E7EB]/90 transition hover:bg-white/5 hover:text-[#D4AF37]"
               onClick={closeMobile}
             >
               About Us
-            </a>
+            </Link>
             <Link
               href="/contact"
               className="rounded-xl px-4 py-4 text-[#E5E7EB]/90 transition hover:bg-white/5 hover:text-[#D4AF37]"
@@ -322,7 +322,7 @@ export function MarketingNavbar() {
   return (
     <Suspense
       fallback={
-        <header className="navbar-glass sticky top-0 z-[200] h-14 md:h-[88px]" />
+        <header className="navbar-glass sticky top-0 z-[220] h-12 md:h-[88px]" />
       }
     >
       <MarketingNavbarInner />

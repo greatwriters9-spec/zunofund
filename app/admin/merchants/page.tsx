@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { Fragment, useCallback, useEffect, useState } from "react";
 
+import { AdminMerchantReputationPanel } from "@/components/admin/AdminMerchantReputationPanel";
+import { MerchantBadge } from "@/components/p2p/MerchantBadge";
+import { formatMerchantCountry } from "@/lib/merchantCountries";
 import { formatMoneyAmount, formatUsdLocale } from "@/lib/formatMoney";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 
@@ -16,6 +19,11 @@ type MerchantRow = {
   order_count: number;
   completed_count: number;
   total_volume_usd: number;
+  country: string | null;
+  badge_slug: string | null;
+  rating: number;
+  positive_feedback_percent: number;
+  reputation_total_trades: number;
 };
 
 type MerchantOrderRow = {
@@ -45,6 +53,7 @@ export default function AdminMerchantsPage() {
   const [provisionOk, setProvisionOk] = useState<string | null>(null);
 
   const [expandedUid, setExpandedUid] = useState<string | null>(null);
+  const [reputationUid, setReputationUid] = useState<string | null>(null);
   const [orders, setOrders] = useState<MerchantOrderRow[]>([]);
   const [ordersBusy, setOrdersBusy] = useState(false);
 
@@ -89,7 +98,18 @@ export default function AdminMerchantsPage() {
       return;
     }
     setExpandedUid(uid);
+    setReputationUid(null);
     await loadOrders(uid);
+  }
+
+  function toggleReputation(uid: string) {
+    if (reputationUid === uid) {
+      setReputationUid(null);
+      return;
+    }
+    setReputationUid(uid);
+    setExpandedUid(null);
+    setOrders([]);
   }
 
   async function review(uid: string, approve: boolean) {
@@ -347,11 +367,14 @@ export default function AdminMerchantsPage() {
       <section className="mt-12 rounded-2xl border border-[#D4AF37]/18 bg-black/35 p-5 backdrop-blur-sm sm:p-6">
         <h2 className="text-[13px] font-bold uppercase tracking-[0.14em] text-[#F5E6B3]">All merchants</h2>
         <div className="mt-4 overflow-x-auto rounded-xl border border-white/10 [-ms-overflow-style:none] [scrollbar-width:thin]">
-          <table className="w-full min-w-[900px] text-left text-sm">
+          <table className="w-full min-w-[1100px] text-left text-sm">
             <thead className="border-b border-white/10 bg-black/40 text-[11px] uppercase tracking-[0.12em] text-zinc-500">
               <tr>
                 <th className="p-4">Email</th>
                 <th className="p-4">Display name</th>
+                <th className="p-4">Country</th>
+                <th className="p-4">Badge</th>
+                <th className="p-4">Reputation</th>
                 <th className="p-4">Status</th>
                 <th className="p-4">Trades</th>
                 <th className="p-4">Volume</th>
@@ -364,19 +387,43 @@ export default function AdminMerchantsPage() {
                   <tr className="border-b border-white/10 bg-black/25">
                     <td className="p-4 text-zinc-300">{r.investor_email || "—"}</td>
                     <td className="p-4 text-[#F5E6B3]">{r.display_name || "—"}</td>
+                    <td className="p-4 text-xs text-zinc-400">
+                      {formatMerchantCountry(r.country) ?? "—"}
+                    </td>
+                    <td className="p-4">
+                      <MerchantBadge slug={r.badge_slug} />
+                    </td>
+                    <td className="p-4 text-xs tabular-nums text-zinc-400">
+                      {Number(r.rating) > 0 ? `${Number(r.rating).toFixed(1)}★` : "—"}
+                      {Number(r.positive_feedback_percent) > 0 ? (
+                        <span className="block text-emerald-300/80">
+                          {Number(r.positive_feedback_percent).toFixed(1)}% pos
+                        </span>
+                      ) : null}
+                    </td>
                     <td className="p-4">
                       <span className="rounded-lg border border-[#D4AF37]/22 bg-black/35 px-2 py-1 text-xs capitalize text-zinc-300">
                         {r.status}
                       </span>
                     </td>
                     <td className="p-4 tabular-nums text-zinc-400">
-                      {Number(r.order_count)} ({Number(r.completed_count)} done)
+                      {Number(r.reputation_total_trades) > 0
+                        ? Number(r.reputation_total_trades).toLocaleString()
+                        : `${Number(r.order_count)} (${Number(r.completed_count)} done)`}
                     </td>
                     <td className="p-4 tabular-nums font-semibold text-emerald-300/90">
                       {formatUsdLocale(Number(r.total_volume_usd))}
                     </td>
                     <td className="p-4">
                       <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          disabled={busyUid !== null}
+                          onClick={() => toggleReputation(r.user_id)}
+                          className="text-xs font-semibold uppercase tracking-wide text-[#D4AF37] hover:underline disabled:opacity-50"
+                        >
+                          {reputationUid === r.user_id ? "Hide rep." : "Reputation"}
+                        </button>
                         <button
                           type="button"
                           disabled={busyUid !== null}
@@ -407,9 +454,19 @@ export default function AdminMerchantsPage() {
                       </div>
                     </td>
                   </tr>
+                  {reputationUid === r.user_id ? (
+                    <tr key={`${r.user_id}-rep`} className="border-b border-white/10 bg-black/40">
+                      <td colSpan={9} className="p-4">
+                        <AdminMerchantReputationPanel
+                          merchantUserId={r.user_id}
+                          onSaved={() => void load()}
+                        />
+                      </td>
+                    </tr>
+                  ) : null}
                   {expandedUid === r.user_id ? (
                     <tr key={`${r.user_id}-orders`} className="border-b border-white/10 bg-black/40">
-                      <td colSpan={6} className="p-4">
+                      <td colSpan={9} className="p-4">
                         {ordersBusy ? (
                           <p className="text-xs text-zinc-500">Loading transactions…</p>
                         ) : orders.length === 0 ? (
@@ -455,7 +512,7 @@ export default function AdminMerchantsPage() {
               ))}
               {rows.length === 0 && !loadBusy ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-zinc-500">
+                  <td colSpan={9} className="p-8 text-center text-zinc-500">
                     No merchant profiles yet.
                   </td>
                 </tr>

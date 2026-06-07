@@ -50,10 +50,12 @@ function investorEmailSubject(
   if (t.includes("account_verify_reminder"))
     return `${base} Welcome — verify your email`;
   if (t.includes("deposit_approved")) return `${base} Deposit approved`;
+  if (t.includes("deposit_rejected")) return `${base} Deposit update`;
   if (t.includes("withdrawal_submitted"))
     return `${base} Withdrawal submitted`;
   if (t.includes("withdrawal_approved"))
     return `${base} Withdrawal completed`;
+  if (t.includes("withdrawal_rejected")) return `${base} Withdrawal update`;
   if (t.includes("referral_bonus")) return `${base} Referral bonus credited`;
   if (t.includes("reward_eligible")) return `${base} Reward eligible — pending activation`;
   if (t.includes("reward_unlocked")) return `${base} Reward activated`;

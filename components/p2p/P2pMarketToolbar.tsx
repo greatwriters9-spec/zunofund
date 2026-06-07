@@ -6,12 +6,9 @@ import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, ClipboardList, RefreshCcw
 import type { P2pAssetCode, P2pMarketTab } from "@/components/p2p/p2pTypes";
 import { CryptoPicker } from "@/components/market-pickers/CryptoPicker";
 import { PaymentMethodPicker } from "@/components/payment-methods/PaymentMethodPicker";
+import { findCryptoLabel } from "@/components/market-pickers/cryptoCatalog";
+import { DEPOSIT_EXCHANGE_ASSETS } from "@/lib/depositExchangeAssets";
 import { FIAT_CURRENCIES, getFiatCurrency, type FiatCurrencyCode } from "@/lib/currencies";
-
-const OFFER_ASSETS = [
-  { code: "USDT" as const, label: "USDT · Tether" },
-  { code: "BTC" as const, label: "BTC · Bitcoin" },
-];
 
 export type P2pListViewMode = "offers" | "active" | "completed" | "cancelled";
 
@@ -106,7 +103,7 @@ function MenuPanel({
   return (
     <div
       role="listbox"
-      className={`absolute top-[calc(100%+6px)] z-[120] max-h-[min(320px,50dvh)] w-[min(15rem,calc(100vw-1.5rem))] overflow-y-auto rounded-xl border border-white/[0.1] bg-[#0c1018] py-1.5 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.85)] backdrop-blur-md [&::-webkit-scrollbar]:w-1.5 ${mobileClass} ${desktopClass}`}
+      className={`absolute top-[calc(100%+6px)] z-[120] max-h-[min(320px,50dvh)] w-[min(15rem,calc(100vw-1.5rem))] overflow-y-auto rounded-xl border border-white/[0.08] bg-[rgba(12,17,28,0.96)] py-1.5 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.85)] backdrop-blur-md [&::-webkit-scrollbar]:w-1.5 ${mobileClass} ${desktopClass}`}
     >
       {children}
     </div>
@@ -141,12 +138,12 @@ export function P2pMarketToolbar({
   return (
     <div
       ref={rootRef}
-      className="isolate border-b border-[#D4AF37]/12 bg-transparent"
+      className="isolate border-b border-white/[0.06] bg-transparent"
     >
       <div className="overflow-visible">
         <div className="flex flex-wrap items-center gap-1.5 px-3 py-2 max-md:gap-1.5 sm:gap-2.5 sm:px-6 sm:py-2.5 lg:flex-nowrap lg:gap-3">
           <div
-            className="flex shrink-0 items-center rounded-xl border border-white/[0.08] bg-black/35 p-0.5 shadow-inner"
+            className="flex shrink-0 items-center rounded-xl border border-white/[0.08] bg-white/[0.03] p-0.5"
             role="tablist"
             aria-label="Buy or sell"
           >
@@ -156,8 +153,8 @@ export function P2pMarketToolbar({
               aria-selected={tab === "buy"}
               className={`flex min-h-[42px] min-w-[4.5rem] items-center justify-center gap-1 rounded-[10px] px-2.5 text-[12px] font-bold uppercase tracking-wide transition touch-manipulation sm:min-w-[5.75rem] sm:px-3 ${
                 tab === "buy"
-                  ? "bg-emerald-600 text-white shadow-[0_0_20px_-4px_rgba(52,211,153,0.55)] ring-1 ring-emerald-400/40"
-                  : "bg-transparent text-zinc-400 hover:bg-emerald-600/15 hover:text-emerald-200"
+                  ? "bg-[#00C076] text-white shadow-[0_0_20px_-4px_rgba(0,192,118,0.45)] ring-1 ring-[#00C076]/40"
+                  : "bg-transparent text-zinc-400 hover:bg-[#00C076]/12 hover:text-emerald-200"
               }`}
               onClick={() => {
                 setOpenMenu(null);
@@ -186,20 +183,20 @@ export function P2pMarketToolbar({
             </button>
           </div>
 
-          <div className="relative shrink-0">
-            <CryptoPicker
-              value={asset}
-              onChange={(code) => {
-                if (code === "USDT" || code === "BTC") onAssetChange(code);
-              }}
-              context="portal"
-              variant="toolbar"
-              displayLabel={OFFER_ASSETS.find((x) => x.code === asset)?.label ?? asset}
-              onOpenChange={(isOpen) => {
-                if (isOpen) setOpenMenu(null);
-              }}
-            />
-          </div>
+          <CryptoPicker
+            value={asset}
+            onChange={(code) => {
+              if (code) onAssetChange(code as P2pAssetCode);
+            }}
+            context="portal"
+            variant="toolbar"
+            assetList={DEPOSIT_EXCHANGE_ASSETS}
+            forceSelectable
+            displayLabel={findCryptoLabel(asset, "portal")}
+            onOpenChange={(isOpen) => {
+              if (isOpen) setOpenMenu(null);
+            }}
+          />
 
           <div className="flex shrink-0 items-center gap-1.5">
             <label htmlFor={amtId} className="sr-only">
@@ -213,10 +210,10 @@ export function P2pMarketToolbar({
               onChange={(e) => onAmountChange(e.target.value)}
               placeholder={amountUnitLabel === "USDT" ? "Amount" : `Amount (${amountUnitLabel})`}
               aria-label={`Trade amount in ${amountUnitLabel}`}
-              className="h-[38px] w-[4.75rem] rounded-xl border border-white/[0.1] bg-black/35 px-2 text-[15px] font-semibold tabular-nums text-white outline-none placeholder:text-zinc-600 focus:border-[#D4AF37]/40 focus:ring-2 focus:ring-[#D4AF37]/22 sm:h-[42px] sm:w-[8rem] sm:px-3 sm:text-[13px]"
+              className="h-[38px] w-[4.75rem] rounded-xl border border-white/[0.08] bg-white/[0.03] px-2 text-[15px] font-semibold tabular-nums text-white outline-none placeholder:text-zinc-600 focus:border-[#D4AF37]/40 focus:ring-1 focus:ring-[#D4AF37]/20 sm:h-[42px] sm:w-[8rem] sm:px-3 sm:text-[13px]"
             />
             <span
-              className="hidden h-[42px] min-w-[2.75rem] items-center justify-center rounded-xl border border-white/[0.08] bg-black/25 px-2 text-[10px] font-bold uppercase tracking-wide text-zinc-400 sm:flex"
+              className="hidden h-[42px] min-w-[2.75rem] items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.02] px-2 text-[10px] font-bold uppercase tracking-wide text-zinc-500 sm:flex"
               aria-hidden
             >
               {amountUnitLabel}
@@ -224,7 +221,7 @@ export function P2pMarketToolbar({
             <div className={`relative ${openMenu === "currency" ? "z-[110]" : ""}`}>
               <button
                 type="button"
-                className="flex h-[42px] min-w-[4.5rem] items-center justify-between gap-1 rounded-xl border border-white/[0.1] bg-black/35 px-2 py-2 text-[12px] font-semibold uppercase tracking-wide text-zinc-200 hover:border-[#D4AF37]/35 sm:min-w-[5.5rem] sm:px-2.5"
+                className="flex h-[42px] min-w-[4.5rem] items-center justify-between gap-1 rounded-xl border border-white/[0.08] bg-white/[0.03] px-2 py-2 text-[12px] font-semibold uppercase tracking-wide text-zinc-200 hover:border-[#D4AF37]/35 sm:min-w-[5.5rem] sm:px-2.5"
                 aria-expanded={openMenu === "currency"}
                 aria-label="Filter by fiat currency"
                 onClick={() => setOpenMenu((k) => (k === "currency" ? null : "currency"))}
@@ -290,7 +287,7 @@ export function P2pMarketToolbar({
                 aria-label="Sort offers"
                 aria-expanded={openMenu === "sort"}
                 onClick={() => setOpenMenu((k) => (k === "sort" ? null : "sort"))}
-                className="flex h-[38px] min-w-[4.75rem] items-center justify-between gap-1 rounded-xl border border-white/[0.1] bg-black/35 px-2 py-1.5 text-[10px] font-bold uppercase tracking-wide text-zinc-200 transition hover:border-[#D4AF37]/45 hover:text-[#F5E6B3] sm:h-[42px] sm:min-w-[5.5rem] sm:px-2.5 sm:text-[11px]"
+                className="flex h-[38px] min-w-[4.75rem] items-center justify-between gap-1 rounded-xl border border-white/[0.08] bg-white/[0.03] px-2 py-1.5 text-[10px] font-bold uppercase tracking-wide text-zinc-200 transition hover:border-[#D4AF37]/40 hover:text-[#F5E6B3] sm:h-[42px] sm:min-w-[5.5rem] sm:px-2.5 sm:text-[11px]"
               >
                 <ArrowUpDown className="h-3.5 w-3.5 shrink-0 text-[#D4AF37]/90" aria-hidden />
                 <span className="truncate text-[#F5E6B3]">{offerSortButtonLabel(offerSort)}</span>
@@ -324,7 +321,7 @@ export function P2pMarketToolbar({
               disabled={loading}
               aria-label="Refresh offers"
               title="Refresh offers"
-              className="flex h-[38px] min-w-[38px] items-center justify-center rounded-xl border border-[#D4AF37]/28 bg-black/35 px-2 text-[10px] font-bold uppercase tracking-wide text-[#D4AF37] transition hover:bg-[#D4AF37]/15 disabled:opacity-45 sm:h-[42px] sm:min-w-[42px] sm:min-w-0 sm:px-3 sm:text-[11px]"
+              className="flex h-[38px] min-w-[38px] items-center justify-center rounded-xl border border-[#D4AF37]/25 bg-white/[0.03] px-2 text-[10px] font-bold uppercase tracking-wide text-[#D4AF37] transition hover:border-[#D4AF37]/45 hover:bg-[#D4AF37]/10 disabled:opacity-45 sm:h-[42px] sm:min-w-[42px] sm:min-w-0 sm:px-3 sm:text-[11px]"
             >
               <RefreshCcw
                 className={`h-[18px] w-[18px] sm:hidden ${loading ? "animate-spin" : ""}`}
@@ -336,7 +333,7 @@ export function P2pMarketToolbar({
             <div className={`relative shrink-0 ${openMenu === "trades" ? "z-[110]" : ""}`}>
               <button
                 type="button"
-                className="flex h-[38px] min-w-[5.5rem] max-w-[10rem] items-center gap-1 rounded-xl border border-white/[0.1] bg-black/35 px-1.5 py-1 ring-1 ring-white/[0.04] hover:border-[#D4AF37]/35 sm:h-[42px] sm:min-w-[8.75rem] sm:max-w-[12.5rem] sm:gap-2 sm:px-2.5"
+                className="flex h-[38px] min-w-[5.5rem] max-w-[10rem] items-center gap-1 rounded-xl border border-white/[0.08] bg-white/[0.03] px-1.5 py-1 hover:border-[#D4AF37]/35 sm:h-[42px] sm:min-w-[8.75rem] sm:max-w-[12.5rem] sm:gap-2 sm:px-2.5"
                 aria-expanded={openMenu === "trades"}
                 aria-label="Pick offers or trades list"
                 onClick={() => setOpenMenu((k) => (k === "trades" ? null : "trades"))}

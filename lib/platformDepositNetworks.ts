@@ -1,4 +1,10 @@
-export type DepositAssetCode = "USDT" | "BTC";
+import {
+  normalizeSupportedCryptoCode,
+  supportedCryptoLabel,
+  type SupportedCryptoCode,
+} from "@/lib/supportedCrypto";
+
+export type DepositAssetCode = SupportedCryptoCode;
 
 export type PlatformDepositNetwork = {
   id: string;
@@ -11,57 +17,38 @@ export type PlatformDepositNetwork = {
   updated_at?: string | null;
 };
 
-export const DEFAULT_PLATFORM_DEPOSIT_NETWORKS: PlatformDepositNetwork[] = [
-  {
-    id: "default-usdt-trc20",
-    asset: "USDT",
-    network_name: "TRC20",
-    network_label: "TRC20",
-    wallet_address: "TAuiPnSkC3KsacnPQpJ8b55mbUoCoDzBg5",
-    sort_order: 0,
-    is_active: true,
-  },
-  {
-    id: "default-usdt-bsc",
-    asset: "USDT",
-    network_name: "BSC",
-    network_label: "BNB Smart Chain (BEP20)",
-    wallet_address: "0x48fd2fb89e12ce3d91430319da5616a0df869ccf",
-    sort_order: 1,
-    is_active: true,
-  },
-  {
-    id: "default-btc-bitcoin",
-    asset: "BTC",
-    network_name: "Bitcoin",
-    network_label: "Bitcoin",
-    wallet_address: "1P7RWfvSawJBicW3jocUPUCmat4HhBALF9",
-    sort_order: 2,
-    is_active: true,
-  },
-];
+/** Loaded from `platform_deposit_networks` — no hardcoded wallet addresses. */
+export const DEFAULT_PLATFORM_DEPOSIT_NETWORKS: PlatformDepositNetwork[] = [];
 
 export function depositAssetLabel(asset: string): string {
-  return asset.toUpperCase() === "BTC" ? "Bitcoin" : "USDT";
+  return supportedCryptoLabel(asset);
 }
 
-function normalizeAsset(raw: unknown): DepositAssetCode {
-  return String(raw ?? "").toUpperCase() === "BTC" ? "BTC" : "USDT";
+function normalizeAsset(raw: unknown): DepositAssetCode | null {
+  return normalizeSupportedCryptoCode(String(raw ?? ""));
+}
+
+/** Legacy DB rows used "BSC" before presets standardized on "BEP20". */
+function normalizeNetworkName(asset: DepositAssetCode, networkName: string): string {
+  const trimmed = networkName.trim();
+  if (asset === "USDT" && trimmed.toUpperCase() === "BSC") return "BEP20";
+  return trimmed;
 }
 
 function toNetwork(
   row: Partial<PlatformDepositNetwork>,
   fallbackOrder: number,
 ): PlatformDepositNetwork | null {
-  const networkName = String(row.network_name ?? "").trim();
+  const asset = normalizeAsset(row.asset);
+  const networkName = normalizeNetworkName(asset, String(row.network_name ?? ""));
   const walletAddress = String(row.wallet_address ?? "").trim();
-  if (!networkName || !walletAddress) return null;
+  if (!asset || !networkName || !walletAddress) return null;
 
   const sortOrder = Number(row.sort_order);
   const networkLabel = String(row.network_label ?? "").trim();
   return {
     id: String(row.id ?? `deposit-network-${fallbackOrder}`),
-    asset: normalizeAsset(row.asset),
+    asset,
     network_name: networkName,
     network_label: networkLabel || networkName,
     wallet_address: walletAddress,

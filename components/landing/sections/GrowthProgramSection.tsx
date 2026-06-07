@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, Gift } from "lucide-react";
+import { ArrowRight, Star, Users } from "lucide-react";
 
-import { EARLY_MEMBER_PROMOTION } from "@/components/landing/landingData";
+import { FoundingInvestorPromoCard } from "@/components/landing/FoundingInvestorPromoCard";
+import { FOUNDING_POSITIONS_REMAINING } from "@/components/landing/growthProgramData";
+import { GoldRewardParticles } from "@/components/landing/GoldRewardParticles";
 
 type GrowthProgramSectionProps = {
   sectionId?: string;
@@ -22,120 +24,78 @@ export function GrowthProgramSection({ sectionId }: GrowthProgramSectionProps) {
       }
     >
       <div className="mx-auto max-w-7xl">
-        <header className="mx-auto max-w-5xl text-center">
+        <header className="mx-auto max-w-4xl text-center">
           <div
-            aria-hidden
-            className={`mx-auto h-px bg-gradient-to-r from-transparent via-[#D4AF37]/70 to-transparent sm:w-40 ${
-              isMobileInvest ? "mb-4 w-20 lg:mb-8 lg:w-40" : "mb-8 w-28"
-            }`}
-          />
-          <h2
-            className={`gold-gradient font-semibold leading-[1.1] tracking-[0.02em] ${
-              isMobileInvest
-                ? "text-[1.75rem] sm:text-5xl md:text-6xl lg:text-[4.5rem]"
-                : "text-[2.25rem] sm:text-5xl md:text-6xl lg:text-[4.5rem]"
+            className={`inline-flex items-center gap-2 rounded-full border border-[#D4AF37]/35 bg-[#D4AF37]/[0.06] px-4 py-1.5 ${
+              isMobileInvest ? "mb-4 lg:mb-6" : "mb-6"
             }`}
           >
-            Early Member Growth Program
-          </h2>
-          <div
-            aria-hidden
-            className={`mx-auto flex items-center justify-center gap-4 ${
-              isMobileInvest ? "mt-4 lg:mt-8" : "mt-8"
-            }`}
-          >
-            <span className="h-px w-12 bg-[#D4AF37]/25 sm:w-20" />
-            <span className="text-[10px] font-medium uppercase tracking-[0.35em] text-zinc-500">
-              Limited time
+            <Star className="h-3.5 w-3.5 text-[#D4AF37]" aria-hidden />
+            <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#D4AF37]">
+              Founding Investor Access
             </span>
-            <span className="h-px w-12 bg-[#D4AF37]/25 sm:w-20" />
           </div>
-          <p
-            className={`gold-gradient font-black leading-[1.05] tracking-tight ${
+
+          <h2
+            className={`font-semibold leading-[1.08] tracking-tight text-white ${
               isMobileInvest
-                ? "mt-3 text-[2rem] sm:text-5xl md:text-6xl lg:mt-6 lg:text-7xl"
-                : "mt-6 text-[2.5rem] sm:text-5xl md:text-6xl lg:text-7xl"
+                ? "text-[1.85rem] sm:text-4xl md:text-5xl lg:text-[3.25rem]"
+                : "text-[2rem] sm:text-4xl md:text-5xl lg:text-[3.25rem]"
             }`}
           >
-            Ends {EARLY_MEMBER_PROMOTION.endDateLabel}
-          </p>
+            Become One of Zuno&apos;s{" "}
+            <span className="gold-gradient">First Investors</span>
+          </h2>
+
           <p
-            className={`mx-auto max-w-2xl font-medium leading-snug text-white/90 ${
+            className={`mx-auto max-w-2xl font-medium leading-relaxed text-zinc-300 ${
               isMobileInvest
-                ? "mt-4 text-base sm:text-xl lg:mt-8 lg:text-2xl"
-                : "mt-8 text-xl md:text-2xl"
+                ? "mt-4 text-base sm:text-lg lg:mt-5"
+                : "mt-5 text-lg sm:text-xl"
             }`}
           >
-            Unlock Exclusive Benefits As An Early Member
+            Secure priority access to Zuno&apos;s growth ecosystem before public expansion.
           </p>
+
           <div
-            aria-hidden
-            className={`mx-auto h-px w-full max-w-md bg-gradient-to-r from-transparent via-[#D4AF37]/30 to-transparent ${
-              isMobileInvest ? "mt-5 lg:mt-10" : "mt-10"
+            className={`mx-auto mt-6 inline-flex max-w-xl flex-col items-center gap-1 rounded-2xl border border-[#D4AF37]/30 bg-[#D4AF37]/[0.05] px-5 py-3.5 sm:flex-row sm:gap-4 ${
+              isMobileInvest ? "lg:mt-8" : "lg:mt-8"
             }`}
-          />
+          >
+            <div className="flex items-center gap-2.5">
+              <Users className="h-5 w-5 text-[#D4AF37]" aria-hidden />
+              <p className="text-sm font-semibold text-white sm:text-base">
+                <span className="gold-gradient text-lg font-bold sm:text-xl">
+                  {FOUNDING_POSITIONS_REMAINING}
+                </span>{" "}
+                Founding Positions Remaining
+              </p>
+            </div>
+            <p className="text-xs text-zinc-400 sm:border-l sm:border-[#D4AF37]/20 sm:pl-4">
+              Limited allocations. First come, first served.
+            </p>
+          </div>
         </header>
 
         <div
-          className={`grid items-center gap-8 lg:grid-cols-2 ${
-            isMobileInvest ? "mt-8 lg:mt-20 lg:gap-10" : "mt-14 gap-10 lg:mt-20"
+          className={`grid items-start gap-10 lg:grid-cols-2 ${
+            isMobileInvest ? "mt-8 lg:mt-16 lg:gap-12" : "mt-14 lg:mt-16 lg:gap-12"
           }`}
         >
-          <div className="lg:pr-6">
-            <p className="text-center text-base leading-relaxed text-zinc-400 lg:text-left lg:text-lg">
-              This launch promotion is for people who join early. Enroll before{" "}
-              <span className="font-medium text-zinc-300">{EARLY_MEMBER_PROMOTION.endDateLabel}</span> to Participate
-              in daily investment program, referral rewards, and priority marketplace features while the growth
-              phase is open.
-            </p>
-
-            <ul className="mt-8 space-y-3 text-sm text-zinc-300 lg:text-base">
-              {[
-                "Referral rewards for active network growth",
-                "Reduced execution fees on qualified volume",
-                "Higher merchant unlock eligibility",
-              ].map((item) => (
-                <li key={item} className="flex items-start gap-2.5">
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#D4AF37] lg:h-5 lg:w-5" />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-            <div className="mt-10 flex justify-center lg:justify-start">
+          <div className="lg:pr-4">
+            <div className="relative mt-10 flex justify-center lg:justify-start">
+              <GoldRewardParticles count={8} seed={90} className="absolute -inset-3 overflow-visible" />
               <Link
                 href="/investment-plans"
-                className="inline-flex items-center gap-2 rounded-xl bg-[#D4AF37] px-6 py-3 text-sm font-semibold text-black transition hover:bg-[#E5BD45]"
+                className="relative inline-flex items-center gap-2 rounded-xl bg-[#D4AF37] px-7 py-3.5 text-sm font-bold text-black shadow-[0_0_28px_rgba(212,175,55,0.35)] transition hover:bg-[#E5BD45]"
               >
-                View Investment Plans
+                Secure My Position
                 <ArrowRight size={16} />
               </Link>
             </div>
           </div>
 
-          <div className="relative overflow-hidden rounded-[28px] border border-zinc-800 bg-gradient-to-br from-[#101826] to-[#070b12] p-8">
-            <div className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-[#D4AF37]/15 blur-3xl" />
-            <div className="relative flex flex-col items-center justify-center gap-6 sm:flex-row">
-              <div className="flex h-28 w-28 items-center justify-center rounded-3xl border border-[#D4AF37]/30 bg-[#D4AF37]/10 shadow-[0_0_40px_rgba(212,175,55,0.2)]">
-                <Gift className="h-14 w-14 text-[#D4AF37]" aria-hidden />
-              </div>
-              <div className="text-center sm:text-left">
-                <p className="text-xs uppercase tracking-wider text-zinc-500">Member growth</p>
-                <p className="mt-1 text-4xl font-black text-[#D4AF37]">Earn up to 15% Daily</p>
-                <p className="mt-2 text-sm text-zinc-400">Structured plan allocations on Zuno.</p>
-              </div>
-            </div>
-            <div className="relative mt-8 h-36 rounded-2xl border border-zinc-800 bg-black/40 p-4">
-              <div className="flex h-full items-end justify-center gap-2">
-                {[35, 50, 65, 80, 100].map((h) => (
-                  <div
-                    key={h}
-                    className="w-8 rounded-t-md bg-gradient-to-t from-[#D4AF37] to-[#F5E6B3]"
-                    style={{ height: `${h}%` }}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
+          <FoundingInvestorPromoCard />
         </div>
       </div>
     </section>

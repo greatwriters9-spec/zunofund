@@ -35,7 +35,7 @@ export function MarketTickerRow({
       layout
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="group border-b border-zinc-800/60 last:border-0"
+      className="group border-b border-white/[0.04] last:border-0 transition hover:bg-white/[0.02]"
     >
       <div className="flex items-center gap-2 px-3 py-3 sm:px-4 sm:py-3.5">
         {onToggleFavorite ? (
@@ -45,12 +45,12 @@ export function MarketTickerRow({
               e.preventDefault();
               onToggleFavorite(ticker.symbol);
             }}
-            className="shrink-0 rounded-lg p-1 text-zinc-600 transition hover:text-yellow-500"
+            className="shrink-0 rounded-lg p-1 text-zinc-600 transition hover:text-[#D4AF37]"
             aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
           >
             <Star
               size={16}
-              className={isFavorite ? "fill-yellow-500 text-yellow-500" : ""}
+              className={isFavorite ? "fill-[#D4AF37] text-[#D4AF37]" : ""}
               aria-hidden
             />
           </button>
@@ -62,7 +62,9 @@ export function MarketTickerRow({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <span className="font-semibold text-white">{ticker.baseAsset}</span>
-              <span className="text-xs text-zinc-500">{ticker.displayPair}</span>
+              <span className="text-xs" style={{ color: "#8A93A5" }}>
+                {ticker.displayPair}
+              </span>
               <span
                 className={`h-1.5 w-1.5 shrink-0 rounded-full ${up ? "bg-emerald-500" : "bg-red-500"}`}
                 title={up ? "Positive 24h" : "Negative 24h"}
@@ -70,7 +72,9 @@ export function MarketTickerRow({
               />
             </div>
             {!compact ? (
-              <p className="truncate text-xs text-zinc-500">{ticker.name}</p>
+              <p className="truncate text-xs" style={{ color: "#8A93A5" }}>
+                {ticker.name}
+              </p>
             ) : null}
           </div>
 
@@ -82,7 +86,7 @@ export function MarketTickerRow({
               {formatChangePercent(ticker.priceChangePercent)}
             </p>
             {!compact ? (
-              <p className="mt-0.5 text-[11px] tabular-nums text-zinc-600">
+              <p className="mt-0.5 text-[11px] tabular-nums" style={{ color: "#8A93A5" }}>
                 Vol {formatCompactVolume(ticker.quoteVolume24h)}
               </p>
             ) : null}

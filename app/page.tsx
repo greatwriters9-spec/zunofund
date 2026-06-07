@@ -34,9 +34,10 @@ export default function HomePage() {
   }, []);
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden bg-[#05080F] text-white">
+    <main className="relative min-h-screen bg-[#05080F] text-white">
       <MarketingNavbar />
 
+      <div className="overflow-x-hidden">
       {/* Mobile-first landing (below lg) */}
       <div className="lg:hidden">
         <MobileLandingExperience />
@@ -62,6 +63,7 @@ export default function HomePage() {
       <DownloadAppSection />
       <FinalCTASection />
       <LandingFooter />
+      </div>
     </main>
   );
 }

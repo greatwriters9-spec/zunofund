@@ -5,6 +5,7 @@ import { ArrowRight, ClipboardList, Search } from "lucide-react";
 
 import type { P2pAssetCode, P2pMarketTab } from "@/components/p2p/p2pTypes";
 import { CryptoPicker } from "@/components/market-pickers/CryptoPicker";
+import { DEPOSIT_EXCHANGE_ASSETS } from "@/lib/depositExchangeAssets";
 import { PaymentMethodPicker } from "@/components/payment-methods/PaymentMethodPicker";
 
 type P2pMarketplaceSidebarProps = {
@@ -47,9 +48,11 @@ export function P2pMarketplaceSidebar({
         fieldLabel="Asset"
         value={asset}
         onChange={(code) => {
-          if (code === "USDT" || code === "BTC") onAssetChange(code);
+          if (code) onAssetChange(code as typeof asset);
         }}
         context="portal"
+        assetList={DEPOSIT_EXCHANGE_ASSETS}
+        forceSelectable
         displayLabel={asset}
       />
 

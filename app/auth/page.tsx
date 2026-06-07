@@ -1,26 +1,31 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
-import { ArrowLeft, Eye, EyeOff } from "lucide-react";
-import Link from "next/link";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { PhoneInput } from "@/components/auth/PhoneInput";
-import { sanitizeNextParam } from "@/lib/authLinks";
+import type { AuthRecaptchaHandle } from "@/components/auth/AuthRecaptcha";
+import { AuthFormContent } from "@/components/auth/AuthFormContent";
+import { AuthMobileHero } from "@/components/auth/AuthMobileHero";
+import { AuthSplitLayout } from "@/components/auth/AuthSplitLayout";
+import { MarketingNavbar } from "@/components/navbar";
+import { loginHref, sanitizeNextParam, signupHref } from "@/lib/authLinks";
 import { isValidPhoneE164 } from "@/lib/phoneCountries";
 import { normalizeReferralCodeInput } from "@/lib/referrals";
 import { authRedirectToUrl } from "@/lib/site-url";
+import { RECAPTCHA_MESSAGES } from "@/lib/recaptcha/messages";
+import { guardAuthActionWithRecaptcha } from "@/lib/recaptcha/guardSubmit";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 
 function AuthPageInner() {
   const supabase = useSupabase();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const wantsSignup = searchParams.get("signup") === "1";
   const authCallbackError = searchParams.get("error");
   const authNotice = searchParams.get("notice");
   const referralCode = normalizeReferralCodeInput(searchParams.get("ref"));
-  const nextDestination =
-    sanitizeNextParam(searchParams.get("next")) ?? "/dashboard";
+  const sanitizedNext = searchParams.get("next");
+  const resolvedNext = sanitizeNextParam(sanitizedNext) ?? "/dashboard";
 
   const [isLogin, setIsLogin] = useState(!wantsSignup);
 
@@ -50,6 +55,8 @@ function AuthPageInner() {
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
+  const [recaptchaError, setRecaptchaError] = useState<string | null>(null);
+  const recaptchaRef = useRef<AuthRecaptchaHandle>(null);
 
   const [errors, setErrors] = useState({
     firstName: false,
@@ -61,14 +68,12 @@ function AuthPageInner() {
     confirmPassword: false,
     terms: false,
   });
-  const router = useRouter();
 
   async function handleAuth() {
     setFormError(null);
     setFormSuccess(null);
     setLoading(true);
 
-    // LOGIN
     if (isLogin) {
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
@@ -83,7 +88,7 @@ function AuthPageInner() {
 
       if (!data.session) {
         setFormError(
-          "Your account exists, but no login session was created. If you just signed up, open the email Supabase sent and confirm your email, then try logging in again."
+          "Your account exists, but no login session was created. If you just signed up, open the email Supabase sent and confirm your email, then try logging in again.",
         );
         setLoading(false);
         return;
@@ -91,52 +96,49 @@ function AuthPageInner() {
 
       await supabase.auth.getSession();
 
-      window.location.assign(nextDestination);
+      window.location.assign(resolvedNext);
       return;
     }
 
-    // VALIDATIONS
-    // REQUIRED FIELD VALIDATION
-const newErrors = {
-  firstName: !firstName,
-  surname: !surname,
-  dob: !dob,
-  phone: !phone || !isValidPhoneE164(phone),
-  email: !email,
-  password: !password,
-  confirmPassword: !confirmPassword,
-  terms: !acceptedTerms,
-}
+    const newErrors = {
+      firstName: !firstName,
+      surname: !surname,
+      dob: !dob,
+      phone: !phone || !isValidPhoneE164(phone),
+      email: !email,
+      password: !password,
+      confirmPassword: !confirmPassword,
+      terms: !acceptedTerms,
+    };
 
-setErrors(newErrors)
+    setErrors(newErrors);
 
-if (Object.values(newErrors).some(Boolean)) {
-  setLoading(false)
-  return
-}
+    if (Object.values(newErrors).some(Boolean)) {
+      setLoading(false);
+      return;
+    }
 
-if (password !== confirmPassword) {
+    if (password !== confirmPassword) {
+      setErrors({
+        ...newErrors,
+        password: true,
+        confirmPassword: true,
+      });
 
-  setErrors({
-    ...newErrors,
-    password: true,
-    confirmPassword: true,
-  })
+      setLoading(false);
 
-  setLoading(false)
-
-  return
-}
-setLoading(true)
+      return;
+    }
+    setLoading(true);
 
     const fullName = [firstName, middleName, surname].filter(Boolean).join(" ");
 
     let emailRedirectTo = authRedirectToUrl("/auth/callback", {
-      next: nextDestination,
+      next: resolvedNext,
     });
     try {
       const r = await fetch(
-        `/api/auth/email-confirmation-redirect?next=${encodeURIComponent(nextDestination)}`,
+        `/api/auth/email-confirmation-redirect?next=${encodeURIComponent(resolvedNext)}`,
         { cache: "no-store" },
       );
       if (r.ok) {
@@ -183,10 +185,6 @@ setLoading(true)
       return;
     }
 
-    // Investor row + optional welcome notification are created by DB trigger
-    // `sync_investor_profile_from_auth_user` (see migration). Client insert fails when email
-    // confirmation is on because there is no JWT yet for RLS.
-
     if (data.session) {
       setFormSuccess("Account created. You’re signed in.");
     } else {
@@ -200,350 +198,92 @@ setLoading(true)
     return;
   }
 
-  // SUCCESS SCREEN
+  async function handleAuthSubmit() {
+    await guardAuthActionWithRecaptcha(recaptchaRef, setRecaptchaError, handleAuth);
+  }
+
+  function handleToggleMode() {
+    setFormError(null);
+    setFormSuccess(null);
+    setRecaptchaError(null);
+    recaptchaRef.current?.reset();
+    const target = isLogin ? signupHref(resolvedNext) : loginHref(resolvedNext);
+    router.push(referralCode ? `${target}${target.includes("?") ? "&" : "?"}ref=${referralCode}` : target);
+  }
+
+  function validateSignupStep1() {
+    const stepErrors = {
+      firstName: !firstName,
+      surname: !surname,
+      dob: !dob,
+      phone: !phone || !isValidPhoneE164(phone),
+      email: !email,
+    };
+
+    setErrors((prev) => ({
+      ...prev,
+      ...stepErrors,
+      password: false,
+      confirmPassword: false,
+      terms: false,
+    }));
+
+    return !Object.values(stepErrors).some(Boolean);
+  }
+
+  const formProps = {
+    isLogin,
+    authNotice,
+    authCallbackError,
+    formError,
+    formSuccess,
+    referralCode,
+    firstName,
+    setFirstName,
+    middleName,
+    setMiddleName,
+    surname,
+    setSurname,
+    dob,
+    setDob,
+    phone,
+    setPhone,
+    email,
+    setEmail,
+    password,
+    setPassword,
+    confirmPassword,
+    setConfirmPassword,
+    showPassword,
+    setShowPassword,
+    showConfirmPassword,
+    setShowConfirmPassword,
+    acceptedTerms,
+    setAcceptedTerms,
+    errors,
+    loading,
+    onSubmit: () => void handleAuthSubmit(),
+    onToggleMode: handleToggleMode,
+    onSignupStep1Validate: validateSignupStep1,
+    recaptchaRef,
+    recaptchaError,
+    onRecaptchaExpire: () => setRecaptchaError(RECAPTCHA_MESSAGES.expired),
+  };
 
   return (
-    <main className="relative min-h-[100svh] overflow-x-hidden text-white">
-
-      {/* Ambient Background */}
-      <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-yellow-500/10 blur-[140px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-yellow-500/5 blur-[120px] rounded-full pointer-events-none" />
-
-      <div className="relative z-10 mx-auto flex min-h-[100svh] w-full max-w-2xl flex-col bg-zinc-900/90 border border-zinc-800 backdrop-blur-xl px-6 py-8 sm:my-10 sm:rounded-[36px] sm:p-10 sm:shadow-2xl">
-
-        <Link
-          href="/"
-          className="mb-6 inline-flex items-center gap-2 self-start text-sm text-zinc-400 transition hover:text-yellow-500 sm:mb-4"
-        >
-          <ArrowLeft size={16} />
-          Back to home
-        </Link>
-
-        <div className="mb-8 sm:mb-10">
-          <h1 className="text-3xl font-black tracking-tight text-yellow-500 mb-3 sm:text-5xl">
-            {isLogin ? "Login" : "Sign Up"}
-          </h1>
-
-          <p className="text-zinc-500 text-base leading-relaxed sm:text-lg">
-            {isLogin
-              ? "Secure access to your ZUNO investment dashboard"
-              : "Begin your premium investment journey with ZUNO"}
-          </p>
-        </div>
-
-        {authNotice ? (
-          <div
-            className="mb-6 rounded-2xl border border-emerald-500/50 bg-emerald-500/10 px-5 py-4 text-emerald-200"
-            role="status"
-          >
-            {authNotice}
-          </div>
-        ) : null}
-
-        {authCallbackError ? (
-          <div
-            className="mb-6 rounded-2xl border border-red-500/60 bg-red-500/10 px-5 py-4 text-red-300"
-            role="alert"
-          >
-            {authCallbackError}
-          </div>
-        ) : null}
-
-        {formError ? (
-          <div
-            className="mb-6 rounded-2xl border border-red-500/60 bg-red-500/10 px-5 py-4 text-red-300"
-            role="alert"
-          >
-            {formError}
-          </div>
-        ) : null}
-
-        {formSuccess ? (
-          <div
-            className="mb-6 rounded-2xl border border-green-500/60 bg-green-500/10 px-5 py-4 text-green-300"
-            role="status"
-          >
-            {formSuccess}
-          </div>
-        ) : null}
-
-        {!isLogin && referralCode ? (
-          <div className="mb-6 rounded-2xl border border-yellow-500/35 bg-yellow-500/10 px-5 py-4 text-sm text-yellow-100">
-            Referral code <span className="font-mono font-bold text-yellow-300">{referralCode}</span>{" "}
-            will be applied to your account.
-          </div>
-        ) : null}
-
-        {/* REGISTRATION FIELDS */}
-        {!isLogin && (
+    <div className="flex min-h-[100svh] flex-col bg-white text-zinc-900 lg:min-h-0 lg:bg-transparent lg:text-inherit">
+      <MarketingNavbar />
+      <AuthSplitLayout
+        mobileChildren={
           <>
-
-            <div className="grid md:grid-cols-2 gap-6 mb-6">
-
-              <div>
-                <label className="block mb-3 text-zinc-400 text-sm">
-                  First Name
-                </label>
-
-                <input
-                  type="text"
-                  placeholder="Enter first name"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  className={`w-full bg-zinc-900 border rounded-2xl px-5 py-4 text-white outline-none transition-all duration-300 ${
-  errors.firstName
-    ? "border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.35)]"
-    : "border-zinc-700 focus:border-yellow-500"
-}`}
-                />
-              </div>
-
-              <div>
-                <label className="block mb-3 text-zinc-400 text-sm">
-                  Middle Name (Optional)
-                </label>
-
-                <input
-                  type="text"
-                  placeholder="Enter middle name"
-                  value={middleName}
-                  onChange={(e) => setMiddleName(e.target.value)}
-                  className="w-full bg-black border border-zinc-800 rounded-2xl px-5 py-4 outline-none focus:border-yellow-500 transition"
-                />
-              </div>
-
-            </div>
-
-            <div className="mb-6">
-              <label className="block mb-3 text-zinc-400 text-sm">
-                Surname
-              </label>
-
-              <input
-                type="text"
-                placeholder="Enter surname"
-                value={surname}
-                onChange={(e) => setSurname(e.target.value)}
-                className={`w-full bg-zinc-900 border rounded-2xl px-5 py-4 text-white outline-none transition-all duration-300 ${
-  errors.surname
-    ? "border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.35)]"
-    : "border-zinc-700 focus:border-yellow-500"
-}`}
-              />
-            </div>
-
-            <div className="mb-6">
-              <label className="block mb-3 text-zinc-400 text-sm">
-                Date of Birth
-              </label>
-
-              <input
-                type="date"
-                value={dob}
-                onChange={(e) => setDob(e.target.value)}
-                className={`w-full bg-zinc-900 border rounded-2xl px-5 py-4 text-white outline-none transition-all duration-300 ${
-                  errors.dob
-                    ? "border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.35)]"
-                    : "border-zinc-700 focus:border-yellow-500"
-                }`}
-              />
-            </div>
-
-            <div className="mb-6">
-              <label className="block mb-3 text-zinc-400 text-sm">
-                Phone Number
-              </label>
-
-              <PhoneInput value={phone} onChange={setPhone} error={errors.phone} />
-            </div>
-
+            <AuthMobileHero />
+            <AuthFormContent theme="light" variant="mobile" {...formProps} />
           </>
-        )}
-
-        {/* EMAIL */}
-        <div className="mb-6">
-
-          <label className="block mb-3 text-zinc-400 text-sm">
-            Email Address
-          </label>
-
-          <input
-            type="email"
-            placeholder="Enter email address"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-           className={`w-full bg-zinc-900 border rounded-2xl px-5 py-4 text-white outline-none transition-all duration-300 ${
-  errors.email
-    ? "border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.35)]"
-    : "border-zinc-700 focus:border-yellow-500"
-}`}
-          />
-
-        </div>
-
-        {/* PASSWORD */}
-        <div className="mb-6 relative">
-
-          <label className="block mb-3 text-zinc-400 text-sm">
-            Password
-          </label>
-
-          <input
-            type={showPassword ? "text" : "password"}
-            placeholder="Enter password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className={`w-full bg-zinc-900 border rounded-2xl px-5 py-4 text-white outline-none transition-all duration-300 ${
-  errors.password
-    ? "border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.35)]"
-    : "border-zinc-700 focus:border-yellow-500"
-}`}
-
-          />
-  
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-5 top-[52px] text-zinc-500 hover:text-yellow-500 transition"
-          >
-            {showPassword ? <EyeOff size={22} /> : <Eye size={22} />}
-          </button>
-
-        </div>
-
-        {isLogin ? (
-          <div className="flex justify-end -mt-2 mb-6">
-            <button
-              type="button"
-              onClick={() => router.push("/forgot-password")}
-              className="text-sm text-yellow-500 hover:text-yellow-400 transition"
-            >
-              Forgot Password?
-            </button>
-          </div>
-        ) : null}
-
-        {/* CONFIRM PASSWORD */}
-        {!isLogin && (
-          <div className="mb-6 relative">
-
-            <label className="block mb-3 text-zinc-400 text-sm">
-              Confirm Password
-            </label>
-
-            <input
-              type={showConfirmPassword ? "text" : "password"}
-              placeholder="Confirm password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className={`w-full bg-zinc-900 border rounded-2xl px-5 py-4 text-white outline-none transition-all duration-300 ${
-  errors.password
-    ? "border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.35)]"
-    : "border-zinc-700 focus:border-yellow-500"
-}`}
-            />
-
-            <button
-              type="button"
-              onClick={() =>
-                setShowConfirmPassword(!showConfirmPassword)
-              }
-              className="absolute right-5 top-[52px] text-zinc-500 hover:text-yellow-500 transition"
-            >
-              {showConfirmPassword ? (
-                <EyeOff size={22} />
-              ) : (
-                <Eye size={22} />
-              )}
-            </button>
-
-          </div>
-        )}
-
-        {/* TERMS */}
-{!isLogin && (
-  <div
-    className={`mb-8 rounded-2xl border p-5 transition-all duration-300 ${
-      errors.terms
-        ? "border-red-500 bg-red-500/5 shadow-[0_0_20px_rgba(239,68,68,0.25)]"
-        : "border-zinc-800 bg-black"
-    }`}
-  >
-
-    <label className="flex items-start gap-4 cursor-pointer">
-
-      <input
-        type="checkbox"
-        checked={acceptedTerms}
-        onChange={(e) => setAcceptedTerms(e.target.checked)}
-        className="mt-1 w-5 h-5 accent-yellow-500"
-      />
-
-      <div>
-
-        <p className="text-zinc-300 leading-relaxed">
-          I agree to the ZUNO Terms & Conditions,
-          Privacy Policy, and understand that investment
-          performance may vary depending on market conditions.
-        </p>
-
-        <a
-          href="/terms"
-          target="_blank"
-          className="mt-3 inline-block text-yellow-500 hover:text-yellow-400 transition font-semibold"
-        >
-          View Terms & Conditions
-        </a>
-
-        {errors.terms && (
-          <p className="text-red-400 text-sm mt-3">
-            You must accept the Terms & Conditions before registering.
-          </p>
-        )}
-
-      </div>
-
-    </label>
-
-  </div>
-)}
-
-        {/* BUTTON */}
-        <button
-          onClick={handleAuth}
-          disabled={loading}
-          className="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-black py-5 rounded-2xl transition-all duration-300 hover:scale-[1.01] text-lg"
-        >
-          {loading
-            ? "Processing..."
-            : isLogin
-            ? "Login"
-            : "Create Account"}
-        </button>
-
-        {/* TOGGLE */}
-        <div className="mt-8 text-center text-zinc-500">
-
-          {isLogin
-            ? "Don't have an account?"
-            : "Already have an account?"}
-
-          <button
-            onClick={() => {
-              setIsLogin(!isLogin);
-              setFormError(null);
-              setFormSuccess(null);
-            }}
-            className="ml-2 text-yellow-500 hover:text-yellow-400 font-semibold transition"
-          >
-            {isLogin ? "Create Account" : "Login"}
-          </button>
-
-        </div>
-
-      </div>
-
-    </main>
+        }
+      >
+        <AuthFormContent theme="light" {...formProps} />
+      </AuthSplitLayout>
+    </div>
   );
 }
 
@@ -551,8 +291,8 @@ export default function AuthPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-[100svh] text-white flex items-center justify-center">
-          <p className="text-zinc-400 text-sm">Loading…</p>
+        <main className="flex min-h-[100svh] items-center justify-center bg-white text-zinc-500 lg:bg-[#05080F] lg:text-zinc-400">
+          <p className="text-sm">Loading…</p>
         </main>
       }
     >

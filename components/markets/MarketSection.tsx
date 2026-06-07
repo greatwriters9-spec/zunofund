@@ -1,6 +1,7 @@
 "use client";
 
 import { MarketTickerRow } from "@/components/markets/MarketTickerRow";
+import { DASHBOARD_CARD } from "@/components/dashboard/premium/dashboardStyles";
 import type { MarketTicker } from "@/lib/markets/types";
 
 type MarketSectionProps = {
@@ -22,10 +23,10 @@ export function MarketSection({
 
   return (
     <section className="mb-6">
-      <h2 className="mb-2 px-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-yellow-500/80">
+      <h2 className="mb-2 px-4 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#D4AF37]/90">
         {title}
       </h2>
-      <div className="overflow-hidden rounded-xl border border-zinc-800/80 bg-zinc-950/40">
+      <div className={`${DASHBOARD_CARD} overflow-hidden`}>
         {tickers.map((t) => (
           <MarketTickerRow
             key={t.symbol}

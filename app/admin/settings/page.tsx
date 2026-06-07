@@ -185,8 +185,8 @@ export default function AdminSettingsPage() {
       </SettingsSection>
 
       <SettingsSection
-        title="Deposit wallets & networks"
-        description="Add or edit wallet addresses and blockchain networks shown on the exchange deposit page."
+        title="Wallet management"
+        description="Configure deposit wallet addresses per coin and network (BTC, ETH, USDT, USDC, BNB, SOL, XRP, DOGE, TRX, LTC). Active wallets appear on deposit pages."
         tone="gold"
       >
         {depositNetworksLoading ? (
@@ -222,8 +222,8 @@ export default function AdminSettingsPage() {
             <strong>Contact page FAQs</strong> in the section above.
           </li>
           <li>
-            <strong>Deposit wallets & networks</strong> for USDT and Bitcoin in
-            the section above.
+            <strong>Deposit wallet addresses</strong> per coin and network in the
+            section above.
           </li>
           <li>
             Investor <strong>tier / plan</strong> and{" "}
@@ -251,7 +251,8 @@ export default function AdminSettingsPage() {
         description="Daily percentages and USD principal brackets drive automatic tier and mirror lib/investmentPlans.ts."
       >
         <p className="text-zinc-400 text-sm leading-relaxed">
-          Deposits enforce a global minimum ($20) only. Changing rates or
+          Deposits enforce a global minimum ($100). Interest accrues from $100
+          qualifying principal. Changing rates or
           brackets requires a migration or deploy.
         </p>
         <div className="overflow-x-auto">

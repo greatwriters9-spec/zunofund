@@ -1,13 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { Pencil, Power, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { ArrowDown, ArrowUp } from "lucide-react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { offerAssetLabel } from "@/components/merchant/merchantOfferSide";
 import { MerchantOfferAvatar } from "@/components/p2p/MerchantOfferAvatar";
-import { paymentMethodLabel } from "@/components/p2p/utils";
+import { paymentMethodLabelCaps } from "@/components/p2p/utils";
+import { formatFiat } from "@/lib/currencies";
 import { formatMoneyAmount } from "@/lib/formatMoney";
+import { assetFromOfferSide } from "@/lib/p2pAssets";
+import { formatOfferUnitPriceAmount, offerFiatPerOneCrypto } from "@/lib/p2pValue";
+import { useFxRates } from "@/lib/useFx";
 
 export type MerchantOfferHorizontalRow = {
   id: string;
@@ -38,204 +42,117 @@ type MerchantOfferHorizontalCardProps = {
   onQuickSave: (offerId: string, patch: MerchantOfferQuickSavePatch) => Promise<string | null>;
 };
 
-const STRIP_GRID =
-  "grid w-full min-w-0 grid-cols-[3rem_minmax(0,0.95fr)_minmax(0,0.8fr)_minmax(0,1.65fr)_minmax(0,1.05fr)_minmax(0,1.55fr)_7.5rem] items-center gap-x-4 px-5 sm:gap-x-5";
+const DETAIL_LABEL =
+  "text-[10px] font-semibold uppercase tracking-[0.12em] leading-[15px] text-zinc-500 max-md:text-[8px] max-md:tracking-[0.08em] max-md:leading-none";
 
-const STRIP_ROW = `${STRIP_GRID} min-h-[4.75rem] border-b border-white/[0.07] bg-[#070b12]/55 py-3.5 text-[14px] text-zinc-200 last:border-b-0`;
+const MERCHANT_OFFER_MOBILE_GRID =
+  "grid grid-cols-[minmax(0,1fr)_minmax(3.75rem,0.9fr)_minmax(5.5rem,1.15fr)_auto] grid-rows-[auto_auto] items-start gap-x-2 gap-y-2.5 py-3 text-[11px]";
 
-const HEADER_ROW = `${STRIP_GRID} sticky top-0 z-10 border-b border-white/[0.14] bg-[#05080F]/96 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500 backdrop-blur-md`;
+/** asset | note | payment | rate | limits | flex gap | actions */
+const MERCHANT_OFFER_ROW_GRID =
+  "md:grid-cols-[minmax(0,20rem)_9rem_8.5rem_5rem_minmax(14rem,17rem)_minmax(2.5rem,1fr)_auto] md:items-start md:gap-x-0 md:py-4 md:text-[13px]";
 
-const VALUE_TEXT = "text-[15px] font-semibold leading-snug text-zinc-100";
+const PAYMENT_METHOD_CLASS =
+  "text-[14px] font-extrabold uppercase leading-snug tracking-[0.04em] text-white line-clamp-3 break-words max-md:text-[10px] max-md:font-bold max-md:leading-tight max-md:line-clamp-2";
 
-const FIELD_BOX =
-  "w-full rounded-xl border border-white/[0.055] bg-[#0a0e16]/90 px-3.5 py-2.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]";
+const AMOUNT_VALUE_CLASS =
+  "w-full min-w-0 tabular-nums text-[15px] font-bold leading-tight tracking-tight text-white max-md:text-[10px] max-md:font-semibold max-md:leading-snug";
 
-const FIELD_BOX_BTN = `${FIELD_BOX} touch-manipulation transition duration-200 hover:border-white/[0.09] hover:bg-[#0c111a] disabled:opacity-50`;
+const NOTE_BOX_CLASS =
+  "mt-1.5 flex min-h-[2.75rem] items-center justify-center rounded-lg border border-[#D4AF37]/22 bg-[#D4AF37]/10 px-2.5 py-2 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] ring-1 ring-[#D4AF37]/18 md:min-h-[3rem]";
 
-const FIELD_BOX_BTN_TOUCH = `${FIELD_BOX_BTN} min-h-[44px] py-3 lg:min-h-0 lg:py-2.5`;
-
-const FIELD_INPUT = `${FIELD_BOX} min-h-[44px] touch-manipulation text-[14px] font-semibold text-zinc-100 outline-none focus:border-white/[0.11] focus:bg-[#0c111a] focus:ring-1 focus:ring-white/[0.06] lg:min-h-0`;
+const DETAIL_GAP = "md:pl-5";
 
 const CHIP_SOFT =
-  "inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] ring-1";
+  "inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] ring-1 max-md:text-[8px]";
 
-const MOBILE_TOUCH = "[&_button]:min-h-[44px] [&_button]:touch-manipulation [&_input]:min-h-[44px]";
-
-function StripValue({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`flex min-w-0 items-center ${className}`}>{children}</div>;
-}
-
-function MobileLabeledField({ label, children }: { label: string; children: ReactNode }) {
+function OfferDetailCol({
+  label,
+  mobileLabel,
+  children,
+  className = "",
+}: {
+  label: string;
+  mobileLabel?: string;
+  children: ReactNode;
+  className?: string;
+}) {
   return (
-    <div className={`space-y-1.5 ${MOBILE_TOUCH}`}>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">{label}</p>
-      <div className="w-full min-w-0">{children}</div>
+    <div className={`flex min-w-0 flex-col items-start ${className}`} role="group">
+      <p className={DETAIL_LABEL}>
+        {mobileLabel ? (
+          <>
+            <span className="md:hidden">{mobileLabel}</span>
+            <span className="hidden md:inline">{label}</span>
+          </>
+        ) : (
+          label
+        )}
+      </p>
+      <div className="mt-1.5 w-full min-w-0 max-md:mt-0.5">{children}</div>
     </div>
   );
 }
 
-function StripFieldBox({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`${FIELD_BOX} ${className}`}>{children}</div>;
-}
+function RateVsMpBadge({ ratePct }: { ratePct: number }) {
+  const absPct = Math.abs(ratePct).toLocaleString(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+  const aboveMp = ratePct >= 0;
+  const signed = aboveMp ? `+${absPct}%` : `-${absPct}%`;
 
-export function formatOfferLimitDisplay(fiat: string, min: number, max: number): string {
-  return `${fiat.toUpperCase()} (${formatMoneyAmount(min)} – ${formatMoneyAmount(max)})`;
-}
-
-function parseMoneyToken(raw: string): number | null {
-  const n = Number(raw.replace(/,/g, "").trim());
-  return Number.isFinite(n) && n >= 0 ? n : null;
-}
-
-export function parseOfferLimitDraft(
-  draft: string,
-  fallbackFiat: string,
-): { fiat: string; min: number; max: number } | string {
-  const trimmed = draft.trim();
-  if (!trimmed) return "Enter a limit like USD (200-599).";
-
-  const match = trimmed.match(/^([A-Za-z]{3})\s*\(\s*([\d.,]+)\s*[-–]\s*([\d.,]+)\s*\)\s*$/);
-  if (!match) return "Use format: USD (200-599) or KES (2,000-5,000).";
-
-  const fiat = match[1].toUpperCase();
-  const min = parseMoneyToken(match[2]);
-  const max = parseMoneyToken(match[3]);
-  if (min === null || max === null) return "Min and max must be valid numbers.";
-  if (min > max) return "Min cannot exceed max.";
-  if (fiat !== fallbackFiat.toUpperCase()) {
-    return `Currency must stay ${fallbackFiat.toUpperCase()} for this listing.`;
-  }
-  return { fiat, min, max };
-}
-
-function LimitBoxContent({ fiat, min, max }: { fiat: string; min: number; max: number }) {
   return (
-    <span className="flex min-w-0 flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
-      <span className="shrink-0 text-[11px] font-bold uppercase tracking-[0.12em] text-zinc-500">
-        {fiat.toUpperCase()}
-      </span>
-      <span className={`min-w-0 break-words tabular-nums lg:truncate ${VALUE_TEXT}`}>
-        ({formatMoneyAmount(min)}
-        <span className="mx-1 font-normal text-zinc-500">–</span>
-        {formatMoneyAmount(max)})
+    <span
+      className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold tabular-nums ring-1 max-md:px-1 max-md:py-0 max-md:text-[8px] ${
+        aboveMp
+          ? "bg-emerald-500/15 text-emerald-200 ring-emerald-400/35"
+          : "bg-orange-500/15 text-orange-200 ring-orange-400/35"
+      }`}
+    >
+      {aboveMp ? (
+        <ArrowUp className="h-3 w-3 shrink-0" strokeWidth={2.5} aria-hidden />
+      ) : (
+        <ArrowDown className="h-3 w-3 shrink-0" strokeWidth={2.5} aria-hidden />
+      )}
+      <span>{signed}</span>
+      <span className="hidden text-[9px] font-semibold uppercase tracking-wide opacity-90 md:inline">
+        {aboveMp ? "above MP" : "below MP"}
       </span>
     </span>
   );
 }
 
-function IconBtn({
-  label,
-  onClick,
-  href,
-  tone,
-  children,
-  className = "",
-}: {
-  label: string;
-  onClick?: () => void;
-  href?: string;
-  tone: "gold" | "green" | "red";
-  children: ReactNode;
-  className?: string;
-}) {
-  const toneCls =
-    tone === "gold"
-      ? "text-[#D4AF37] hover:bg-[#D4AF37]/14 hover:text-[#F5E6B3] active:bg-[#D4AF37]/20"
-      : tone === "green"
-        ? "text-emerald-400 hover:bg-emerald-500/18 hover:text-emerald-100 active:bg-emerald-500/22"
-        : "text-red-400 hover:bg-red-500/14 hover:text-red-200 active:bg-red-500/20";
-
-  const cls = `inline-flex shrink-0 items-center justify-center rounded-xl border border-white/[0.07] bg-[#0a0e16]/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] touch-manipulation transition ${toneCls} ${className}`;
-
-  if (href) {
-    return (
-      <Link href={href} className={cls} aria-label={label} title={label}>
-        {children}
-      </Link>
-    );
-  }
-
-  return (
-    <button type="button" onClick={onClick} className={cls} aria-label={label} title={label}>
-      {children}
-    </button>
-  );
+function formatPaymentMethodsCompact(methods: string[]): { display: string; title: string } {
+  const labels = methods.map((c) => paymentMethodLabelCaps(c)).filter(Boolean);
+  if (labels.length === 0) return { display: "—", title: "" };
+  const title = labels.join(" · ");
+  if (labels.length <= 2) return { display: labels.join(" · "), title };
+  const rest = labels.length - 2;
+  return {
+    display: `${labels.slice(0, 2).join(" · ")} · +${rest} other${rest === 1 ? "" : "s"}`,
+    title,
+  };
 }
 
-function OfferActionButtons({
-  offerId,
-  isActive,
-  onToggleActive,
-  onDelete,
-}: {
-  offerId: string;
-  isActive: boolean;
-  onToggleActive: () => void;
-  onDelete: () => void;
-}) {
-  const icon = "h-[18px] w-[18px]";
-  return (
-    <>
-      <div className="hidden items-center justify-end gap-2 lg:flex">
-        <IconBtn label="Edit listing" href={`/merchant/offers/${offerId}/edit`} tone="gold" className="h-10 w-10">
-          <Pencil className={icon} strokeWidth={2} aria-hidden />
-        </IconBtn>
-        <IconBtn
-          label={isActive ? "Pause listing" : "Activate listing"}
-          onClick={onToggleActive}
-          tone="green"
-          className="h-10 w-10"
-        >
-          <Power className={`${icon} ${isActive ? "" : "opacity-50"}`} strokeWidth={2} aria-hidden />
-        </IconBtn>
-        <IconBtn label="Delete listing" onClick={onDelete} tone="red" className="h-10 w-10">
-          <Trash2 className={icon} strokeWidth={2} aria-hidden />
-        </IconBtn>
-      </div>
-      <div className="grid grid-cols-3 gap-2 lg:hidden">
-        <IconBtn
-          label="Edit listing"
-          href={`/merchant/offers/${offerId}/edit`}
-          tone="gold"
-          className="h-11 w-full min-h-[44px]"
-        >
-          <Pencil className={icon} strokeWidth={2} aria-hidden />
-        </IconBtn>
-        <IconBtn
-          label={isActive ? "Pause listing" : "Activate listing"}
-          onClick={onToggleActive}
-          tone="green"
-          className="h-11 w-full min-h-[44px]"
-        >
-          <Power className={`${icon} ${isActive ? "" : "opacity-50"}`} strokeWidth={2} aria-hidden />
-        </IconBtn>
-        <IconBtn label="Delete listing" onClick={onDelete} tone="red" className="h-11 w-full min-h-[44px]">
-          <Trash2 className={icon} strokeWidth={2} aria-hidden />
-        </IconBtn>
-      </div>
-    </>
-  );
-}
-
-function EditableMetric({
+function RowEditableNumber({
   label,
   value,
   suffix,
-  disabled,
   onCommit,
-  touchFriendly,
+  className = AMOUNT_VALUE_CLASS,
+  inline = false,
 }: {
   label: string;
   value: number;
   suffix?: string;
-  disabled?: boolean;
   onCommit: (next: number) => Promise<void>;
-  touchFriendly?: boolean;
+  className?: string;
+  inline?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(String(value));
   const [saving, setSaving] = useState(false);
-  const btnCls = touchFriendly ? FIELD_BOX_BTN_TOUCH : FIELD_BOX_BTN;
 
   useEffect(() => {
     if (!editing) setDraft(String(value));
@@ -258,155 +175,56 @@ function EditableMetric({
     setEditing(false);
   }, [draft, onCommit, value]);
 
-  const display =
-    suffix === "%" ? `${value}%` : `${formatMoneyAmount(value)}${suffix && suffix !== "%" ? ` ${suffix}` : ""}`;
+  const display = suffix === "%" ? `${value}%` : formatMoneyAmount(value);
 
   if (editing) {
     return (
-      <StripValue className="w-full">
-        <input
-          type="number"
-          step="any"
-          autoFocus
-          disabled={saving}
-          aria-label={label}
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={() => void commit()}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") void commit();
-            if (e.key === "Escape") {
-              setDraft(String(value));
-              setEditing(false);
-            }
-          }}
-          className={`${FIELD_INPUT} tabular-nums`}
-        />
-      </StripValue>
-    );
-  }
-
-  return (
-    <StripValue className="w-full">
-      <button
-        type="button"
-        disabled={disabled || saving}
-        aria-label={`Edit ${label}`}
-        onClick={() => setEditing(true)}
-        className={`${btnCls} min-w-0 truncate text-left tabular-nums ${VALUE_TEXT}`}
-        title={`Tap to edit ${label.toLowerCase()}`}
-      >
-        {display}
-      </button>
-    </StripValue>
-  );
-}
-
-function EditableLimit({
-  fiat,
-  min,
-  max,
-  onCommit,
-  touchFriendly,
-}: {
-  fiat: string;
-  min: number;
-  max: number;
-  onCommit: (next: { min: number; max: number }) => Promise<string | null>;
-  touchFriendly?: boolean;
-}) {
-  const display = formatOfferLimitDisplay(fiat, min, max);
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(display);
-  const [saving, setSaving] = useState(false);
-  const [hint, setHint] = useState<string | null>(null);
-  const btnCls = touchFriendly ? FIELD_BOX_BTN_TOUCH : FIELD_BOX_BTN;
-
-  useEffect(() => {
-    if (!editing) setDraft(formatOfferLimitDisplay(fiat, min, max));
-  }, [fiat, min, max, editing]);
-
-  const commit = useCallback(async () => {
-    const parsed = parseOfferLimitDraft(draft, fiat);
-    if (typeof parsed === "string") {
-      setHint(parsed);
-      return;
-    }
-    setHint(null);
-    if (parsed.min === min && parsed.max === max) {
-      setEditing(false);
-      return;
-    }
-    setSaving(true);
-    const errMsg = await onCommit({ min: parsed.min, max: parsed.max });
-    setSaving(false);
-    if (errMsg) {
-      setHint(errMsg);
-      return;
-    }
-    setEditing(false);
-  }, [draft, fiat, min, max, onCommit]);
-
-  if (editing) {
-    return (
-      <StripValue className="w-full flex-col items-stretch gap-1.5">
-        <input
-          type="text"
-          autoFocus
-          disabled={saving}
-          aria-label="Edit limit"
-          value={draft}
-          onChange={(e) => {
-            setDraft(e.target.value);
-            setHint(null);
-          }}
-          onBlur={() => void commit()}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") void commit();
-            if (e.key === "Escape") {
-              setDraft(display);
-              setHint(null);
-              setEditing(false);
-            }
-          }}
-          placeholder="USD (200 – 599)"
-          className={`${FIELD_INPUT} uppercase tracking-wide`}
-        />
-        {hint ? <span className="text-[11px] leading-snug text-red-300/90">{hint}</span> : null}
-      </StripValue>
-    );
-  }
-
-  return (
-    <StripValue className="w-full">
-      <button
-        type="button"
+      <input
+        type="number"
+        step="any"
+        autoFocus
         disabled={saving}
-        aria-label="Edit limit"
-        onClick={() => setEditing(true)}
-        className={`${btnCls} w-full text-left`}
-        title="Tap to edit limit"
-      >
-        <LimitBoxContent fiat={fiat} min={min} max={max} />
-      </button>
-    </StripValue>
+        aria-label={label}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => void commit()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") void commit();
+          if (e.key === "Escape") {
+            setDraft(String(value));
+            setEditing(false);
+          }
+        }}
+        className={`w-full min-w-0 rounded-lg border border-white/[0.1] bg-[#0a0e16]/90 px-2.5 py-1.5 text-[13px] font-bold tabular-nums text-white outline-none focus:border-[#D4AF37]/40 max-md:text-[11px] ${inline ? "min-w-[4.5rem]" : ""}`}
+      />
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      disabled={saving}
+      aria-label={`Edit ${label}`}
+      onClick={() => setEditing(true)}
+      className={`${className} ${inline ? "inline min-w-0" : "block w-full min-w-0"} text-left transition hover:text-[#F5E6B3]`}
+      title={`Click to edit ${label.toLowerCase()}`}
+    >
+      {display}
+    </button>
   );
 }
 
-function EditableNote({
+function RowEditableNote({
   value,
   onCommit,
-  touchFriendly,
 }: {
   value: string | null;
   onCommit: (next: string | null) => Promise<void>;
-  touchFriendly?: boolean;
 }) {
   const shown = value?.trim() ? value.trim().toUpperCase() : null;
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(shown ?? "");
   const [saving, setSaving] = useState(false);
-  const btnCls = touchFriendly ? FIELD_BOX_BTN_TOUCH : FIELD_BOX_BTN;
 
   useEffect(() => {
     if (!editing) setDraft(shown ?? "");
@@ -414,8 +232,7 @@ function EditableNote({
 
   const commit = useCallback(async () => {
     const next = draft.trim() ? draft.trim().toUpperCase().slice(0, 500) : null;
-    const prev = shown;
-    if (next === prev) {
+    if (next === shown) {
       setEditing(false);
       return;
     }
@@ -427,62 +244,151 @@ function EditableNote({
 
   if (editing) {
     return (
-      <StripValue className="w-full">
-        <input
-          type="text"
-          autoFocus
-          disabled={saving}
-          aria-label="Edit note"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value.toUpperCase())}
-          onBlur={() => void commit()}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") void commit();
-            if (e.key === "Escape") {
-              setDraft(shown ?? "");
-              setEditing(false);
-            }
-          }}
-          placeholder="YOUR NOTE"
-          className={`${FIELD_INPUT} uppercase tracking-[0.06em] placeholder:text-zinc-600`}
-        />
-      </StripValue>
+      <input
+        type="text"
+        autoFocus
+        disabled={saving}
+        aria-label="Edit note"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value.toUpperCase())}
+        onBlur={() => void commit()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") void commit();
+          if (e.key === "Escape") {
+            setDraft(shown ?? "");
+            setEditing(false);
+          }
+        }}
+        placeholder="YOUR NOTE"
+        className="w-full rounded-lg border border-[#D4AF37]/35 bg-[#0a0e16]/90 px-2.5 py-2 text-[10px] font-bold uppercase tracking-[0.08em] text-[#F5E6B3] outline-none focus:border-[#D4AF37]/55"
+      />
     );
   }
 
   return (
-    <StripValue className="w-full">
-      <button
-        type="button"
-        disabled={saving}
-        aria-label="Edit note"
-        onClick={() => setEditing(true)}
-        className={`${btnCls} w-full text-left`}
-        title="Tap to edit note"
-      >
-        <span
-          className={`block min-w-0 text-[13px] font-semibold uppercase tracking-[0.06em] ${
-            touchFriendly ? "line-clamp-3 break-words" : "truncate"
-          } ${shown ? "text-zinc-200" : "text-zinc-600"}`}
-        >
-          {shown || "—"}
-        </span>
-      </button>
-    </StripValue>
+    <button
+      type="button"
+      disabled={saving}
+      aria-label="Edit note"
+      onClick={() => setEditing(true)}
+      className={`${NOTE_BOX_CLASS} w-full cursor-pointer transition hover:border-[#D4AF37]/40`}
+      title="Click to edit note"
+    >
+      {shown ? (
+        <p className="w-full text-[10px] font-bold uppercase leading-snug tracking-[0.1em] text-[#F5E6B3]">
+          {shown}
+        </p>
+      ) : (
+        <p className="w-full text-[10px] font-semibold uppercase leading-snug tracking-[0.14em] text-[#D4AF37]/30">
+          Add note
+        </p>
+      )}
+    </button>
   );
 }
 
-/** Column labels — desktop strip only. */
-export function MerchantOffersStripHeader() {
+function OfferActiveToggle({
+  isActive,
+  onToggle,
+}: {
+  isActive: boolean;
+  onToggle: () => void;
+}) {
   return (
-    <div className={`${HEADER_ROW} hidden lg:grid`} aria-hidden>
-      <span />
-      <span className="min-w-0 truncate">Asset</span>
-      <span className="min-w-0 truncate">Rate</span>
-      <span className="min-w-0 truncate">Limit</span>
-      <span className="min-w-0 truncate">Pay</span>
-      <span className="min-w-0 truncate">Note</span>
-      <span className="text-right">Actions</span>
+    <button
+      type="button"
+      role="switch"
+      aria-checked={isActive}
+      aria-label={isActive ? "Listing active — turn off" : "Listing paused — turn on"}
+      onClick={onToggle}
+      className={`relative inline-flex h-7 w-[3.25rem] shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50 ${
+        isActive ? "bg-[#3B82F6]" : "bg-[#6B7280]"
+      }`}
+    >
+      <span
+        className={`pointer-events-none inline-block h-[1.375rem] w-[1.375rem] rounded-full bg-white shadow-[0_1px_4px_rgba(0,0,0,0.35)] transition-transform duration-200 ${
+          isActive ? "translate-x-[1.625rem]" : "translate-x-0.5"
+        }`}
+      />
+    </button>
+  );
+}
+
+function OfferEditMenu({
+  offerId,
+  onDelete,
+}: {
+  offerId: string;
+  onDelete: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(e: MouseEvent) {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [open]);
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        className="inline-flex min-h-[36px] min-w-[4.5rem] items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 text-xs font-semibold text-zinc-200 transition hover:border-[#D4AF37]/35 hover:text-[#F5E6B3] max-md:min-h-[32px] max-md:px-3 max-md:text-[11px]"
+      >
+        Edit
+      </button>
+      {open ? (
+        <div
+          role="menu"
+          className="absolute right-0 top-full z-30 mt-1.5 min-w-[11rem] overflow-hidden rounded-xl border border-white/[0.08] bg-[#0c111a] py-1 shadow-[0_12px_40px_rgba(0,0,0,0.45)] ring-1 ring-white/[0.06]"
+        >
+          <Link
+            href={`/merchant/offers/${offerId}/edit`}
+            role="menuitem"
+            onClick={() => setOpen(false)}
+            className="block px-4 py-2.5 text-left text-xs font-medium text-zinc-200 transition hover:bg-white/[0.05] hover:text-[#F5E6B3]"
+          >
+            Make changes
+          </Link>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              onDelete();
+            }}
+            className="block w-full px-4 py-2.5 text-left text-xs font-medium text-red-300 transition hover:bg-red-500/10"
+          >
+            Delete offer
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function OfferActionButtons({
+  offerId,
+  isActive,
+  onToggleActive,
+  onDelete,
+}: {
+  offerId: string;
+  isActive: boolean;
+  onToggleActive: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div className="flex shrink-0 flex-row items-center gap-3 max-md:gap-2">
+      <OfferEditMenu offerId={offerId} onDelete={onDelete} />
+      <OfferActiveToggle isActive={isActive} onToggle={onToggleActive} />
     </div>
   );
 }
@@ -495,10 +401,17 @@ export function MerchantOfferHorizontalCard({
   onDelete,
   onQuickSave,
 }: MerchantOfferHorizontalCardProps) {
-  const methodsDisplay = offer.payment_methods.map((c) => paymentMethodLabel(c)).join(" · ") || "—";
+  const { rates } = useFxRates();
+  const methodsDisplay = formatPaymentMethodsCompact(offer.payment_methods);
   const isActive = offer.status === "active";
   const fiat = (offer.fiat_currency_code ?? "USD").toUpperCase();
   const asset = offerAssetLabel(offer.side);
+  const offerAsset = assetFromOfferSide(offer.side);
+  const ratePct = Number(offer.rate_percentage) || 0;
+  const fiatPerCrypto = offerFiatPerOneCrypto(offerAsset, fiat, ratePct, offer.side, rates);
+  const unitPrice = formatOfferUnitPriceAmount(fiatPerCrypto, fiat);
+  const isSellSide = offer.side === "sell_usdt" || offer.side === "sell_btc";
+  const name = merchantDisplayName || "Merchant";
 
   const persist = useCallback(
     async (
@@ -527,7 +440,7 @@ export function MerchantOfferHorizontalCard({
     <span
       className={`${CHIP_SOFT} ${
         isActive
-          ? "bg-emerald-500/22 text-emerald-50 ring-emerald-400/40"
+          ? "bg-emerald-500/15 text-emerald-200 ring-emerald-400/35"
           : "bg-zinc-700/35 text-zinc-400 ring-zinc-600/50"
       }`}
     >
@@ -535,118 +448,151 @@ export function MerchantOfferHorizontalCard({
     </span>
   );
 
-  const onRateCommit = async (n: number) => {
-    await persist({ rate_percentage: n });
-  };
-  const onLimitCommit = async ({ min, max }: { min: number; max: number }) =>
-    persist({ min_limit: min, max_limit: max });
-  const onNoteCommit = async (advert_message: string | null) => {
-    await persist({ advert_message });
-  };
-
-  const rateFieldMobile = (
-    <EditableMetric label="Rate" value={offer.rate_percentage} suffix="%" touchFriendly onCommit={onRateCommit} />
-  );
-  const rateFieldDesktop = (
-    <EditableMetric label="Rate" value={offer.rate_percentage} suffix="%" onCommit={onRateCommit} />
-  );
-
-  const limitFieldMobile = (
-    <EditableLimit
-      fiat={fiat}
-      min={offer.min_limit}
-      max={offer.max_limit}
-      touchFriendly
-      onCommit={onLimitCommit}
-    />
-  );
-  const limitFieldDesktop = (
-    <EditableLimit fiat={fiat} min={offer.min_limit} max={offer.max_limit} onCommit={onLimitCommit} />
-  );
-
-  const payFieldMobile = (
-    <StripFieldBox className="min-h-[44px] py-3">
-      <p
-        className="text-[13px] font-medium uppercase leading-snug tracking-[0.05em] text-zinc-300"
-        title={methodsDisplay}
-      >
-        {methodsDisplay}
-      </p>
-    </StripFieldBox>
-  );
-  const payFieldDesktop = (
-    <StripFieldBox>
-      <p
-        className="min-w-0 truncate text-[13px] font-medium uppercase tracking-[0.05em] text-zinc-300"
-        title={methodsDisplay}
-      >
-        {methodsDisplay}
-      </p>
-    </StripFieldBox>
-  );
-
-  const noteFieldMobile = <EditableNote value={offer.advert_message} touchFriendly onCommit={onNoteCommit} />;
-  const noteFieldDesktop = <EditableNote value={offer.advert_message} onCommit={onNoteCommit} />;
-
-  const actions = (
-    <OfferActionButtons
-      offerId={offer.id}
-      isActive={isActive}
-      onToggleActive={onToggleActive}
-      onDelete={onDelete}
-    />
+  const sideChip = (
+    <span
+      className={`${CHIP_SOFT} ${
+        isSellSide
+          ? "bg-red-500/15 text-red-200 ring-red-400/35"
+          : "bg-emerald-500/15 text-emerald-200 ring-emerald-400/35"
+      }`}
+    >
+      {isSellSide ? "Sell" : "Buy"}
+    </span>
   );
 
   return (
-    <>
-      {/* Mobile: stacked card — no horizontal scroll, full-width tap targets */}
-      <article
-        aria-label={`${asset} offer ${offer.status}`}
-        className="flex flex-col gap-3.5 border-b border-white/[0.07] bg-[#070b12]/55 p-4 last:border-b-0 lg:hidden"
-      >
-        <div className="flex items-center gap-3">
-          <MerchantOfferAvatar
-            avatarUrl={merchantAvatarUrl}
-            displayName={merchantDisplayName ?? asset}
-            size="md"
-            className="shrink-0"
-          />
-          <div className="min-w-0 flex-1">
-            <p className="text-[16px] font-extrabold uppercase tracking-[0.08em] text-[#F5E6B3]">{asset}</p>
-            <div className="mt-1.5">{statusChip}</div>
-          </div>
-        </div>
-
-        <div className={`grid grid-cols-1 gap-3 ${MOBILE_TOUCH}`}>
-          <MobileLabeledField label="Rate">{rateFieldMobile}</MobileLabeledField>
-          <MobileLabeledField label="Limit">{limitFieldMobile}</MobileLabeledField>
-          <MobileLabeledField label="Pay">{payFieldMobile}</MobileLabeledField>
-          <MobileLabeledField label="Note">{noteFieldMobile}</MobileLabeledField>
-        </div>
-
-        {actions}
-      </article>
-
-      {/* Desktop: horizontal aligned strip */}
-      <article aria-label={`${asset} offer ${offer.status}`} className={`${STRIP_ROW} hidden lg:grid`}>
+    <article
+      aria-label={`${asset} offer ${offer.status}`}
+      className={`grid border-b border-white/[0.06] px-3 text-zinc-200 transition-colors last:border-b-0 hover:bg-white/[0.02] sm:px-6 ${MERCHANT_OFFER_MOBILE_GRID} ${MERCHANT_OFFER_ROW_GRID}`}
+    >
+      {/* Col 1 — asset identity (mirrors buyer merchant column) */}
+      <div className="grid max-md:col-span-4 max-md:row-start-1 md:col-span-1 md:row-start-auto md:pr-2 grid-cols-[auto_minmax(0,1fr)] items-start gap-x-2.5 gap-y-0">
         <MerchantOfferAvatar
           avatarUrl={merchantAvatarUrl}
-          displayName={merchantDisplayName ?? asset}
-          size="md"
-          className="shrink-0"
+          displayName={name}
+          size="sm"
+          className="row-start-1 shrink-0 self-center max-md:h-8 max-md:w-8 max-md:text-[9px]"
         />
+        <div className="col-start-2 row-start-1 flex min-w-0 flex-col gap-0.5">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <h3 className="m-0 shrink-0 text-[15px] font-bold leading-tight tracking-tight text-white max-md:text-[13px]">
+              {asset}
+            </h3>
+            {sideChip}
+            {statusChip}
+          </div>
+          <p className="text-[11px] font-medium text-zinc-500 max-md:text-[9px]">{name}</p>
+        </div>
+        <p className="col-start-2 row-start-2 mt-2 text-[12px] font-semibold tabular-nums text-zinc-300 max-md:mt-1.5 max-md:text-[9px] max-md:leading-tight">
+          {formatFiat(offer.min_limit, fiat)} – {formatFiat(offer.max_limit, fiat)}
+        </p>
+        <div className="col-start-2 row-start-3 mt-1.5 flex flex-wrap items-center gap-1.5 max-md:mt-1 max-md:gap-1">
+          <span
+            className="inline-flex w-fit shrink-0 items-baseline gap-0.5 rounded-md border border-white/[0.06] bg-[#0a0e16]/80 px-2 py-1 tabular-nums shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-white/[0.04] max-md:px-1.5 max-md:py-0.5"
+            title={`${unitPrice} ${fiat} per 1 ${asset}`}
+          >
+            <span className="text-[17px] font-bold leading-none tracking-tight text-white max-md:text-[12px]">
+              {unitPrice}
+            </span>
+            <span className="pb-px text-[10px] font-semibold uppercase tracking-wide text-zinc-500 max-md:text-[8px]">
+              /{fiat.toLowerCase()}
+            </span>
+          </span>
+          <RateVsMpBadge ratePct={ratePct} />
+        </div>
+      </div>
 
-        <StripValue className="min-w-0 gap-2.5">
-          <p className="shrink-0 text-[15px] font-extrabold uppercase tracking-[0.08em] text-[#F5E6B3]">{asset}</p>
-          {statusChip}
-        </StripValue>
+      {/* Col 2 — note (desktop) */}
+      <div
+        className="hidden md:flex md:min-h-[4.75rem] md:w-full md:flex-col md:px-3"
+        title={offer.advert_message ?? undefined}
+      >
+        <p className={DETAIL_LABEL}>Note</p>
+        <RowEditableNote
+          value={offer.advert_message}
+          onCommit={async (advert_message) => {
+            await persist({ advert_message });
+          }}
+        />
+      </div>
 
-        {rateFieldDesktop}
-        {limitFieldDesktop}
-        <StripValue>{payFieldDesktop}</StripValue>
-        {noteFieldDesktop}
-        {actions}
-      </article>
-    </>
+      {/* Col 3 — payment */}
+      <OfferDetailCol
+        label="Payment"
+        mobileLabel="Method"
+        className={`max-md:col-start-1 max-md:row-start-2 md:col-start-3 md:row-start-auto ${DETAIL_GAP}`}
+      >
+        <p className={PAYMENT_METHOD_CLASS} title={methodsDisplay.title || methodsDisplay.display}>
+          {methodsDisplay.display}
+        </p>
+      </OfferDetailCol>
+
+      {/* Col 4 — rate */}
+      <OfferDetailCol
+        label="Rate"
+        mobileLabel="Rate"
+        className={`max-md:col-start-2 max-md:row-start-2 md:col-start-4 md:row-start-auto ${DETAIL_GAP}`}
+      >
+        <RowEditableNumber
+          label="Rate"
+          value={offer.rate_percentage}
+          suffix="%"
+          onCommit={async (n) => {
+            await persist({ rate_percentage: n });
+          }}
+        />
+      </OfferDetailCol>
+
+      {/* Col 5 — limits */}
+      <OfferDetailCol
+        label={`Limits (${fiat})`}
+        mobileLabel="Limits"
+        className={`max-md:col-start-3 max-md:row-start-2 md:col-start-5 md:row-start-auto md:-ml-1 md:min-w-[14rem] md:pr-3 ${DETAIL_GAP}`}
+      >
+        <div className="flex w-full min-w-0 flex-wrap items-baseline gap-x-5 gap-y-1 max-md:gap-x-3">
+          <div className="flex min-w-0 items-baseline gap-1.5">
+            <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Min</span>
+            <RowEditableNumber
+              label="Min limit"
+              value={offer.min_limit}
+              inline
+              onCommit={async (min) => {
+                if (min > offer.max_limit) return;
+                await persist({ min_limit: min });
+              }}
+              className="text-[13px] font-bold tabular-nums text-zinc-200 max-md:text-[10px]"
+            />
+          </div>
+          <div className="flex min-w-0 items-baseline gap-1.5">
+            <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Max</span>
+            <RowEditableNumber
+              label="Max limit"
+              value={offer.max_limit}
+              inline
+              onCommit={async (max) => {
+                if (max < offer.min_limit) return;
+                await persist({ max_limit: max });
+              }}
+              className="text-[13px] font-bold tabular-nums text-zinc-300 max-md:text-[10px]"
+            />
+          </div>
+        </div>
+      </OfferDetailCol>
+
+      {/* Col 7 — actions (col 6 is flexible spacer) */}
+      <div className="flex min-w-0 flex-col items-stretch max-md:col-start-4 max-md:row-start-2 max-md:justify-center md:col-start-7 md:row-start-auto md:items-end md:justify-center md:justify-self-end md:pl-2">
+        <p className={`${DETAIL_LABEL} hidden md:block`} aria-hidden>
+          &nbsp;
+        </p>
+        <div className="max-md:mt-0 md:mt-1.5">
+          <OfferActionButtons
+            offerId={offer.id}
+            isActive={isActive}
+            onToggleActive={onToggleActive}
+            onDelete={onDelete}
+          />
+        </div>
+      </div>
+    </article>
   );
 }

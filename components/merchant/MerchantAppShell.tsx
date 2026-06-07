@@ -5,7 +5,26 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { ArrowRight, Bell, CheckCircle2, LayoutDashboard, PackagePlus, Shield, Store, UserRound, Zap } from "lucide-react";
+import {
+  ArrowRight,
+  Bell,
+  CheckCircle2,
+  LayoutDashboard,
+  PackagePlus,
+  Shield,
+  Store,
+  UserRound,
+  Zap,
+} from "lucide-react";
+
+import {
+  MERCHANT_BG,
+  MERCHANT_CARD,
+  MERCHANT_GHOST_BTN,
+  MERCHANT_GOLD,
+  MERCHANT_HERO_GRADIENT,
+  MERCHANT_MUTED,
+} from "@/components/merchant/merchantStyles";
 
 function isNavActive(pathname: string | null, href: string): boolean {
   if (!pathname) return false;
@@ -18,20 +37,20 @@ function navLinkClass(href: string, pathname: string | null): string {
   const base =
     "flex items-center gap-3 rounded-xl border px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] transition sm:text-[13px]";
   return active
-    ? `${base} border-[#D4AF37]/50 bg-black/45 text-[#F5E6B3] ring-1 ring-[#D4AF37]/35`
-    : `${base} border-white/10 bg-black/25 text-zinc-400 hover:border-[#D4AF37]/25 hover:text-[#F5E6B3]`;
+    ? `${base} border-[#D4AF37]/40 bg-[#D4AF37]/[0.08] text-[#F5E6B3] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] ring-1 ring-[#D4AF37]/25`
+    : `${base} border-white/[0.06] bg-white/[0.02] text-zinc-400 hover:border-[#D4AF37]/25 hover:bg-white/[0.04] hover:text-[#F5E6B3]`;
 }
 
-/** Compact pill for the horizontal merchant rail (no icons). */
 function merchantMobileRailClass(href: string, pathname: string | null): string {
   const active = isNavActive(pathname, href);
-  const base = "rounded-lg border px-3.5 py-2.5 text-[11px] font-bold uppercase tracking-wide transition";
+  const base =
+    "shrink-0 rounded-xl border px-3.5 py-2.5 text-[11px] font-bold uppercase tracking-wide transition";
   return active
-    ? `${base} border-[#D4AF37]/50 bg-black/45 text-[#F5E6B3] ring-1 ring-[#D4AF37]/35`
-    : `${base} border-white/10 bg-black/25 text-zinc-400 hover:border-[#D4AF37]/25 hover:text-[#F5E6B3]`;
+    ? `${base} border-[#D4AF37]/40 bg-[#D4AF37]/10 text-[#F5E6B3] ring-1 ring-[#D4AF37]/20`
+    : `${base} border-white/[0.06] bg-white/[0.02] text-zinc-500 hover:border-[#D4AF37]/25 hover:text-zinc-200`;
 }
 
-const iconCls = "h-[18px] w-[18px] shrink-0 text-[#D4AF37]/85";
+const iconCls = "h-[18px] w-[18px] shrink-0 text-[#D4AF37]/90";
 
 const MERCHANT_MOBILE_NAV: { href: string; label: string }[] = [
   { href: "/merchant", label: "Dashboard" },
@@ -49,7 +68,6 @@ export function MerchantAppShell({
   merchantStatus,
 }: {
   children: ReactNode;
-  /** e.g. "Console" → rendered as Merchant · Console */
   heading?: string;
   description?: string;
   merchantStatus?: string | null;
@@ -58,46 +76,41 @@ export function MerchantAppShell({
   const canTrade = merchantStatus === "active";
 
   return (
-    <div className="min-h-screen bg-[#03060c] text-white lg:h-[100dvh] lg:overflow-hidden">
+    <div className="min-h-screen text-white lg:h-[100dvh] lg:overflow-hidden" style={{ backgroundColor: MERCHANT_BG }}>
       <div className="flex min-h-screen min-w-0 flex-col lg:h-full lg:min-h-0 lg:flex-row lg:overflow-hidden">
         <nav
           aria-label="Merchant shortcuts"
-          className="sticky top-0 z-40 flex shrink-0 gap-2 overflow-x-auto border-b border-[#D4AF37]/15 bg-[#05080F]/95 px-3 pb-3 pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-md [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden"
+          className="sticky top-0 z-40 flex shrink-0 gap-2 overflow-x-auto border-b border-white/[0.06] bg-[rgba(8,12,20,0.92)] px-3 pb-3 pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-xl [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden"
         >
           {(canTrade ? MERCHANT_MOBILE_NAV : MERCHANT_MOBILE_NAV.filter((n) => n.href === "/merchant" || n.href === "/merchant/profile")).map(({ href, label }) => (
-            <Link
-              key={href}
-              href={href}
-              className={`shrink-0 ${merchantMobileRailClass(href, pathname)}`}
-            >
+            <Link key={href} href={href} className={merchantMobileRailClass(href, pathname)}>
               {label}
             </Link>
           ))}
         </nav>
 
-        <div className="flex flex-wrap items-center justify-center gap-2 border-b border-white/[0.07] bg-black/35 px-3 py-2.5 lg:hidden">
-          <Link
-            href="/dashboard"
-            className="rounded-full border border-white/10 px-3 py-1.5 text-[11px] font-semibold text-zinc-300 transition hover:border-[#D4AF37]/35 hover:text-[#F5E6B3]"
-          >
+        <div className="flex flex-wrap items-center justify-center gap-2 border-b border-white/[0.06] bg-[rgba(8,12,20,0.55)] px-3 py-2.5 lg:hidden">
+          <Link href="/dashboard" className={MERCHANT_GHOST_BTN}>
             Investor dashboard
           </Link>
           <Link
             href="/p2p"
-            className="rounded-full border border-[#D4AF37]/25 bg-[#D4AF37]/10 px-3 py-1.5 text-[11px] font-semibold text-[#F5E6B3] transition hover:bg-[#D4AF37]/15"
+            className="inline-flex items-center justify-center rounded-full border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-3.5 py-1.5 text-[11px] font-semibold text-[#F5E6B3] transition hover:bg-[#D4AF37]/15"
           >
             P2P marketplace
           </Link>
         </div>
 
-        <aside className="hidden w-full shrink-0 flex-col gap-6 border-b border-[#D4AF37]/15 bg-[#05080F]/95 p-5 lg:sticky lg:top-0 lg:flex lg:h-[100dvh] lg:max-h-[100dvh] lg:max-w-[380px] lg:overflow-y-auto lg:overscroll-contain lg:border-b-0 lg:border-r xl:max-w-[430px]">
+        <aside className="hidden w-full shrink-0 flex-col gap-6 border-b border-white/[0.06] bg-[rgba(8,12,20,0.65)] p-5 backdrop-blur-md lg:sticky lg:top-0 lg:flex lg:h-[100dvh] lg:max-h-[100dvh] lg:max-w-[380px] lg:overflow-y-auto lg:overscroll-contain lg:border-b-0 lg:border-r xl:max-w-[430px]">
           <Link href="/merchant" className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#D4AF37]/30 bg-black/35">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#D4AF37]/30 bg-[#D4AF37]/10 shadow-[0_4px_20px_rgba(212,175,55,0.12)]">
               <Store className="text-[#D4AF37]" size={22} aria-hidden />
             </div>
             <div className="min-w-0">
               <p className="truncate text-lg font-bold tracking-tight text-[#F5E6B3]">Merchant</p>
-              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-500">P2P console</p>
+              <p className="text-[11px] font-medium uppercase tracking-[0.14em]" style={{ color: MERCHANT_MUTED }}>
+                P2P console
+              </p>
             </div>
           </Link>
 
@@ -132,7 +145,7 @@ export function MerchantAppShell({
             </Link>
           </nav>
 
-          <div className="rounded-xl border border-white/10 bg-black/35 p-4">
+          <div className={`${MERCHANT_CARD} p-4`}>
             <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-[#D4AF37]/90">Investor hub</p>
             <Link
               href="/dashboard"
@@ -152,26 +165,34 @@ export function MerchantAppShell({
               <ArrowRight className="h-4 w-4 shrink-0 text-zinc-600" aria-hidden />
             </Link>
           </div>
-
-          <p className="text-[10px] uppercase tracking-[0.12em] leading-relaxed text-zinc-600">
-            Same chrome as investor P2P — sidebar rail, dark canvas, gold accent.
-          </p>
         </aside>
 
-        <main className="min-h-0 min-w-0 flex-1 px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-5 sm:px-6 sm:pb-8 sm:pt-8 lg:overflow-y-auto lg:overscroll-contain">
-          {(heading !== undefined || description !== undefined) && (
-            <header className="mb-8 border-b border-[#D4AF37]/10 pb-5">
-              {heading !== undefined && heading !== "" ? (
-                <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
-                  <span className="text-[#D4AF37]">Merchant</span>
-                  <span className="text-zinc-500"> · </span>
-                  <span>{heading}</span>
-                </h1>
-              ) : null}
-              {description ? <p className="mt-2 max-w-2xl text-sm text-zinc-500">{description}</p> : null}
-            </header>
-          )}
-          {children}
+        <main className="relative min-h-0 min-w-0 flex-1 lg:overflow-y-auto lg:overscroll-contain">
+          <div className={MERCHANT_HERO_GRADIENT} aria-hidden />
+          <div className="relative mx-auto max-w-[1400px] px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:pb-8 sm:pt-4">
+            {(heading !== undefined || description !== undefined) && (
+              <header className="mb-6 border-b border-white/[0.06] pb-5 lg:mb-8">
+                {heading !== undefined && heading !== "" ? (
+                  <>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#D4AF37]/90">
+                      Merchant workspace
+                    </p>
+                    <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-[1.75rem] lg:text-3xl">
+                      <span style={{ color: MERCHANT_GOLD }}>Merchant</span>
+                      <span className="text-zinc-500"> · </span>
+                      <span>{heading}</span>
+                    </h1>
+                  </>
+                ) : null}
+                {description ? (
+                  <p className="mt-2 hidden max-w-2xl text-sm leading-relaxed lg:block" style={{ color: MERCHANT_MUTED }}>
+                    {description}
+                  </p>
+                ) : null}
+              </header>
+            )}
+            {children}
+          </div>
         </main>
       </div>
     </div>

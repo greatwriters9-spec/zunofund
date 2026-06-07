@@ -42,15 +42,25 @@ export function formatUsdLocale(
   return `$${formatMoneyLocale(value)}`;
 }
 
+function formatUsdInText(value: number): string {
+  return `$${toMoneyNumber(value).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
 /** Normalize legacy notification/email copy like `$50.00000000` → `$50.00`. */
 export function formatUsdAmountsInText(text: string): string {
   return text.replace(
-    /\$([0-9]{1,3}(?:,[0-9]{3})*|[0-9]+)(\.[0-9]+)?/g,
-    (match, intPart: string, decPart?: string) => {
-      const raw = `${intPart.replace(/,/g, "")}${decPart ?? ""}`;
-      const n = Number(raw);
+    /\$[0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]+)+|\$[0-9]+(?:\.[0-9]+)*/g,
+    (match) => {
+      const raw = match.slice(1).replace(/,/g, "");
+      const parts = raw.split(".");
+      const intPart = parts[0] ?? "0";
+      const fracPart = parts.slice(1).join("");
+      const n = Number(fracPart ? `${intPart}.${fracPart}` : intPart);
       if (!Number.isFinite(n)) return match;
-      return formatUsdAmount(n);
+      return formatUsdInText(n);
     },
   );
 }

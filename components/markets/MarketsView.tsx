@@ -8,6 +8,7 @@ import { ArrowLeft, RefreshCw, Search } from "lucide-react";
 import { MarketRowSkeleton } from "@/components/markets/MarketRowSkeleton";
 import { MarketSection } from "@/components/markets/MarketSection";
 import { MarketTickerRow } from "@/components/markets/MarketTickerRow";
+import { DASHBOARD_CARD, DASHBOARD_MUTED } from "@/components/dashboard/premium/dashboardStyles";
 import { readMarketFavorites, toggleMarketFavorite } from "@/lib/markets/favorites";
 import {
   DEFAULT_MARKET_SYMBOLS,
@@ -17,6 +18,9 @@ import {
 } from "@/lib/markets/symbols";
 import { useMarketTickers } from "@/lib/markets/useMarketTickers";
 import type { MarketTicker } from "@/lib/markets/types";
+
+const fieldClass =
+  "w-full rounded-xl border border-white/[0.08] bg-white/[0.03] py-2.5 pl-10 pr-4 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-[#D4AF37]/40 focus:ring-1 focus:ring-[#D4AF37]/20";
 
 function filterTickers(tickers: MarketTicker[], query: string): MarketTicker[] {
   const q = query.trim().toLowerCase();
@@ -61,25 +65,39 @@ export function MarketsView() {
   const showSections = !search.trim();
 
   return (
-    <div className="min-h-screen bg-[#05080F] text-white">
-      <div className="mx-auto max-w-3xl lg:max-w-4xl">
-        <header className="sticky top-0 z-30 border-b border-zinc-800/90 bg-[#05080F]/95 px-4 py-4 backdrop-blur-md sm:px-6">
+    <div className="relative min-h-full bg-[#05070D] text-white">
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(ellipse_70%_50%_at_50%_-20%,rgba(212,175,55,0.08)_0%,transparent_70%)]"
+        aria-hidden
+      />
+
+      <div className="relative mx-auto max-w-3xl lg:max-w-4xl">
+        <header className="sticky top-0 z-30 border-b border-white/[0.06] bg-[rgba(5,7,13,0.92)] px-4 py-4 backdrop-blur-xl sm:px-6">
           <div className="flex items-center justify-between gap-3">
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-2 text-sm font-medium text-yellow-500 transition hover:text-yellow-400"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 transition hover:text-[#D4AF37]"
             >
-              <ArrowLeft size={16} aria-hidden />
-              Markets
+              <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
+              Dashboard
             </Link>
             <button
               type="button"
               onClick={() => void refresh()}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-800 text-zinc-400 transition hover:border-yellow-500/40 hover:text-yellow-500"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-[#8A93A5] transition hover:border-[#D4AF37]/35 hover:text-[#D4AF37]"
               aria-label="Refresh markets"
             >
               <RefreshCw size={16} aria-hidden />
             </button>
+          </div>
+
+          <div className="mt-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#D4AF37]/90">
+              Live markets
+            </p>
+            <h1 className="mt-1 text-xl font-semibold tracking-tight text-white sm:text-2xl">
+              Markets
+            </h1>
           </div>
 
           <div className="relative mt-4">
@@ -92,24 +110,26 @@ export function MarketsView() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search coin or pair"
-              className="w-full rounded-xl border border-zinc-800/90 bg-zinc-950/60 py-2.5 pl-10 pr-4 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-yellow-500/40 focus:ring-1 focus:ring-yellow-500/25"
+              className={fieldClass}
             />
           </div>
 
           {error && tickers.length === 0 ? (
-            <p className="mt-2 text-xs text-amber-400/90">{error}</p>
+            <p className="mt-2 text-xs text-[#D4AF37]">{error}</p>
           ) : stale ? (
-            <p className="mt-2 text-xs text-amber-400/90">
+            <p className="mt-2 text-xs text-[#D4AF37]">
               {error ?? "Showing last cached prices — retrying…"}
             </p>
           ) : (
-            <p className="mt-2 text-[11px] text-zinc-600">Live · Binance · updates every 5s</p>
+            <p className="mt-2 text-[11px]" style={{ color: DASHBOARD_MUTED }}>
+              Live · Binance · updates every 5s
+            </p>
           )}
         </header>
 
         <div className="px-0 pb-8 pt-4 sm:px-2">
           {loading && tickers.length === 0 ? (
-            <div className="overflow-hidden rounded-xl border border-zinc-800/80 bg-zinc-950/40">
+            <div className={`${DASHBOARD_CARD} overflow-hidden`}>
               {Array.from({ length: 6 }).map((_, i) => (
                 <MarketRowSkeleton key={i} />
               ))}
@@ -154,10 +174,10 @@ export function MarketsView() {
               ) : null}
 
               <section>
-                <h2 className="mb-2 px-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-yellow-500/80">
+                <h2 className="mb-2 px-4 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#D4AF37]/90">
                   {search.trim() ? "Results" : "All markets"}
                 </h2>
-                <div className="overflow-hidden rounded-xl border border-zinc-800/80 bg-zinc-950/40">
+                <div className={`${DASHBOARD_CARD} overflow-hidden`}>
                   {filtered.length > 0 ? (
                     filtered.map((t) => (
                       <MarketTickerRow
@@ -168,7 +188,9 @@ export function MarketsView() {
                       />
                     ))
                   ) : (
-                    <p className="px-4 py-10 text-center text-sm text-zinc-500">No pairs match your search.</p>
+                    <p className="px-4 py-10 text-center text-sm" style={{ color: DASHBOARD_MUTED }}>
+                      No pairs match your search.
+                    </p>
                   )}
                 </div>
               </section>

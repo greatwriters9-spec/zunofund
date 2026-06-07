@@ -6,6 +6,7 @@ import { formatFiat } from "@/lib/currencies";
 import { formatUsdAmount } from "@/lib/formatMoney";
 
 import type { MerchantOrderCard } from "./merchantOrderTypes";
+import { MERCHANT_CARD, MERCHANT_MUTED, MERCHANT_SECTION_LABEL } from "@/components/merchant/merchantStyles";
 
 function sideLabel(side: string) {
   if (side === "sell_usdt") return "Merchant sells USDT (you deliver)";
@@ -52,27 +53,31 @@ export function MerchantTradesList(props: {
   const isConsole = variant === "console";
 
   const wrapTable = isConsole
-    ? "overflow-hidden rounded-xl border border-[#D4AF37]/22 bg-black/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+    ? `overflow-hidden ${MERCHANT_CARD} shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]`
     : "overflow-hidden rounded-xl border border-zinc-800";
 
   const thead = isConsole
-    ? "border-b border-white/10 bg-black/40 text-[11px] uppercase tracking-[0.12em] text-[#D4AF37]/85"
+    ? `border-b border-white/[0.06] bg-white/[0.02] ${MERCHANT_SECTION_LABEL} text-[#D4AF37]/85`
     : "border-b border-zinc-800 bg-zinc-900/80 text-xs uppercase tracking-wide text-zinc-500";
 
-  const tbody = isConsole ? "divide-y divide-white/[0.06] bg-black/25" : "divide-y divide-zinc-800 bg-zinc-950/60";
+  const tbody = isConsole ? "divide-y divide-white/[0.06] bg-transparent" : "divide-y divide-zinc-800 bg-zinc-950/60";
 
-  const rowHover = isConsole ? "hover:bg-emerald-500/[0.06]" : "hover:bg-zinc-900/50";
+  const rowHover = isConsole ? "hover:bg-[#D4AF37]/[0.04]" : "hover:bg-zinc-900/50";
 
   const linkBtn = isConsole
-    ? "rounded-xl border-2 border-[#D4AF37]/40 bg-[#D4AF37]/10 px-3 py-1.5 text-xs font-extrabold uppercase tracking-wide text-[#F5E6B3] shadow-[0_0_16px_-4px_rgba(212,175,55,0.35)] transition hover:-translate-y-px hover:bg-[#D4AF37]/20"
+    ? "rounded-xl border border-[#D4AF37]/35 bg-[#D4AF37]/10 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-[#F5E6B3] shadow-[0_0_16px_-4px_rgba(212,175,55,0.3)] transition hover:-translate-y-px hover:bg-[#D4AF37]/18"
     : "rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-3 py-1.5 text-xs font-semibold text-yellow-200 hover:bg-yellow-500/20";
 
   const emptyBox = isConsole
-    ? "rounded-xl border border-dashed border-emerald-500/25 bg-black/25 px-4 py-8 text-center text-sm text-zinc-500"
+    ? `${MERCHANT_CARD} border-dashed px-4 py-8 text-center text-sm`
     : "rounded-xl border border-zinc-800 bg-zinc-900/40 px-4 py-8 text-center text-sm text-zinc-500";
 
   if (orders.length === 0) {
-    return <p className={emptyBox}>{emptyMessage}</p>;
+    return (
+      <p className={emptyBox} style={isConsole ? { color: MERCHANT_MUTED } : undefined}>
+        {emptyMessage}
+      </p>
+    );
   }
 
   return (
@@ -162,7 +167,7 @@ export function MerchantTradesList(props: {
             key={o.id}
             className={
               isConsole
-                ? "relative isolate overflow-hidden rounded-xl border border-emerald-500/20 bg-black/35 p-4 shadow-[0_0_40px_-14px_rgba(16,185,129,0.25)] ring-1 ring-emerald-500/10"
+                ? `relative isolate overflow-hidden ${MERCHANT_CARD} p-4 ring-1 ring-[#D4AF37]/10`
                 : "rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 shadow-sm shadow-black/20"
             }
           >

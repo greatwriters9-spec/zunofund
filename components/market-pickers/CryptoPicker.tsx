@@ -1,13 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { ChevronDown, ChevronRight, Pencil } from "lucide-react";
 
+import { CryptocurrencyDropdown } from "@/components/market-pickers/CryptocurrencyDropdown";
 import { CryptocurrencySheet } from "@/components/market-pickers/CryptocurrencySheet";
 import { CryptoIcon } from "@/components/market-pickers/CryptoIcon";
 import {
   CRYPTO_ASSET_CATALOG,
   findCryptoLabel,
+  type CryptoAssetItem,
 } from "@/components/market-pickers/cryptoCatalog";
 
 type CryptoPickerProps = {
@@ -20,6 +23,8 @@ type CryptoPickerProps = {
   className?: string;
   onOpenChange?: (open: boolean) => void;
   sheetOverlayClassName?: string;
+  assetList?: CryptoAssetItem[];
+  forceSelectable?: boolean;
   /** Override trigger label (e.g. USDT · Tether in toolbar). */
   displayLabel?: string;
 };
@@ -34,17 +39,20 @@ export function CryptoPicker({
   className = "",
   onOpenChange,
   sheetOverlayClassName = "",
+  assetList,
+  forceSelectable = false,
   displayLabel,
 }: CryptoPickerProps) {
   const [open, setOpen] = useState(false);
+  const useToolbarDropdown = variant === "toolbar";
 
   const label =
     displayLabel ??
     (!value.trim() ? "Cryptocurrency" : findCryptoLabel(value, context));
   const isPlaceholder = !value.trim();
+  const catalog = assetList ?? CRYPTO_ASSET_CATALOG;
   const selectedAsset =
-    CRYPTO_ASSET_CATALOG.find((a) => a.code === value) ??
-    CRYPTO_ASSET_CATALOG.find((a) => a.code === "ALL");
+    catalog.find((a) => a.code === value) ?? catalog.find((a) => a.code === "ALL");
 
   function setSheetOpen(next: boolean) {
     setOpen(next);
@@ -57,8 +65,8 @@ export function CryptoPicker({
         type="button"
         className={`flex min-h-[38px] min-w-[6.25rem] items-center justify-between gap-1 rounded-xl border border-white/[0.1] bg-black/35 px-2 py-1.5 text-left text-[11px] font-semibold text-[#F5E6B3] ring-1 ring-white/[0.04] hover:border-[#D4AF37]/35 sm:min-h-[42px] sm:min-w-[10.5rem] sm:gap-2 sm:px-3 sm:py-2 sm:text-[12px] ${className}`}
         aria-expanded={open}
-        aria-haspopup="dialog"
-        onClick={() => setSheetOpen(true)}
+        aria-haspopup="listbox"
+        onClick={() => setSheetOpen(!open)}
       >
         <span className="truncate">{label}</span>
         <ChevronDown className="h-4 w-4 shrink-0 opacity-75" aria-hidden />
@@ -100,18 +108,42 @@ export function CryptoPicker({
       </div>
     );
 
+  const sheet =
+    typeof document !== "undefined"
+      ? createPortal(
+          <CryptocurrencySheet
+            open={open && !useToolbarDropdown}
+            selectedCode={value}
+            context={context}
+            allowAllCrypto={allowAllCrypto}
+            onClose={() => setSheetOpen(false)}
+            onApply={(code) => onChange(code)}
+            overlayClassName={sheetOverlayClassName}
+            assetList={assetList}
+            forceSelectable={forceSelectable}
+            zIndexClass="z-[300]"
+          />,
+          document.body,
+        )
+      : null;
+
   return (
-    <>
+    <div className={`relative ${open && useToolbarDropdown ? "z-[110]" : ""}`}>
       {trigger}
-      <CryptocurrencySheet
-        open={open}
-        selectedCode={value}
-        context={context}
-        allowAllCrypto={allowAllCrypto}
-        onClose={() => setSheetOpen(false)}
-        onApply={(code) => onChange(code)}
-        overlayClassName={sheetOverlayClassName}
-      />
-    </>
+      {useToolbarDropdown ? (
+        <CryptocurrencyDropdown
+          open={open}
+          selectedCode={value}
+          context={context}
+          allowAllCrypto={allowAllCrypto}
+          assetList={assetList}
+          forceSelectable={forceSelectable}
+          onClose={() => setSheetOpen(false)}
+          onSelect={onChange}
+        />
+      ) : (
+        sheet
+      )}
+    </div>
   );
 }

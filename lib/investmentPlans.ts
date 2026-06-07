@@ -18,6 +18,9 @@ const ORDER: Record<CanonicalInvestmentPlan, number> = {
   Elite: 3,
 };
 
+/** Minimum qualifying principal (USD) before daily interest accrues. P2P remains available below this. */
+export const MIN_INTEREST_QUALIFYING_USD = 100;
+
 /** Map free-text DB values ("Starter Level", legacy "starter", etc.) to a canonical slug. */
 export function normalizeInvestmentPlan(
   raw: string | null | undefined,
@@ -50,10 +53,10 @@ export const PLAN_DAILY_COMPOUND_PERCENT: Record<
   CanonicalInvestmentPlan,
   number
 > = {
-  Starter: 5,
-  Growth: 7,
-  Pro: 10,
-  Elite: 15,
+  Starter: 10,
+  Growth: 20,
+  Pro: 30,
+  Elite: 50,
 };
 
 export function dailyCompoundLabel(key: CanonicalInvestmentPlan): string {
@@ -68,14 +71,14 @@ export const PLAN_DEPOSIT_RANGE_USD: Record<
   CanonicalInvestmentPlan,
   { min: number; max: number | null }
 > = {
-  Starter: { min: 20, max: 500 },
+  Starter: { min: 100, max: 500 },
   Growth: { min: 500, max: 1500 },
   Pro: { min: 1500, max: 5000 },
   Elite: { min: 5000, max: null },
 };
 
-/** Minimum single deposit request (global); DB trigger enforces the same floor. */
-export const MIN_PLATFORM_DEPOSIT_USD = 20;
+/** Minimum single crypto deposit request (global); DB trigger enforces the same floor. */
+export const MIN_PLATFORM_DEPOSIT_USD = 100;
 
 /** Highest tier whose bracket contains `usd` (matches SQL Elite→Pro→Growth→Starter scan). */
 export function canonicalTierFromQualifyingPrincipalUsd(
@@ -86,6 +89,11 @@ export function canonicalTierFromQualifyingPrincipalUsd(
   if (x >= 1500) return "Pro";
   if (x >= 500) return "Growth";
   return "Starter";
+}
+
+export function qualifiesForDailyInterest(qualifyingPrincipalUsd: number): boolean {
+  const x = Number.isFinite(qualifyingPrincipalUsd) ? qualifyingPrincipalUsd : 0;
+  return x >= MIN_INTEREST_QUALIFYING_USD;
 }
 
 export function formatDepositRangeDescription(

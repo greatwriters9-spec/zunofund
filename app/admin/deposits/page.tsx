@@ -15,6 +15,7 @@ interface Deposit {
   referral_code?: string | null;
   status: string;
   created_at: string;
+  admin_note?: string | null;
 }
 
 export default function AdminDepositsPage() {
@@ -22,10 +23,11 @@ export default function AdminDepositsPage() {
 
   const [deposits, setDeposits] = useState<Deposit[]>([]);
   const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ kind: "success" | "error"; text: string } | null>(null);
 
   useEffect(() => {
-    fetchDeposits();
+    void fetchDeposits();
   }, []);
 
   async function fetchDeposits() {
@@ -44,25 +46,46 @@ export default function AdminDepositsPage() {
   }
 
   async function approveDeposit(id: string) {
+    setBusyId(id);
     setFeedback(null);
 
     const { error } = await supabase.rpc("approve_deposit", {
       p_deposit_id: id,
     });
+    setBusyId(null);
     if (error) {
       setFeedback({ kind: "error", text: formatSupabaseError(error) });
       return;
     }
     setFeedback({ kind: "success", text: "Deposit approved successfully." });
 
-    fetchDeposits();
+    void fetchDeposits();
+  }
+
+  async function rejectDeposit(id: string) {
+    const note = window.prompt("Optional note for the investor (leave blank to skip):");
+    if (note === null) return;
+
+    setBusyId(id);
+    setFeedback(null);
+
+    const { error } = await supabase.rpc("reject_deposit", {
+      p_deposit_id: id,
+      p_admin_note: note.trim() || null,
+    });
+    setBusyId(null);
+    if (error) {
+      setFeedback({ kind: "error", text: formatSupabaseError(error) });
+      return;
+    }
+    setFeedback({ kind: "success", text: "Deposit rejected." });
+
+    void fetchDeposits();
   }
 
   return (
-    <div className="min-h-screen text-white p-6">
-      <h1 className="text-4xl font-bold text-yellow-500 mb-8">
-        Deposit Requests
-      </h1>
+    <div className="min-h-screen p-6 text-white">
+      <h1 className="mb-8 text-4xl font-bold text-yellow-500">Deposit Requests</h1>
 
       {feedback ? (
         <div
@@ -86,29 +109,19 @@ export default function AdminDepositsPage() {
           {deposits.map((deposit) => (
             <div
               key={deposit.id}
-              className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 flex items-center justify-between"
+              className="flex items-center justify-between rounded-2xl border border-zinc-800 bg-zinc-950 p-6"
             >
               <div>
-                <p className="font-semibold text-lg">
-                  {deposit.investor_email}
-                </p>
+                <p className="text-lg font-semibold">{deposit.investor_email}</p>
 
-                <p className="text-gray-400 mt-1">
-                  Amount: {formatUsdAmount(deposit.amount)}
-                </p>
+                <p className="mt-1 text-gray-400">Amount: {formatUsdAmount(deposit.amount)}</p>
 
-                <p className="text-gray-400">
-                  TXID: {deposit.txid}
-                </p>
+                <p className="text-gray-400">TXID: {deposit.txid}</p>
 
-                <p className="text-gray-400">
-                  Method: {deposit.payment_method}
-                </p>
+                <p className="text-gray-400">Method: {deposit.payment_method}</p>
 
                 {deposit.deposit_network ? (
-                  <p className="text-gray-400">
-                    Network: {deposit.deposit_network}
-                  </p>
+                  <p className="text-gray-400">Network: {deposit.deposit_network}</p>
                 ) : null}
 
                 {deposit.deposit_wallet_address ? (
@@ -124,27 +137,43 @@ export default function AdminDepositsPage() {
                   </p>
                 ) : null}
 
+                {deposit.admin_note?.trim() ? (
+                  <p className="mt-2 text-sm text-zinc-500">Note: {deposit.admin_note.trim()}</p>
+                ) : null}
+
                 <p
                   className={`mt-2 font-medium ${
                     deposit.status === "approved"
                       ? "text-green-500"
                       : deposit.status === "pending"
-                      ? "text-yellow-500"
-                      : "text-red-500"
+                        ? "text-yellow-500"
+                        : "text-red-500"
                   }`}
                 >
                   Status: {deposit.status}
                 </p>
               </div>
 
-              {deposit.status !== "approved" && (
-                <button
-                  onClick={() => approveDeposit(deposit.id)}
-                  className="bg-green-600 hover:bg-green-700 transition px-6 py-3 rounded-xl font-semibold"
-                >
-                  Approve
-                </button>
-              )}
+              {deposit.status === "pending" ? (
+                <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+                  <button
+                    type="button"
+                    disabled={busyId !== null}
+                    onClick={() => void approveDeposit(deposit.id)}
+                    className="rounded-xl bg-green-600 px-6 py-3 font-semibold transition hover:bg-green-700 disabled:opacity-50"
+                  >
+                    {busyId === deposit.id ? "…" : "Approve"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busyId !== null}
+                    onClick={() => void rejectDeposit(deposit.id)}
+                    className="rounded-xl border border-red-500/45 bg-red-500/10 px-6 py-3 font-semibold text-red-200 transition hover:bg-red-500/20 disabled:opacity-50"
+                  >
+                    Reject
+                  </button>
+                </div>
+              ) : null}
             </div>
           ))}
         </div>

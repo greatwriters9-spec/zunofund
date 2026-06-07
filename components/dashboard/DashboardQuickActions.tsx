@@ -6,7 +6,7 @@ import { Headset, Star } from "lucide-react";
 import type { ReactNode } from "react";
 
 const QUICK_ACTION_LABEL_CLASS =
-  "w-full text-center text-[9px] font-normal leading-[1.15] tracking-tight text-zinc-100";
+  "w-full text-center text-[9px] font-normal leading-[1.15] tracking-tight text-[#8A93A5]";
 const QUICK_ACTION_ICON_CLASS = "h-4 w-4 shrink-0";
 const ICON_STROKE = 2.25;
 const ICON_BASE = "stroke-zinc-100";
@@ -85,10 +85,10 @@ type TileProps = {
 };
 
 function QuickActionTile({ label, icon: Icon, iconNode, active, onClick, href }: TileProps) {
-  const boxClass = `flex h-11 w-11 items-center justify-center rounded-xl border transition sm:h-12 sm:w-12 ${
+  const boxClass = `flex h-11 w-11 items-center justify-center rounded-2xl border transition sm:h-12 sm:w-12 ${
     active
-      ? "border-yellow-500/50 bg-yellow-500/15 ring-1 ring-yellow-500/30"
-      : "border-zinc-800/90 bg-zinc-950/50 hover:border-yellow-500/40 hover:bg-zinc-900/80"
+      ? "border-[#D4AF37]/40 bg-[#D4AF37]/10 shadow-[0_0_20px_rgba(212,175,55,0.12)] ring-1 ring-[#D4AF37]/25"
+      : "border-white/[0.06] bg-[rgba(12,17,28,0.85)] backdrop-blur-md hover:border-[#D4AF37]/30 hover:bg-white/[0.04]"
   }`;
 
   const inner =
@@ -108,7 +108,7 @@ function QuickActionTile({ label, icon: Icon, iconNode, active, onClick, href }:
           {inner}
         </button>
       )}
-      <span className={QUICK_ACTION_LABEL_CLASS}>{label}</span>
+      <span className={`${QUICK_ACTION_LABEL_CLASS}${active ? " text-[#D4AF37]" : ""}`}>{label}</span>
     </div>
   );
 }

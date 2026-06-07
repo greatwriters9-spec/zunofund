@@ -1,53 +1,96 @@
 "use client";
 
+import Link from "next/link";
+import { useCallback } from "react";
+import { ArrowRight, ChevronRight } from "lucide-react";
+import { SiBitcoin, SiEthereum, SiLitecoin, SiTether } from "react-icons/si";
+
+import { MobileLandingP2PSection } from "@/components/landing/mobile/MobileLandingP2PSection";
 import {
-  MobileLandingStickyNav,
+  MOBILE_LANDING_TABS,
+  MOBILE_CRYPTO_ASSETS,
+  type MobileLandingTabId,
+} from "@/components/landing/mobile/mobileLandingData";
+import {
+  scrollToMobileLandingSection,
   useMobileLandingActiveTab,
 } from "@/components/landing/mobile/MobileLandingStickyNav";
-import { MobileLandingP2PSection } from "@/components/landing/mobile/MobileLandingP2PSection";
+import { signupHref } from "@/lib/authLinks";
+
+const CRYPTO_ICONS = {
+  BTC: SiBitcoin,
+  ETH: SiEthereum,
+  USDT: SiTether,
+  LTC: SiLitecoin,
+} as const;
 
 export function MobileLandingExperience() {
   const [activeTab, setActiveTab] = useMobileLandingActiveTab();
+
+  const handleTabChange = useCallback(
+    (tab: MobileLandingTabId) => {
+      setActiveTab(tab);
+      const target = MOBILE_LANDING_TABS.find((item) => item.id === tab);
+      if (target) scrollToMobileLandingSection(target.targetId);
+    },
+    [setActiveTab],
+  );
 
   return (
     <div className="relative lg:hidden">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-[min(85vh,640px)] bg-[radial-gradient(ellipse_90%_55%_at_50%_0%,rgba(212,175,55,0.14)_0%,transparent_58%)]"
+        className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(ellipse_90%_60%_at_50%_0%,rgba(212,175,55,0.12)_0%,transparent_70%)]"
       />
 
-      <div className="relative mx-auto max-w-lg px-4 pb-2 pt-2">
-        <article
-          className="relative overflow-hidden rounded-[28px] border border-white/[0.1] bg-[linear-gradient(180deg,rgba(28,32,42,0.98)_0%,rgba(12,16,26,0.99)_42%,rgba(8,11,18,1)_100%)] shadow-[0_32px_80px_-24px_rgba(0,0,0,0.8),0_0_0_1px_rgba(212,175,55,0.08),0_20px_50px_-30px_rgba(212,175,55,0.25)]"
-          aria-label="Trade crypto on Zuno"
-        >
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-[#D4AF37]/12 blur-3xl"
-          />
+      <section id="home" className="relative px-3 pt-10 text-center">
+        <h1 className="font-extrabold leading-[2.25] tracking-tight">
+          <span className="block text-[2.0rem] text-white">Don&apos;t Buy & Hold Crypto</span>
+          <span className="gold-gradient mt-1 block text-[1.85rem]">Invest With Zuno</span>
+          <span className="mt-6 block text-[1rem] font-semibold text-white">
+            The Future of P2P{" "}
+            <span className="text-[#D4AF37]">Digital Finance.</span>
+          </span>
+        </h1>
 
-          <header className="relative px-5 pb-2 pt-6 text-center">
-            <p className="mx-auto inline-flex items-center rounded-full border border-[#D4AF37]/30 bg-[#D4AF37]/12 px-3.5 py-1.5 text-[11px] font-semibold tracking-wide text-[#F5E6B3]">
-              Zuno · Trade. Invest. Grow.
-            </p>
-            <h1 className="mt-4 text-[1.65rem] font-bold leading-tight tracking-tight text-white">
-              Buy and Sell Crypto{" "}
-              <span className="text-[#D4AF37]">via Zuno</span>
-            </h1>
-            <MobileLandingStickyNav
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-              variant="segment"
-            />
-            <p className="mx-auto max-w-[20rem] text-sm leading-relaxed text-zinc-400">
-              Buy or sell crypto with 350+ payment options, including bank transfer, mobile money,
-              gift cards, and more.
-            </p>
-          </header>
+        <div className="mt-10 flex gap-1.5">
+          <Link
+            href={signupHref(null)}
+            className="flex flex-1 items-center justify-center gap-3.5 rounded-xl bg-[#D4AF37] py-3.5 text-sm font-bold text-black shadow-[0_0_20px_rgba(212,175,55,0.28)]"
+          >
+            Sign Up
+            <ArrowRight className="h-4 w-4" aria-hidden />
+          </Link>
+          <Link
+            href="/auth"
+            className="flex flex-1 items-center justify-center gap-1 rounded-xl border border-white/20 bg-transparent py-3.5 text-sm font-semibold text-white"
+          >
+            Explore Marketplace
+            <ChevronRight className="h-4 w-4" aria-hidden />
+          </Link>
+        </div>
 
-          <MobileLandingP2PSection embedded />
-        </article>
-      </div>
+        <div className="mt-10 flex items-center justify-center gap-6">
+          {MOBILE_CRYPTO_ASSETS.map(({ symbol, color }) => {
+            const Icon = CRYPTO_ICONS[symbol];
+            return (
+              <div key={symbol} className="flex flex-col items-center gap-1">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.03]">
+                  <Icon className="h-4 w-4" style={{ color }} aria-hidden />
+                </div>
+                <span className="text-[9px] font-medium text-zinc-400">{symbol}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        <div
+          aria-hidden
+          className="mx-auto mt-10 h-px w-[88%] bg-gradient-to-r from-transparent via-[#D4AF37]/35 to-transparent"
+        />
+      </section>
+
+      <MobileLandingP2PSection activeTab={activeTab} onTabChange={handleTabChange} />
     </div>
   );
 }

@@ -12,6 +12,8 @@ interface Withdrawal {
   payment_method: string;
   status: string;
   created_at: string;
+  merchant_order_id?: string | null;
+  admin_note?: string | null;
 }
 
 export default function AdminWithdrawalsPage() {
@@ -19,10 +21,11 @@ export default function AdminWithdrawalsPage() {
 
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ kind: "success" | "error"; text: string } | null>(null);
 
   useEffect(() => {
-    fetchWithdrawals();
+    void fetchWithdrawals();
   }, []);
 
   async function fetchWithdrawals() {
@@ -41,17 +44,16 @@ export default function AdminWithdrawalsPage() {
   }
 
   async function approveWithdrawal(id: string) {
-    const confirmApproval = confirm(
-      "Are you sure you want to approve this withdrawal?"
-    );
-
+    const confirmApproval = confirm("Are you sure you want to approve this withdrawal?");
     if (!confirmApproval) return;
 
+    setBusyId(id);
     setFeedback(null);
 
     const { error } = await supabase.rpc("approve_withdrawal", {
       p_withdrawal_id: id,
     });
+    setBusyId(null);
 
     if (error) {
       setFeedback({ kind: "error", text: formatSupabaseError(error) });
@@ -60,14 +62,35 @@ export default function AdminWithdrawalsPage() {
 
     setFeedback({ kind: "success", text: "Withdrawal approved successfully." });
 
-    fetchWithdrawals();
+    void fetchWithdrawals();
+  }
+
+  async function rejectWithdrawal(id: string) {
+    const note = window.prompt("Optional note for the investor (leave blank to skip):");
+    if (note === null) return;
+
+    setBusyId(id);
+    setFeedback(null);
+
+    const { error } = await supabase.rpc("reject_withdrawal", {
+      p_withdrawal_id: id,
+      p_admin_note: note.trim() || null,
+    });
+    setBusyId(null);
+
+    if (error) {
+      setFeedback({ kind: "error", text: formatSupabaseError(error) });
+      return;
+    }
+
+    setFeedback({ kind: "success", text: "Withdrawal rejected and funds restored." });
+
+    void fetchWithdrawals();
   }
 
   return (
-    <div className="min-h-screen text-white p-6">
-      <h1 className="text-4xl font-bold text-yellow-500 mb-8">
-        Withdrawal Requests
-      </h1>
+    <div className="min-h-screen p-6 text-white">
+      <h1 className="mb-8 text-4xl font-bold text-yellow-500">Withdrawal Requests</h1>
 
       {feedback ? (
         <div
@@ -88,51 +111,68 @@ export default function AdminWithdrawalsPage() {
         <p className="text-gray-400">No withdrawal requests found.</p>
       ) : (
         <div className="space-y-4">
-          {withdrawals.map((withdrawal) => (
-            <div
-              key={withdrawal.id}
-              className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 flex items-center justify-between"
-            >
-              <div>
-                <p className="font-semibold text-lg">
-                  {withdrawal.investor_email}
-                </p>
+          {withdrawals.map((withdrawal) => {
+            const isPending = withdrawal.status === "pending";
+            const isP2pLinked = Boolean(withdrawal.merchant_order_id);
 
-                <p className="text-gray-400 mt-1">
-                  Amount: {formatUsdAmount(withdrawal.amount)}
-                </p>
+            return (
+              <div
+                key={withdrawal.id}
+                className="flex items-center justify-between rounded-2xl border border-zinc-800 bg-zinc-950 p-6"
+              >
+                <div>
+                  <p className="text-lg font-semibold">{withdrawal.investor_email}</p>
 
-                <p className="text-gray-400">
-                  Wallet: {withdrawal.wallet_address}
-                </p>
+                  <p className="mt-1 text-gray-400">Amount: {formatUsdAmount(withdrawal.amount)}</p>
 
-                <p className="text-gray-400">
-                  Method: {withdrawal.payment_method}
-                </p>
+                  <p className="text-gray-400">Wallet: {withdrawal.wallet_address}</p>
 
-                <p
-                  className={`mt-2 font-medium ${
-                    withdrawal.status === "approved"
-                      ? "text-green-500"
-                      : withdrawal.status === "pending"
-                      ? "text-yellow-500"
-                      : "text-red-500"
-                  }`}
-                >
-                  Status: {withdrawal.status}
-                </p>
+                  <p className="text-gray-400">Method: {withdrawal.payment_method}</p>
+
+                  {isP2pLinked ? (
+                    <p className="mt-1 text-xs text-zinc-500">P2P-linked withdrawal</p>
+                  ) : null}
+
+                  {withdrawal.admin_note?.trim() ? (
+                    <p className="mt-2 text-sm text-zinc-500">Note: {withdrawal.admin_note.trim()}</p>
+                  ) : null}
+
+                  <p
+                    className={`mt-2 font-medium ${
+                      withdrawal.status === "approved"
+                        ? "text-green-500"
+                        : withdrawal.status === "pending"
+                          ? "text-yellow-500"
+                          : "text-red-500"
+                    }`}
+                  >
+                    Status: {withdrawal.status}
+                  </p>
+                </div>
+
+                {isPending && !isP2pLinked ? (
+                  <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+                    <button
+                      type="button"
+                      disabled={busyId !== null}
+                      onClick={() => void approveWithdrawal(withdrawal.id)}
+                      className="rounded-xl bg-green-600 px-6 py-3 font-semibold transition hover:bg-green-700 disabled:opacity-50"
+                    >
+                      {busyId === withdrawal.id ? "…" : "Approve"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busyId !== null}
+                      onClick={() => void rejectWithdrawal(withdrawal.id)}
+                      className="rounded-xl border border-red-500/45 bg-red-500/10 px-6 py-3 font-semibold text-red-200 transition hover:bg-red-500/20 disabled:opacity-50"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                ) : null}
               </div>
-
-              {withdrawal.status !== "approved" && (
-                <button
-                  onClick={() => approveWithdrawal(withdrawal.id)}
-                  className="bg-green-600 hover:bg-green-700 transition px-6 py-3 rounded-xl font-semibold"
-                >
-                  Approve
-                </button>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

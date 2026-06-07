@@ -3,14 +3,25 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { ChevronDown, Lock } from "lucide-react";
+import { ArrowLeft, ChevronDown, Clock, Lock } from "lucide-react";
+
+import {
+  DASHBOARD_CARD,
+  DASHBOARD_MUTED,
+  DASHBOARD_SUCCESS,
+} from "@/components/dashboard/premium/dashboardStyles";
 
 import { CancelModal } from "@/components/p2p/CancelModal";
 import { DisputeModal } from "@/components/p2p/DisputeModal";
 import type { ChatMessage } from "@/components/p2p/TradeChat";
 import { TradeChat } from "@/components/p2p/TradeChat";
+import { TradeMobileActionBar } from "@/components/p2p/TradeMobileActionBar";
 import { TradeOrderBrief } from "@/components/p2p/TradeOrderBrief";
+import { TradeSecurityBanner } from "@/components/p2p/TradeSecurityBanner";
+import { tradeSummaryHeaderBadge } from "@/components/p2p/tradeSummaryUi";
+import { MerchantNameLink } from "@/components/p2p/MerchantNameLink";
 import { MerchantOfferAvatar } from "@/components/p2p/MerchantOfferAvatar";
+import { MerchantReviewForm } from "@/components/p2p/MerchantReviewForm";
 import {
   formatHMS,
   orderStatusHeadline,
@@ -59,7 +70,55 @@ type OrderMessageRow = {
   created_at: string;
 };
 
-const linkCls = "text-[13px] font-medium text-[#D4AF37] transition hover:text-[#F5E6B3]";
+const linkCls =
+  "inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#D4AF37] transition hover:text-[#F5E6B3]";
+const innerCard =
+  "rounded-xl border border-white/[0.06] bg-[rgba(12,17,28,0.72)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]";
+
+function cleanAutomatedInstructionBody(raw: string): string {
+  const t = raw.trim();
+  const nl = t.indexOf("\n");
+  if (nl > 0 && nl < 96 && t.slice(0, nl).trimEnd().endsWith(":")) {
+    return t.slice(nl + 1).trim();
+  }
+  return t;
+}
+
+function deriveSummaryStrip(
+  order: WorkspaceOrderRow,
+  viewerIsMerchant: boolean,
+  fiatTradeAmount: string | null,
+  cryptoTradeAmount: string,
+): { pay: string; receive: string } {
+  const orderAsset = assetFromOfferSide(order.side);
+  const creditAmt = order.usdt_credit_amount ?? order.btc_credit_amount ?? 0;
+  const creditLabel = `≈ ${fmtAssetAmount(orderAsset, creditAmt)}`;
+  const isInvestorBuy = order.side === "sell_usdt" || order.side === "sell_btc";
+
+  if (isInvestorBuy) {
+    if (viewerIsMerchant) {
+      return {
+        pay: creditLabel,
+        receive: fiatTradeAmount ?? creditLabel,
+      };
+    }
+    return {
+      pay: fiatTradeAmount ?? cryptoTradeAmount,
+      receive: creditLabel,
+    };
+  }
+
+  if (viewerIsMerchant) {
+    return {
+      pay: fiatTradeAmount ?? "Fiat payout",
+      receive: cryptoTradeAmount,
+    };
+  }
+  return {
+    pay: cryptoTradeAmount,
+    receive: fiatTradeAmount ?? "Fiat payout",
+  };
+}
 
 export function P2pOrderWorkspace({
   orderId: id,
@@ -103,7 +162,6 @@ export function P2pOrderWorkspace({
     phone: string | null;
     avatar_url: string | null;
   } | null>(null);
-
   const tradePanelsDerived = useMemo(() => {
     if (!order) return null;
     const merchantView = userId !== null && order.merchant_user_id === userId;
@@ -191,9 +249,65 @@ export function P2pOrderWorkspace({
     return out;
   }, [order, userId]);
 
+  const instructionChatMessages = useMemo((): ChatMessage[] => {
+    if (!order || !tradePanelsDerived) return [];
+    const anchor = order.created_at ? new Date(order.created_at) : new Date();
+    const isInvestorBuy = order.side === "sell_usdt" || order.side === "sell_btc";
+    const viewerIsMerchant = Boolean(userId && order.merchant_user_id === userId);
+    const out: ChatMessage[] = [];
+
+    const instructionBody = tradePanelsDerived.instructionMarkdown.trim();
+    if (instructionBody) {
+      const automatedLabel = isInvestorBuy
+        ? viewerIsMerchant
+          ? "Pay-in coordinates"
+          : "Payment instructions"
+        : viewerIsMerchant
+          ? "Payout coordinates"
+          : "Payout mandate";
+
+      const senderLabel = isInvestorBuy
+        ? viewerIsMerchant
+          ? "Listing (Automated)"
+          : "Merchant (Automated)"
+        : viewerIsMerchant
+          ? "Platform (Automated)"
+          : "Your mandate (Automated)";
+
+      out.push({
+        id: `auto-instructions-${order.id}`,
+        kind: "automated",
+        automatedLabel,
+        senderLabel,
+        mine: false,
+        body: cleanAutomatedInstructionBody(instructionBody),
+        at: anchor,
+        hideTime: true,
+      });
+    }
+
+    if (order.side === "buy_usdt" || order.side === "buy_btc") {
+      const payout = (order.investor_payout_instructions ?? "").trim();
+      if (payout) {
+        out.push({
+          id: `auto-payout-${order.id}`,
+          kind: "automated",
+          automatedLabel: viewerIsMerchant ? "Investor payout (fiat)" : "Your payout lane",
+          senderLabel: viewerIsMerchant ? "Investor (Automated)" : "Platform (Automated)",
+          mine: false,
+          body: payout,
+          at: anchor,
+          hideTime: true,
+        });
+      }
+    }
+
+    return out;
+  }, [order, tradePanelsDerived, userId]);
+
   const combinedChatMessages = useMemo(
-    () => [...tradeTimelineMessages, ...chatDisplayMessages],
-    [tradeTimelineMessages, chatDisplayMessages],
+    () => [...instructionChatMessages, ...tradeTimelineMessages, ...chatDisplayMessages],
+    [instructionChatMessages, tradeTimelineMessages, chatDisplayMessages],
   );
 
   const load = useCallback(async () => {
@@ -724,7 +838,6 @@ export function P2pOrderWorkspace({
   const chatDisabled =
     !userId ||
     !order ||
-    order.status === "completed" ||
     order.status === "cancelled" ||
     order.status === "completed_expired" ||
     !canUseChat;
@@ -818,17 +931,20 @@ export function P2pOrderWorkspace({
 
   if (loading && !order) {
     return (
-      <div className="flex min-h-[18rem] flex-col items-center justify-center gap-3 rounded-md border border-[#D4AF37]/15 bg-black/40 text-zinc-400">
-        <div className="h-9 w-9 animate-spin rounded-full border-2 border-[#D4AF37] border-t-transparent" />
-        <p className="text-sm">Loading trade…</p>
+      <div
+        className={`${DASHBOARD_CARD} flex min-h-[20rem] flex-col items-center justify-center gap-3`}
+        style={{ color: DASHBOARD_MUTED }}
+      >
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[#D4AF37] border-t-transparent" />
+        <p className="text-sm font-medium">Loading trade…</p>
       </div>
     );
   }
 
   if (!order) {
     return (
-      <div className="rounded-md border border-[#D4AF37]/15 bg-black/40 px-4 py-8 text-center">
-        <p className="text-zinc-400">Order not found.</p>
+      <div className={`${DASHBOARD_CARD} px-6 py-10 text-center`}>
+        <p style={{ color: DASHBOARD_MUTED }}>Order not found.</p>
         {onBack ? (
           <button type="button" onClick={onBack} className={`mt-4 inline-block ${linkCls}`}>
             {backLabel}
@@ -867,13 +983,13 @@ export function P2pOrderWorkspace({
     (order.side === "buy_usdt" || order.side === "buy_btc");
 
   const btnPrimary =
-    "inline-flex h-10 w-full items-center justify-center rounded-md bg-emerald-600 px-4 text-[14px] font-semibold text-white shadow-sm ring-1 ring-[#D4AF37]/30 transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50";
+    "inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#00C076] px-4 text-[14px] font-semibold text-white shadow-[0_4px_20px_rgba(0,192,118,0.22)] transition hover:bg-[#00D684] disabled:cursor-not-allowed disabled:opacity-50";
 
   const btnReleaseSell =
-    "inline-flex h-10 w-full items-center justify-center rounded-md bg-red-600 px-4 text-[14px] font-semibold text-white shadow-sm ring-1 ring-red-400/35 transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50";
+    "inline-flex h-11 w-full items-center justify-center rounded-xl bg-red-600 px-4 text-[14px] font-semibold text-white shadow-[0_4px_20px_rgba(220,38,38,0.2)] transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50";
 
   const btnCancel =
-    "inline-flex h-10 w-full items-center justify-center rounded-md border border-red-500/40 bg-black/35 px-4 text-[14px] font-medium text-red-300 transition hover:border-red-500/60 hover:bg-red-500/10 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-50";
+    "inline-flex h-11 w-full items-center justify-center rounded-xl border border-red-500/35 bg-red-500/[0.06] px-4 text-[14px] font-medium text-red-300 transition hover:border-red-500/55 hover:bg-red-500/10 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-50";
 
   const counterpartName = isMerchant
     ? investorContact?.full_name?.trim() || "Investor"
@@ -881,8 +997,8 @@ export function P2pOrderWorkspace({
   const counterpartAvatarUrl = isMerchant ? investorContact?.avatar_url : merchantAvatarUrl;
 
   const shellHeight = embedded
-    ? "min-h-0 max-lg:min-h-[min(560px,82dvh)] lg:h-[min(720px,calc(100vh-13rem))] lg:min-h-[480px]"
-    : "min-h-0 max-lg:min-h-[calc(100dvh-5.25rem)] lg:h-[calc(100dvh-2.5rem)] lg:min-h-[640px]";
+    ? "min-h-0 max-lg:min-h-[min(600px,92dvh)] lg:h-[min(700px,calc(100vh-10rem))] lg:min-h-[440px]"
+    : "min-h-0 max-lg:h-full max-lg:min-h-0 lg:h-[calc(100dvh-4.5rem)] lg:min-h-[600px]";
 
   const effectiveBackHref = isMerchant ? "/merchant" : backHref;
   const effectiveBackLabel = isMerchant ? "← Merchant dashboard" : backLabel;
@@ -942,45 +1058,132 @@ export function P2pOrderWorkspace({
     !isDisputed &&
     isMerchant &&
     (order.side === "sell_usdt" || order.side === "sell_btc") &&
-    order.status === "paid";
+    (order.status === "pending_payment" || order.status === "paid");
   const canReleaseInvestor =
     !adminMode &&
     !isDisputed &&
     isInvestor &&
     (order.side === "buy_usdt" || order.side === "buy_btc") &&
-    order.status === "paid";
+    (order.status === "pending_payment" || order.status === "paid");
   const canOpenDispute =
     !adminMode && !isDisputed && order.status === "paid" && (isInvestor || isMerchant);
   const canAdminResolve = (adminMode || isAdminUser) && isDisputed;
 
+  const summaryStrip = deriveSummaryStrip(order, isMerchant, fiatTradeAmount, cryptoTradeAmount);
+  const statusHeadline = orderStatusHeadline(order.status);
+  const headerStatusBadge = tradeSummaryHeaderBadge(order.status, isMerchant, order.side);
+  const counterpartOnline = !isMerchant ? merchantOnline : investorPresenceUi.online;
+  const counterpartPresenceText = !isMerchant ? merchantPresenceLabel : investorPresenceUi.primary;
+
+  const mobileShowCancel = showInvestorCancel || showMerchantCancel;
+  const mobilePrimary = canMarkPaidInvestor
+    ? {
+        label: "Mark as Paid",
+        variant: "primary" as const,
+        busyKey: "paid",
+        onClick: () =>
+          void run("paid", async () =>
+            supabase.rpc("investor_mark_merchant_order_paid", {
+              p_order_id: order.id,
+              p_proof: null,
+            }),
+          ),
+      }
+    : canMarkPaidMerchant
+      ? {
+          label: "Mark as Paid",
+          variant: "primary" as const,
+          busyKey: "mc_mark_paid",
+          onClick: () =>
+            void run("mc_mark_paid", async () =>
+              supabase.rpc("merchant_mark_buy_order_paid", {
+                p_order_id: order.id,
+                p_proof: null,
+              }),
+            ),
+        }
+      : canReleaseMerchant
+        ? {
+            label: `Release ${orderAsset}`,
+            variant: "release" as const,
+            busyKey: "release",
+            onClick: () =>
+              void run("release", async () =>
+                supabase.rpc("merchant_release_buy_order", { p_order_id: order.id }),
+              ),
+          }
+        : canReleaseInvestor
+          ? {
+              label: `Release ${orderAsset}`,
+              variant: "release" as const,
+              busyKey: "release_sell",
+              onClick: () =>
+                void run("release_sell", async () =>
+                  supabase.rpc("investor_release_merchant_buy_order", {
+                    p_order_id: order.id,
+                  }),
+                ),
+            }
+          : canOpenDispute
+            ? {
+                label: "Open Dispute",
+                variant: "dispute" as const,
+                busyKey: "dispute",
+                onClick: () => setDisputeOpen(true),
+              }
+            : null;
+
+  const mobileShowActionBar = Boolean(userId && (mobilePrimary || mobileShowCancel));
+
+  const mobileBack =
+    onBack != null ? (
+      <button
+        type="button"
+        onClick={onBack}
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#D4AF37] active:bg-white/[0.06] lg:hidden"
+        aria-label="Go back"
+      >
+        <ArrowLeft className="h-5 w-5" />
+      </button>
+    ) : (
+      <Link
+        href={effectiveBackHref}
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#D4AF37] active:bg-white/[0.06] lg:hidden"
+        aria-label="Go back"
+      >
+        <ArrowLeft className="h-5 w-5" />
+      </Link>
+    );
+
   return (
     <>
-      <div className="relative flex w-full min-w-0 flex-col overflow-hidden rounded-md border border-[#D4AF37]/15 bg-[#070b12]/95 text-white shadow-[0_0_0_1px_rgba(212,175,55,0.05)] backdrop-blur-md">
+      <div
+        className={`relative flex w-full min-w-0 flex-col overflow-hidden text-white ${
+          embedded
+            ? "rounded-xl border border-white/[0.06] bg-[rgba(12,17,28,0.85)] shadow-[0_4px_16px_rgba(0,0,0,0.2)] backdrop-blur-md"
+            : "max-lg:h-full max-lg:rounded-none max-lg:border-0 max-lg:bg-[#05070D] max-lg:shadow-none lg:rounded-2xl lg:border lg:border-white/[0.06] lg:bg-[rgba(12,17,28,0.85)] lg:shadow-[0_4px_16px_rgba(0,0,0,0.2)] lg:backdrop-blur-md"
+        }`}
+      >
         <div className={`relative flex w-full min-h-0 flex-col ${shellHeight}`}>
-          <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[#D4AF37]/12 bg-black/40 px-5 py-3 sm:px-6">
+          <div className="hidden shrink-0 items-center justify-between gap-3 border-b border-white/[0.06] bg-[rgba(8,12,20,0.55)] px-4 py-2 backdrop-blur-md sm:px-5 lg:flex">
             {backControl}
-            <div className="flex flex-wrap items-center gap-2 text-[12px] text-zinc-400">
-              <span className="font-mono">#{order.id.slice(0, 8)}</span>
-              <span className="text-zinc-600">·</span>
-              <span>{orderStatusHeadline(order.status)}</span>
-              {showTimer ? (
-                <>
-                  <span className="text-zinc-600">·</span>
-                  <span className="font-mono tabular-nums text-[#F5E6B3]">{formatHMS(leftSec)}</span>
-                </>
-              ) : null}
-            </div>
+            <span
+              className="font-mono text-[10px] tabular-nums"
+              style={{ color: DASHBOARD_MUTED }}
+            >
+              #{order.id.slice(0, 8)}
+            </span>
           </div>
 
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
-            <aside className="flex w-full shrink-0 flex-col gap-3 overflow-y-auto border-b border-[#D4AF37]/12 bg-black/35 px-4 py-3 max-lg:max-h-[42dvh] sm:gap-4 sm:py-4 lg:w-[280px] lg:max-h-none lg:border-b-0 lg:border-r [scrollbar-width:thin]">
-              <div className="hidden rounded-md border border-[#D4AF37]/18 bg-black/40 p-4 lg:block">
+            <aside className="hidden w-full shrink-0 flex-col gap-2 overflow-y-auto border-white/[0.06] bg-[rgba(8,12,20,0.35)] px-3 py-3 lg:flex lg:w-[252px] lg:border-r [scrollbar-width:thin]">
+              <div className={`hidden p-4 lg:block ${innerCard}`}>
                 <div className="flex items-center gap-2 text-[13px] font-semibold text-[#F5E6B3]">
                   <Lock className="h-3.5 w-3.5 text-[#D4AF37]" aria-hidden />
                   {orderStatusHeadline(order.status)}
                 </div>
                 {showTimer ? (
-                  <p className="mt-2 text-[12px] text-zinc-500">
+                  <p className="mt-2 text-[12px]" style={{ color: DASHBOARD_MUTED }}>
                     Time left:{" "}
                     <span className="font-mono font-semibold text-[#F5E6B3]">{formatHMS(leftSec)}</span>
                   </p>
@@ -988,27 +1191,24 @@ export function P2pOrderWorkspace({
               </div>
 
               {error ? (
-                <div className="rounded-md border border-red-500/35 bg-red-500/10 px-3 py-2 text-[12.5px] text-red-200">
+                <div className="rounded-xl border border-red-500/35 bg-red-500/10 px-3 py-2.5 text-[12.5px] text-red-200">
                   {error}
                 </div>
               ) : null}
 
-              <details
-                open
-                className="group rounded-md border border-[#D4AF37]/18 bg-black/40 p-4 [&_summary::-webkit-details-marker]:hidden lg:open"
-              >
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-wide text-[#D4AF37]/85 lg:cursor-default">
+              <details className={`group p-3 sm:p-4 [&_summary::-webkit-details-marker]:hidden ${innerCard}`}>
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#D4AF37]/85">
                   Offer terms
                   <ChevronDown
-                    className="h-4 w-4 text-[#D4AF37]/70 transition-transform group-open:rotate-180 lg:hidden"
+                    className="h-4 w-4 text-[#D4AF37]/70 transition-transform group-open:rotate-180"
                     aria-hidden
                   />
                 </summary>
-                <p className="mt-2 rounded-md border border-white/[0.08] bg-black/45 px-3 py-2 text-[12.5px] text-zinc-300">
+                <p className="mt-2 rounded-lg border border-white/[0.06] bg-white/[0.03] px-3 py-2 text-[12px] text-zinc-300">
                   Instant release · {payLabel}
                 </p>
                 {canMarkPaidInvestor || canMarkPaidMerchant ? (
-                  <p className="mt-3 text-[12.5px] leading-relaxed text-zinc-400">
+                  <p className="mt-2 text-[12px] leading-relaxed" style={{ color: DASHBOARD_MUTED }}>
                     {canMarkPaidInvestor ? (
                       <>
                         Make a payment of{" "}
@@ -1038,7 +1238,7 @@ export function P2pOrderWorkspace({
               </details>
 
               {userId ? (
-                <div className="space-y-2">
+                <div className="hidden space-y-2 lg:block">
                   {canMarkPaidInvestor ? (
                     <button
                       type="button"
@@ -1112,7 +1312,7 @@ export function P2pOrderWorkspace({
                       type="button"
                       disabled={busy !== null}
                       onClick={() => setDisputeOpen(true)}
-                      className="inline-flex h-10 w-full items-center justify-center rounded-md border border-amber-500/45 bg-amber-500/10 px-4 text-[14px] font-semibold text-amber-200 transition hover:border-amber-400/60 hover:bg-amber-500/15 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-amber-500/40 bg-amber-500/[0.08] px-4 text-[14px] font-semibold text-amber-200 transition hover:border-amber-400/55 hover:bg-amber-500/12 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Open dispute
                     </button>
@@ -1130,7 +1330,7 @@ export function P2pOrderWorkspace({
                   ) : null}
 
                   {canAdminResolve ? (
-                    <div className="mt-2 space-y-2 rounded-md border border-violet-500/30 bg-violet-500/[0.08] p-3">
+                    <div className="mt-2 space-y-2 rounded-xl border border-violet-500/30 bg-violet-500/[0.08] p-3">
                       <p className="text-[12px] font-semibold text-violet-200">Admin resolution</p>
                       <textarea
                         value={resolveNote}
@@ -1138,7 +1338,7 @@ export function P2pOrderWorkspace({
                         rows={2}
                         maxLength={500}
                         placeholder="Optional note to both parties…"
-                        className="w-full resize-none rounded-md border border-violet-500/25 bg-black/40 px-3 py-2 text-[12px] text-white outline-none focus:border-violet-400/50"
+                        className="w-full resize-none rounded-xl border border-violet-500/25 bg-black/40 px-3 py-2 text-[12px] text-white outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-500/15"
                       />
                       <button
                         type="button"
@@ -1160,12 +1360,15 @@ export function P2pOrderWorkspace({
                   ) : null}
                 </div>
               ) : (
-                <p className="rounded-md border border-[#D4AF37]/15 bg-black/40 px-3 py-2 text-[12.5px] text-zinc-500">
+                <p
+                  className={`rounded-xl px-3 py-2.5 text-[12.5px] ${innerCard}`}
+                  style={{ color: DASHBOARD_MUTED }}
+                >
                   Sign in to mark paid or cancel.
                 </p>
               )}
 
-              <details className="group rounded-md border border-[#D4AF37]/18 bg-black/40 [&_summary::-webkit-details-marker]:hidden">
+              <details className={`group [&_summary::-webkit-details-marker]:hidden ${innerCard}`}>
                 <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-[13px] font-semibold text-[#F5E6B3]">
                   Trade actions
                   <ChevronDown
@@ -1173,7 +1376,10 @@ export function P2pOrderWorkspace({
                     aria-hidden
                   />
                 </summary>
-                <div className="space-y-2 border-t border-[#D4AF37]/12 px-4 py-3 text-[12.5px] text-zinc-400">
+                <div
+                  className="space-y-2 border-t border-white/[0.06] px-4 py-3 text-[12.5px]"
+                  style={{ color: DASHBOARD_MUTED }}
+                >
                   <p>
                     After marking paid, either party can open a dispute so an admin can review chat proof
                     and award escrow.
@@ -1187,7 +1393,11 @@ export function P2pOrderWorkspace({
                 </div>
               </details>
 
-              <details className="group rounded-md border border-[#D4AF37]/18 bg-black/40 [&_summary::-webkit-details-marker]:hidden">
+              {isInvestor && order.status === "completed" ? (
+                <MerchantReviewForm orderId={order.id} />
+              ) : null}
+
+              <details className={`group [&_summary::-webkit-details-marker]:hidden ${innerCard}`}>
                 <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-[13px] font-semibold text-[#F5E6B3]">
                   Trade information
                   <ChevronDown
@@ -1195,82 +1405,119 @@ export function P2pOrderWorkspace({
                     aria-hidden
                   />
                 </summary>
-                <dl className="divide-y divide-[#D4AF37]/10 border-t border-[#D4AF37]/12 text-[12.5px]">
+                <dl className="divide-y divide-white/[0.06] border-t border-white/[0.06] text-[12.5px]">
                   {detailRows.map(({ label, value }) => (
                     <div key={label} className="flex items-start justify-between gap-3 px-4 py-2.5">
-                      <dt className="text-zinc-500">{label}</dt>
+                      <dt style={{ color: DASHBOARD_MUTED }}>{label}</dt>
                       <dd className="text-right font-medium text-white">{value}</dd>
                     </div>
                   ))}
                   <div className="flex items-start justify-between gap-3 px-4 py-2.5">
-                    <dt className="text-zinc-500">Payment method</dt>
+                    <dt style={{ color: DASHBOARD_MUTED }}>Payment method</dt>
                     <dd className="text-right font-medium text-white">{payLabel}</dd>
                   </div>
                 </dl>
               </details>
             </aside>
 
-            <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[#05080F]">
-              <div className="flex shrink-0 items-center gap-3 border-b border-[#D4AF37]/12 bg-black/40 px-5 py-3 sm:px-6">
-                <MerchantOfferAvatar
-                  avatarUrl={counterpartAvatarUrl}
-                  displayName={counterpartName}
-                  size="sm"
-                  className="h-9 w-9 ring-[#D4AF37]/35"
-                />
-                <div className="min-w-0">
-                  <p className="truncate text-[15px] font-semibold text-white">{counterpartName}</p>
-                  <p className="text-[11px] text-zinc-500">{payLabel}</p>
-                  {!isMerchant ? (
+            <section className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[#05070D]">
+              <div className="flex shrink-0 items-center justify-between gap-2 overflow-hidden whitespace-nowrap border-b border-white/[0.06] bg-[rgba(8,12,20,0.45)] px-2 py-2 backdrop-blur-md sm:px-4 lg:px-5 lg:py-2.5">
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  {mobileBack}
+                  <MerchantOfferAvatar
+                    avatarUrl={counterpartAvatarUrl}
+                    displayName={counterpartName}
+                    size="sm"
+                    className="h-8 w-8 shrink-0 ring-[#D4AF37]/35 lg:h-9 lg:w-9"
+                  />
+                  <div className="min-w-0 overflow-hidden">
+                    <p className="truncate text-[13px] font-semibold text-white lg:text-[15px]">
+                      {!isMerchant ? (
+                        <MerchantNameLink
+                          merchantUserId={order.merchant_user_id}
+                          className="text-white hover:text-[#D4AF37]"
+                        >
+                          {counterpartName}
+                        </MerchantNameLink>
+                      ) : (
+                        counterpartName
+                      )}
+                    </p>
                     <p
-                      className={`mt-0.5 flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wide ${
-                        merchantOnline ? "text-emerald-300" : "text-yellow-300"
+                      className={`flex items-center gap-1 truncate text-[9px] font-bold uppercase tracking-wide lg:text-[10.5px] ${
+                        counterpartOnline ? "text-[#00C076]" : "text-yellow-300"
                       }`}
                     >
                       <span
-                        className={`h-2 w-2 rounded-full ${
-                          merchantOnline
-                            ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.75)]"
-                            : "bg-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.65)]"
-                        }`}
+                        className="h-1.5 w-1.5 shrink-0 rounded-full"
+                        style={
+                          counterpartOnline
+                            ? { backgroundColor: DASHBOARD_SUCCESS }
+                            : { backgroundColor: "#facc15" }
+                        }
                         aria-hidden
                       />
-                      {merchantPresenceLabel}
+                      <span className="truncate">{counterpartPresenceText}</span>
                     </p>
-                  ) : (
-                    <p
-                      className={`mt-0.5 flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wide ${
-                        investorPresenceUi.online ? "text-emerald-300" : "text-yellow-300"
-                      }`}
-                    >
-                      <span
-                        className={`h-2 w-2 rounded-full ${
-                          investorPresenceUi.online
-                            ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.75)]"
-                            : "bg-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.65)]"
-                        }`}
-                        aria-hidden
-                      />
-                      {investorPresenceUi.primary}
-                    </p>
-                  )}
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <span className="max-w-[5.5rem] truncate rounded-full border border-[#D4AF37]/25 bg-[#D4AF37]/10 px-2 py-0.5 text-[8px] font-semibold text-[#F5E6B3] sm:max-w-none sm:text-[10px]">
+                    {headerStatusBadge}
+                  </span>
+                  {showTimer ? (
+                    <div className="flex items-center gap-1 rounded-lg border border-[#D4AF37]/20 bg-[#D4AF37]/[0.06] px-2 py-0.5">
+                      <Clock className="h-3 w-3 shrink-0 text-[#D4AF37]" aria-hidden />
+                      <span className="font-mono text-[11px] font-semibold tabular-nums text-[#F5E6B3] lg:text-xs">
+                        {formatHMS(leftSec)}
+                      </span>
+                    </div>
+                  ) : null}
                 </div>
               </div>
 
               {tradePanelsDerived ? (
-                <div className="shrink-0 border-b border-[#D4AF37]/10 bg-[#05080F]">
-                  <TradeOrderBrief
-                    panels={tradePanelsDerived}
-                    orderSide={order.side}
-                    investorPayoutInstructions={order.investor_payout_instructions}
-                    isMerchant={isMerchant}
-                  />
-                </div>
+                <TradeOrderBrief
+                  status={order.status}
+                  orderSide={order.side}
+                  viewerIsMerchant={isMerchant}
+                  paymentMethod={payLabel}
+                  payLabel={summaryStrip.pay}
+                  receiveLabel={summaryStrip.receive}
+                />
               ) : (
-                <div className="border-b border-[#D4AF37]/10 px-5 py-3 text-[12.5px] text-zinc-500 sm:px-6">
+                <div
+                  className="border-b border-white/[0.06] px-5 py-3 text-[12.5px] sm:px-6"
+                  style={{ color: DASHBOARD_MUTED }}
+                >
                   Loading trade context…
                 </div>
               )}
+
+              {order.status !== "completed" &&
+              order.status !== "cancelled" &&
+              order.status !== "completed_expired" ? (
+                <TradeSecurityBanner />
+              ) : null}
+
+              <details className={`group mx-2.5 shrink-0 rounded-lg border border-white/[0.06] bg-white/[0.02] sm:mx-3 lg:hidden [&_summary::-webkit-details-marker]:hidden`}>
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-[#D4AF37]/85">
+                  Offer terms
+                  <ChevronDown
+                    className="h-3.5 w-3.5 text-[#D4AF37]/70 transition-transform group-open:rotate-180"
+                    aria-hidden
+                  />
+                </summary>
+                <div className="border-t border-white/[0.06] px-3 py-2 text-[11px] leading-relaxed" style={{ color: DASHBOARD_MUTED }}>
+                  <p className="text-zinc-300">Instant release · {payLabel}</p>
+                  {(canMarkPaidInvestor || canMarkPaidMerchant) && (
+                    <p className="mt-1.5">
+                      Pay <span className="font-semibold text-white">{tradeAmount}</span> via{" "}
+                      <span className="font-semibold text-white">{payLabel}</span>, then use Mark as Paid.
+                    </p>
+                  )}
+                </div>
+              </details>
 
               {chatSyncError ? (
                 <div className="shrink-0 border-b border-red-500/30 bg-red-500/10 px-5 py-2 text-[12.5px] text-red-200 sm:px-6">
@@ -1285,15 +1532,29 @@ export function P2pOrderWorkspace({
                   onSend={(t) => void sendTradeMessage(t)}
                   onAttach={(file) => void attachPaymentProof(file)}
                   disabled={chatInputDisabled}
+                  mobileActionBar={mobileShowActionBar}
                   placeholder={
                     chatSending
                       ? "Sending…"
                       : isAdminUser && isDisputed
                         ? "Write as admin mediator…"
-                        : "Write a message or attach payment proof…"
+                        : "Type a message…"
                   }
                 />
               </div>
+
+              {mobileShowActionBar ? (
+                <TradeMobileActionBar
+                  primaryLabel={mobilePrimary?.label ?? null}
+                  primaryBusy={mobilePrimary ? busy === mobilePrimary.busyKey : false}
+                  primaryDisabled={busy !== null}
+                  primaryVariant={mobilePrimary?.variant ?? "primary"}
+                  onPrimary={mobilePrimary?.onClick}
+                  showCancel={mobileShowCancel}
+                  cancelDisabled={busy !== null}
+                  onCancel={() => setCancelOpen(true)}
+                />
+              ) : null}
             </section>
           </div>
         </div>

@@ -6,12 +6,18 @@ import { useSearchParams } from "next/navigation";
 
 import { MerchantAppShell } from "@/components/merchant/MerchantAppShell";
 import {
+  MERCHANT_CARD,
+  MERCHANT_GHOST_BTN,
+  MERCHANT_MUTED,
+  MERCHANT_PRIMARY_BTN,
+  MERCHANT_SECTION_LABEL,
+} from "@/components/merchant/merchantStyles";
+import {
   MerchantConsoleStickyNav,
   type MerchantConsoleSection,
 } from "@/components/merchant/MerchantConsoleStickyNav";
 import {
   MerchantOfferHorizontalCard,
-  MerchantOffersStripHeader,
   type MerchantOfferHorizontalRow,
   type MerchantOfferQuickSavePatch,
 } from "@/components/merchant/MerchantOfferHorizontalCard";
@@ -267,7 +273,7 @@ export default function MerchantDashboardPage() {
     inner: React.ReactNode,
     foot?: React.ReactNode,
   ) => (
-    <div className={`max-w-xl rounded-2xl border border-[#D4AF37]/18 bg-black/35 p-6 backdrop-blur-sm ${className}`}>
+    <div className={`max-w-xl ${MERCHANT_CARD} p-6 ${className}`}>
       {inner}
       {foot}
     </div>
@@ -278,30 +284,24 @@ export default function MerchantDashboardPage() {
   if (profile === undefined || sessionUserId === undefined) {
     body = (
       <div className="flex gap-4 overflow-hidden">
-        <div className="h-36 min-w-[200px] flex-1 animate-pulse rounded-2xl bg-white/[0.06]" />
-        <div className="h-36 min-w-[200px] flex-1 animate-pulse rounded-2xl bg-white/[0.06]" />
+        <div className={`h-36 min-w-[200px] flex-1 animate-pulse ${MERCHANT_CARD}`} />
+        <div className={`h-36 min-w-[200px] flex-1 animate-pulse ${MERCHANT_CARD}`} />
       </div>
     );
   } else if (sessionUserId === null) {
-    body = inactivePanel("", <p className="text-zinc-400">Sign in to open the merchant console.</p>, (
-      <Link
-        href="/auth"
-        className="mt-5 inline-flex rounded-xl bg-emerald-600 px-6 py-3 text-sm font-bold uppercase tracking-wide text-white shadow-lg shadow-emerald-500/20 hover:bg-emerald-500"
-      >
+    body = inactivePanel("", <p style={{ color: MERCHANT_MUTED }}>Sign in to open the merchant console.</p>, (
+      <Link href="/auth" className={`mt-5 ${MERCHANT_PRIMARY_BTN}`}>
         Sign in
       </Link>
     ));
   } else if (profile === null) {
     body = inactivePanel("", (
       <>
-        <p className="text-sm text-zinc-400">
+        <p className="text-sm" style={{ color: MERCHANT_MUTED }}>
           No merchant profile on this investor account yet. Ask an administrator to register you — public
           self-service signup is disabled.
         </p>
-        <Link
-          href="/dashboard"
-          className="mt-5 inline-flex rounded-xl border border-white/15 bg-black/30 px-5 py-2.5 text-sm font-semibold text-zinc-300 hover:border-[#D4AF37]/35 hover:text-[#F5E6B3]"
-        >
+        <Link href="/dashboard" className={`mt-5 ${MERCHANT_GHOST_BTN}`}>
           Investor dashboard
         </Link>
       </>
@@ -314,10 +314,7 @@ export default function MerchantDashboardPage() {
         <p className="mt-3 text-sm text-zinc-400">
           Offers and settlement tools activate after an administrator approves your profile.
         </p>
-        <Link
-          href="/merchant/profile"
-          className="mt-5 inline-flex rounded-xl border border-white/15 px-5 py-2.5 text-sm font-semibold text-zinc-300 hover:border-[#D4AF37]/35"
-        >
+        <Link href="/merchant/profile" className={`mt-5 ${MERCHANT_GHOST_BTN}`}>
           Profile settings
         </Link>
       </>,
@@ -330,13 +327,10 @@ export default function MerchantDashboardPage() {
         </p>
         <p className="mt-3 text-sm text-zinc-500">Contact administration for reinstatement if appropriate.</p>
         <div className="mt-5 flex flex-wrap gap-3">
-          <Link
-            href="/merchant/profile"
-            className="rounded-xl border border-white/15 px-5 py-2.5 text-sm text-zinc-300 hover:bg-white/[0.04]"
-          >
+          <Link href="/merchant/profile" className={MERCHANT_GHOST_BTN}>
             Profile
           </Link>
-          <Link href="/dashboard" className="rounded-xl border border-white/15 px-5 py-2.5 text-sm text-zinc-300">
+          <Link href="/dashboard" className={MERCHANT_GHOST_BTN}>
             Investor dashboard
           </Link>
         </div>
@@ -363,27 +357,11 @@ export default function MerchantDashboardPage() {
       void load();
     }
 
-    const activeOfferCount = offers.filter((o) => o.status === "active").length;
-
     body = (
       <>
-        <p className="mb-4 text-xs text-zinc-500 lg:hidden">
-          Logged in as <span className="text-zinc-300">{profile.display_name || "Merchant"}</span>
-        </p>
-
-        <MerchantConsoleStickyNav
-          section={consoleSection}
-          onSectionChange={setConsoleSection}
-          counts={{
-            offers: activeOfferCount,
-            active: activeTradeCount,
-            completed: completedTradeCount,
-          }}
-        />
-
         {consoleSection === "visibility" ? (
-        <div className="rounded-2xl border border-[#D4AF37]/18 bg-black/35 p-5 backdrop-blur-sm">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
+        <div className={`${MERCHANT_CARD} p-5`}>
+          <p className={MERCHANT_SECTION_LABEL}>
             Your visibility
           </p>
           <p
@@ -401,12 +379,12 @@ export default function MerchantDashboardPage() {
             />
             {presenceLabel}
           </p>
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-4 grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:gap-2">
             <button
               type="button"
               disabled={presenceBusy || presenceMode === "auto"}
               onClick={() => void applyPresenceMode("auto")}
-              className="rounded-xl border border-white/15 bg-black/40 px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-zinc-200 transition hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-50"
+              className="min-h-[44px] touch-manipulation rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-zinc-200 transition hover:border-[#D4AF37]/30 hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
             >
               Automatic
             </button>
@@ -414,7 +392,7 @@ export default function MerchantDashboardPage() {
               type="button"
               disabled={presenceBusy || presenceMode === "manual_online"}
               onClick={() => void applyPresenceMode("manual_online")}
-              className="rounded-xl bg-emerald-600 px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+              className="min-h-[44px] touch-manipulation rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white shadow-[0_0_20px_rgba(16,185,129,0.2)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
             >
               Stay online
             </button>
@@ -422,12 +400,12 @@ export default function MerchantDashboardPage() {
               type="button"
               disabled={presenceBusy || presenceMode === "manual_offline"}
               onClick={() => void applyPresenceMode("manual_offline")}
-              className="rounded-xl border border-white/15 bg-black/40 px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-zinc-200 transition hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-50"
+              className="min-h-[44px] touch-manipulation rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-zinc-200 transition hover:border-[#D4AF37]/30 hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
             >
               Go offline
             </button>
           </div>
-          <p className="mt-3 text-xs leading-relaxed text-zinc-500">
+          <p className="mt-3 text-xs leading-relaxed" style={{ color: MERCHANT_MUTED }}>
             <strong className="text-zinc-300">Automatic</strong> (default): buyers see you online while
             this merchant console or a P2P trade tab is open.{" "}
             <strong className="text-zinc-300">Stay online</strong> keeps you visible even when you leave.{" "}
@@ -439,19 +417,19 @@ export default function MerchantDashboardPage() {
         <section className="min-h-0 min-w-full">
             {consoleSection === "offers" ? (
               <>
-                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                  <p className={MERCHANT_SECTION_LABEL}>
                     Live listings
                   </p>
                   <Link
                     href="/merchant/offers/new"
-                    className="rounded-xl border border-[#D4AF37]/35 bg-[#D4AF37]/10 px-4 py-2 text-[11px] font-bold uppercase tracking-wide text-[#F5E6B3] transition hover:bg-[#D4AF37]/15"
+                    className={`min-h-[44px] w-full sm:w-auto ${MERCHANT_PRIMARY_BTN}`}
                   >
                     + New offer
                   </Link>
                 </div>
                 {offers.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-[#D4AF37]/22 bg-black/25 py-14 text-center text-sm text-zinc-500">
+                  <div className={`${MERCHANT_CARD} border-dashed py-14 text-center text-sm`} style={{ color: MERCHANT_MUTED }}>
                     No offers yet —{" "}
                     <Link href="/merchant/offers/new" className="font-semibold text-[#D4AF37] hover:underline">
                       publish your first
@@ -509,7 +487,7 @@ export default function MerchantDashboardPage() {
                       );
                       if (filtered.length === 0) {
                         return (
-                          <div className="rounded-2xl border border-dashed border-[#D4AF37]/22 bg-black/25 py-12 text-center text-sm text-zinc-500">
+                          <div className={`${MERCHANT_CARD} border-dashed py-12 text-center text-sm`} style={{ color: MERCHANT_MUTED }}>
                             No {offerSideTab === "buy" ? "buy" : "sell"} offers yet —{" "}
                             <Link
                               href="/merchant/offers/new"
@@ -522,27 +500,28 @@ export default function MerchantDashboardPage() {
                         );
                       }
                       return (
-                        <OffersScrollList stripLayout>
-                          <MerchantOffersStripHeader />
-                          {filtered.map((o) => (
-                            <MerchantOfferHorizontalCard
-                              key={o.id}
-                              offer={o}
-                              merchantAvatarUrl={merchantAvatarUrl}
-                              merchantDisplayName={profile?.display_name}
-                              onToggleActive={() => void toggleOffer(o.id, o.status !== "active")}
-                              onDelete={() => void deleteOffer(o.id)}
-                              onQuickSave={quickSaveOffer}
-                            />
-                          ))}
-                        </OffersScrollList>
+                        <div className="-mx-4 border-t border-white/[0.06] sm:-mx-6">
+                          <OffersScrollList fullPage>
+                            {filtered.map((o) => (
+                              <MerchantOfferHorizontalCard
+                                key={o.id}
+                                offer={o}
+                                merchantAvatarUrl={merchantAvatarUrl}
+                                merchantDisplayName={profile?.display_name}
+                                onToggleActive={() => void toggleOffer(o.id, o.status !== "active")}
+                                onDelete={() => void deleteOffer(o.id)}
+                                onQuickSave={quickSaveOffer}
+                              />
+                            ))}
+                          </OffersScrollList>
+                        </div>
                       );
                     })()}
                   </>
                 )}
               </>
             ) : consoleSection === "active" ? (
-              <div className="max-h-[min(60vh,calc(100vh-14rem))] overflow-y-auto pr-1 pb-2 [scrollbar-width:thin] lg:max-h-none [&::-webkit-scrollbar]:w-2">
+              <div className="max-lg:overflow-visible lg:max-h-[min(60vh,calc(100vh-14rem))] lg:overflow-y-auto lg:pr-1 lg:pb-2 [scrollbar-width:thin] lg:[&::-webkit-scrollbar]:w-2">
                 {activeOrdersError ? (
                   <div className="mb-4 rounded-xl border border-red-500/35 bg-red-500/10 px-4 py-3 text-sm text-red-200">
                     {activeOrdersError}
@@ -555,7 +534,7 @@ export default function MerchantDashboardPage() {
                 />
               </div>
             ) : consoleSection === "completed" ? (
-              <div className="max-h-[min(60vh,calc(100vh-14rem))] overflow-y-auto pr-1 pb-2 [scrollbar-width:thin] lg:max-h-none [&::-webkit-scrollbar]:w-2">
+              <div className="max-lg:overflow-visible lg:max-h-[min(60vh,calc(100vh-14rem))] lg:overflow-y-auto lg:pr-1 lg:pb-2 [scrollbar-width:thin] lg:[&::-webkit-scrollbar]:w-2">
                 {completedOrdersError ? (
                   <div className="mb-4 rounded-xl border border-red-500/35 bg-red-500/10 px-4 py-3 text-sm text-red-200">
                     {completedOrdersError}
@@ -570,7 +549,7 @@ export default function MerchantDashboardPage() {
             ) : null}
         </section>
 
-        <p className="mt-10 text-[11px] leading-relaxed text-zinc-600">
+        <p className="mt-8 hidden text-[11px] leading-relaxed lg:block" style={{ color: MERCHANT_MUTED }}>
           Dedicated pages still available:{" "}
           <Link href="/merchant/orders/active" className="text-[#D4AF37] hover:text-[#F5E6B3]">
             Active trades
@@ -585,17 +564,26 @@ export default function MerchantDashboardPage() {
     );
   }
 
+  const showConsoleNav = profile?.status === "active";
+
   return (
-    <MerchantAppShell
-      heading="Console"
-      description="Sticky console nav — visibility, offers, active and completed trades in one lane."
-      merchantStatus={profile?.status ?? null}
-    >
+    <MerchantAppShell merchantStatus={profile?.status ?? null}>
       <Suspense fallback={null}>
         <MerchantAdvMigrationBanner />
       </Suspense>
+      {showConsoleNav ? (
+        <MerchantConsoleStickyNav
+          section={consoleSection}
+          onSectionChange={setConsoleSection}
+          counts={{
+            offers: offers.filter((o) => o.status === "active").length,
+            active: activeTradeCount,
+            completed: completedTradeCount,
+          }}
+        />
+      ) : null}
       {error ? (
-        <div className="mb-6 rounded-xl border border-red-500/35 bg-red-500/10 px-4 py-3 text-sm text-red-200">{error}</div>
+        <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/[0.08] px-4 py-3 text-sm text-red-200/95 backdrop-blur-sm">{error}</div>
       ) : null}
       {body}
     </MerchantAppShell>

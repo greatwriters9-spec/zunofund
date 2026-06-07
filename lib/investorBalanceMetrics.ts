@@ -1,4 +1,5 @@
 import {
+  MIN_INTEREST_QUALIFYING_USD,
   PLAN_DAILY_COMPOUND_PERCENT,
   type CanonicalInvestmentPlan,
 } from "@/lib/investmentPlans";
@@ -42,13 +43,25 @@ export function todayPnlPercent(todayPnlUsd: number, balanceUsd: number): number
   return (todayPnlUsd / balanceUsd) * 100;
 }
 
+/** Dashboard invested capital — always mirrors total NAV (balance). */
+export function displayInvestedCapitalUsd(balanceUsd: number): number {
+  return Math.max(0, Number.isFinite(balanceUsd) ? balanceUsd : 0);
+}
+
+/** Portfolio slice for locked / non-withdrawable NAV (sums with withdrawable to balance). */
+export function portfolioInvestedSliceUsd(balanceUsd: number, withdrawableUsd: number): number {
+  const balance = Math.max(0, Number.isFinite(balanceUsd) ? balanceUsd : 0);
+  const withdrawable = Math.max(0, Number.isFinite(withdrawableUsd) ? withdrawableUsd : 0);
+  return Math.max(0, balance - Math.min(withdrawable, balance));
+}
+
 /** Projected 30-day compound gain on current balance at plan daily rate. */
 export function projectedMonthlyEarningsUsd(
   balanceUsd: number,
   plan: CanonicalInvestmentPlan,
 ): number {
   const b = Number.isFinite(balanceUsd) ? balanceUsd : 0;
-  if (b <= 0) return 0;
+  if (b < MIN_INTEREST_QUALIFYING_USD) return 0;
   const dailyRate = PLAN_DAILY_COMPOUND_PERCENT[plan] / 100;
   return b * (Math.pow(1 + dailyRate, 30) - 1);
 }

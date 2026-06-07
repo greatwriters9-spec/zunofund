@@ -1,8 +1,11 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
+import { AuthRecaptcha, type AuthRecaptchaHandle } from "@/components/auth/AuthRecaptcha";
+import { RECAPTCHA_MESSAGES } from "@/lib/recaptcha/messages";
+import { guardAuthActionWithRecaptcha } from "@/lib/recaptcha/guardSubmit";
 import { browserAuthRedirectToUrl } from "@/lib/site-url";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 
@@ -15,6 +18,8 @@ function ForgotPasswordInner() {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [recaptchaError, setRecaptchaError] = useState<string | null>(null);
+  const recaptchaRef = useRef<AuthRecaptchaHandle>(null);
 
   async function handleReset() {
     const trimmed = email.trim();
@@ -23,6 +28,7 @@ function ForgotPasswordInner() {
       return;
     }
 
+    await guardAuthActionWithRecaptcha(recaptchaRef, setRecaptchaError, async () => {
     setSendError(null);
     setLoading(true);
 
@@ -63,6 +69,7 @@ function ForgotPasswordInner() {
     }
 
     setSent(true);
+    });
   }
 
   return (
@@ -101,6 +108,19 @@ function ForgotPasswordInner() {
               onChange={(e) => setEmail(e.target.value)}
               className="w-full bg-black border border-zinc-700 rounded-2xl px-5 py-4 text-white outline-none focus:border-yellow-500 transition mb-6"
             />
+
+            <div className="mb-6">
+              {recaptchaError ? (
+                <p className="mb-2 text-center text-sm text-red-300" role="alert">
+                  {recaptchaError}
+                </p>
+              ) : null}
+              <AuthRecaptcha
+                ref={recaptchaRef}
+                theme="dark"
+                onExpire={() => setRecaptchaError(RECAPTCHA_MESSAGES.expired)}
+              />
+            </div>
 
             <button
               type="button"

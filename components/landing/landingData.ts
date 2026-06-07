@@ -1,8 +1,13 @@
+import {
+  formatDepositRangeDescription,
+  PLAN_DAILY_COMPOUND_PERCENT,
+} from "@/lib/investmentPlans";
+
 export const LANDING_PLANS = [
   {
     name: "Starter",
-    range: "$20 - $500",
-    roi: "Up to 7% Daily",
+    range: formatDepositRangeDescription("Starter"),
+    roi: `Up to ${PLAN_DAILY_COMPOUND_PERCENT.Starter}% Daily`,
     description:
       "Perfect for investors beginning their portfolio growth journey with manageable capital exposure.",
     benefits: [
@@ -15,8 +20,8 @@ export const LANDING_PLANS = [
   },
   {
     name: "Growth",
-    range: "$500 - $1,500",
-    roi: "Up to 10% Daily",
+    range: formatDepositRangeDescription("Growth"),
+    roi: `Up to ${PLAN_DAILY_COMPOUND_PERCENT.Growth}% Daily`,
     description:
       "Designed for investors seeking stronger capital expansion and increased earning potential.",
     benefits: [
@@ -29,8 +34,8 @@ export const LANDING_PLANS = [
   },
   {
     name: "Pro",
-    range: "$1,500 - $5,000",
-    roi: "Up to 13% Daily",
+    range: formatDepositRangeDescription("Pro"),
+    roi: `Up to ${PLAN_DAILY_COMPOUND_PERCENT.Pro}% Daily`,
     description:
       "Built for experienced investors focused on advanced portfolio participation.",
     benefits: [
@@ -43,8 +48,8 @@ export const LANDING_PLANS = [
   },
   {
     name: "Elite",
-    range: "$5,000+",
-    roi: "Up to 15% Daily",
+    range: formatDepositRangeDescription("Elite"),
+    roi: `Up to ${PLAN_DAILY_COMPOUND_PERCENT.Elite}% Daily`,
     description:
       "Exclusive portfolio management for high-capital investors seeking elite opportunities.",
     benefits: [

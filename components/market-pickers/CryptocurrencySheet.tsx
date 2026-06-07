@@ -19,6 +19,8 @@ export type CryptocurrencySheetProps = {
   onApply: (code: string, label: string) => void;
   context: "landing" | "portal";
   allowAllCrypto?: boolean;
+  assetList?: CryptoAssetItem[];
+  forceSelectable?: boolean;
   overlayClassName?: string;
   zIndexClass?: string;
 };
@@ -30,6 +32,8 @@ export function CryptocurrencySheet({
   onApply,
   context,
   allowAllCrypto = false,
+  assetList,
+  forceSelectable = false,
   overlayClassName = "",
   zIndexClass = "z-[250]",
 }: CryptocurrencySheetProps) {
@@ -52,7 +56,19 @@ export function CryptocurrencySheet({
     };
   }, [open]);
 
-  const filtered = useMemo(() => filterCryptoAssets(search, context), [search, context]);
+  const filtered = useMemo(() => {
+    if (assetList) {
+      const q = search.trim().toLowerCase();
+      if (!q) return assetList;
+      return assetList.filter(
+        (item) =>
+          item.symbol.toLowerCase().includes(q) ||
+          item.name.toLowerCase().includes(q) ||
+          item.code.toLowerCase().includes(q),
+      );
+    }
+    return filterCryptoAssets(search, context);
+  }, [search, context, assetList]);
 
   const allCrypto = allowAllCrypto
     ? filtered.find((c) => c.code === "ALL")
@@ -64,7 +80,7 @@ export function CryptocurrencySheet({
   const canApply =
     Boolean(draftCode) &&
     Boolean(draftAsset) &&
-    canSelectCrypto(draftAsset!, context);
+    (forceSelectable || canSelectCrypto(draftAsset!, context));
 
   const isPortal = context === "portal";
 
@@ -77,7 +93,7 @@ export function CryptocurrencySheet({
   }
 
   function selectAsset(asset: CryptoAssetItem) {
-    if (!canSelectCrypto(asset, context)) return;
+    if (!forceSelectable && !canSelectCrypto(asset, context)) return;
     setDraftCode(asset.code);
   }
 
@@ -140,8 +156,8 @@ export function CryptocurrencySheet({
               key={asset.code}
               asset={asset}
               active={draftCode === asset.code}
-              showComingSoon={showCryptoComingSoon(asset, context)}
-              disabled={!canSelectCrypto(asset, context)}
+              showComingSoon={!forceSelectable && showCryptoComingSoon(asset, context)}
+              disabled={!forceSelectable && !canSelectCrypto(asset, context)}
               onSelect={() => selectAsset(asset)}
             />
           ))}

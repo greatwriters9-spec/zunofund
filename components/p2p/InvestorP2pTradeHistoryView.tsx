@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { MerchantNameLink } from "@/components/p2p/MerchantNameLink";
 import { merchantInitials, orderStatusHeadline, paymentMethodLabel } from "@/components/p2p/utils";
 import { expireStaleP2pOrders, isP2pOrderActive, P2P_CANCELLED_STATUSES } from "@/lib/p2pExpiry";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
@@ -64,9 +65,13 @@ function TradeRows({ rows }: { rows: InvestorTradeRow[] }) {
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="truncate text-sm font-semibold text-[#F5E6B3]">
+                <MerchantNameLink
+                  nested
+                  merchantUserId={r.merchant_user_id}
+                  className="truncate text-sm font-semibold text-[#F5E6B3]"
+                >
                   {r.merchant_display_name || "Merchant"}
-                </span>
+                </MerchantNameLink>
                 <span
                   className={`inline-flex shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ring-1 ${statusBadgeClass(r.status)}`}
                 >

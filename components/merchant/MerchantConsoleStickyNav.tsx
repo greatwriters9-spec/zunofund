@@ -1,5 +1,7 @@
 "use client";
 
+import { MERCHANT_BG } from "@/components/merchant/merchantStyles";
+
 export type MerchantConsoleSection = "visibility" | "offers" | "active" | "completed";
 
 const ITEMS: { id: MerchantConsoleSection; label: string }[] = [
@@ -17,13 +19,18 @@ type MerchantConsoleStickyNavProps = {
 
 function pillClass(active: boolean): string {
   const base =
-    "shrink-0 touch-manipulation rounded-xl border px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.14em] transition sm:px-5 sm:py-3 sm:text-[11px]";
+    "shrink-0 touch-manipulation whitespace-nowrap rounded-xl border px-3.5 py-2.5 text-[11px] font-semibold transition sm:px-4 sm:text-xs";
   return active
-    ? `${base} border-[#D4AF37]/55 bg-black/55 text-[#F5E6B3] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ring-1 ring-[#D4AF37]/25`
-    : `${base} border-white/12 bg-black/28 text-zinc-500 hover:border-[#D4AF37]/30 hover:text-zinc-300`;
+    ? `${base} border-[#D4AF37]/40 bg-[#D4AF37]/[0.08] text-[#F5E6B3] shadow-[0_0_20px_-6px_rgba(212,175,55,0.35)] ring-1 ring-[#D4AF37]/20`
+    : `${base} border-white/[0.06] bg-white/[0.02] text-zinc-400 hover:border-[#D4AF37]/25 hover:bg-white/[0.04] hover:text-zinc-200`;
 }
 
-/** Sticky horizontal console nav — items flow right-to-left across the main column. */
+function tabLabel(label: string, count: number | null | undefined, showCount: boolean): string {
+  if (!showCount || count == null) return label;
+  return `${label}(${count})`;
+}
+
+/** Sticky console nav — primary page chrome for the merchant dashboard. */
 export function MerchantConsoleStickyNav({
   section,
   onSectionChange,
@@ -32,16 +39,17 @@ export function MerchantConsoleStickyNav({
   return (
     <nav
       aria-label="Merchant console sections"
-      className="sticky top-0 z-30 -mx-4 mb-6 border-b border-[#D4AF37]/15 bg-[#03060c]/95 px-4 py-3 backdrop-blur-md supports-[backdrop-filter]:bg-[#03060c]/88 sm:-mx-6 sm:px-6 lg:top-0"
+      className="sticky top-0 z-30 -mx-4 mb-5 border-b border-white/[0.06] px-4 py-3 backdrop-blur-xl sm:-mx-6 sm:px-6"
+      style={{ backgroundColor: `${MERCHANT_BG}f2` }}
     >
       <div
-        className="flex flex-row-reverse items-stretch justify-end gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex items-stretch gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         role="tablist"
       >
         {ITEMS.map(({ id, label }) => {
           const active = section === id;
           const count = counts?.[id];
-          const showCount = count != null && id !== "visibility";
+          const showCount = id !== "visibility";
           return (
             <button
               key={id}
@@ -51,12 +59,7 @@ export function MerchantConsoleStickyNav({
               onClick={() => onSectionChange(id)}
               className={pillClass(active)}
             >
-              {label}
-              {showCount ? (
-                <span className={`ml-1.5 tabular-nums ${active ? "text-[#D4AF37]/80" : "text-zinc-600"}`}>
-                  ({count})
-                </span>
-              ) : null}
+              {tabLabel(label, count, showCount)}
             </button>
           );
         })}

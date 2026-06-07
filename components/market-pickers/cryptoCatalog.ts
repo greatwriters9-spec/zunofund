@@ -1,5 +1,7 @@
-/** Tradeable on Zuno P2P marketplace today. */
-export const ZUNO_LIVE_CRYPTO_CODES = new Set(["USDT", "BTC"]);
+import { ZUNO_SUPPORTED_CRYPTO_CODES } from "@/lib/supportedCrypto";
+
+/** Selectable in authenticated P2P portal (no "Coming soon" gate). */
+export const ZUNO_LIVE_CRYPTO_CODES = new Set(ZUNO_SUPPORTED_CRYPTO_CODES);
 
 export type CryptoAssetItem = {
   code: string;
@@ -96,6 +98,20 @@ export const CRYPTO_ASSET_CATALOG: CryptoAssetItem[] = [
     name: "TRON",
     iconColor: "#EF0027",
     liveOnPlatform: LIVE("TRX"),
+  },
+  {
+    code: "XRP",
+    symbol: "XRP",
+    name: "XRP",
+    iconColor: "#23292F",
+    liveOnPlatform: LIVE("XRP"),
+  },
+  {
+    code: "DOGE",
+    symbol: "DOGE",
+    name: "Dogecoin",
+    iconColor: "#C2A633",
+    liveOnPlatform: LIVE("DOGE"),
   },
 ];
 

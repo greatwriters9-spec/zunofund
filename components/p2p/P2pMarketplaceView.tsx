@@ -7,10 +7,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { InvestorMarketplaceActiveTrades } from "@/components/p2p/InvestorMarketplaceActiveTrades";
 import { OffersScrollList } from "@/components/p2p/OffersScrollList";
 import { OfferCard, type OfferCardRow } from "@/components/p2p/OfferCard";
+import { MerchantNameLink } from "@/components/p2p/MerchantNameLink";
 import type { OfferSortMode, P2pListViewMode } from "@/components/p2p/P2pMarketToolbar";
 import { P2pMarketToolbar } from "@/components/p2p/P2pMarketToolbar";
 import { P2pSellableBalance } from "@/components/p2p/P2pSellableBalance";
 import { resolveTradeAmount } from "@/components/p2p/resolveTradeAmount";
+import { DASHBOARD_CARD, DASHBOARD_MUTED } from "@/components/dashboard/premium/dashboardStyles";
 import type { P2pAssetCode, P2pMarketTab } from "@/components/p2p/p2pTypes";
 import { expireStaleP2pOrders, isP2pOrderActive } from "@/lib/p2pExpiry";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
@@ -20,7 +22,13 @@ import {
   validateBuyOrderPayload,
 } from "@/lib/p2p/tradeOrderErrors";
 import { isFiatCurrencyCode, type FiatCurrencyCode } from "@/lib/currencies";
-import { assetFromOfferSide, formatLimitRange, minAmountPlaceholder, p2pOfferSide } from "@/lib/p2pAssets";
+import {
+  assetFromOfferSide,
+  formatLimitRange,
+  minAmountPlaceholder,
+  resolveP2pOfferSide,
+} from "@/lib/p2pAssets";
+import { isP2pRpcTradeableAsset, p2pListingsUnavailableMessage } from "@/lib/supportedCrypto";
 import { inputToOfferFiat } from "@/lib/p2pValue";
 import { getFxRates, useFxRates } from "@/lib/useFx";
 
@@ -96,7 +104,8 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
     void loadSessionContext();
   }, [supabase]);
 
-  const rpcSide = p2pOfferSide(tab, asset);
+  const rpcSide = resolveP2pOfferSide(tab, asset);
+  const p2pListingsLive = isP2pRpcTradeableAsset(asset);
   const { rates: fxRates } = useFxRates();
   const amountUnit = fiatCurrency || asset;
 
@@ -155,6 +164,12 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
 
   const fetchOffers = useCallback(async () => {
     setError(null);
+
+    if (!rpcSide) {
+      setOffersRaw([]);
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
     const parsedAmt = Number(amount);
@@ -352,33 +367,43 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
 
 
   return (
-    <div className="relative flex min-h-[100dvh] min-w-0 flex-col bg-[#03060c] pb-[max(0.5rem,env(safe-area-inset-bottom))] text-white lg:h-[calc(100dvh-3.5rem-3rem)] lg:max-h-[calc(100dvh-3.5rem-3rem)] lg:overflow-hidden lg:pb-0">
+    <div className="relative flex min-h-[100dvh] min-w-0 flex-col bg-[#05070D] pb-[max(0.5rem,env(safe-area-inset-bottom))] text-white lg:h-[calc(100dvh-3.5rem-3rem)] lg:max-h-[calc(100dvh-3.5rem-3rem)] lg:overflow-hidden lg:pb-0">
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-48 bg-[radial-gradient(ellipse_70%_50%_at_50%_-20%,rgba(212,175,55,0.07)_0%,transparent_70%)]"
+        aria-hidden
+      />
       <main className="relative flex min-h-0 min-w-0 flex-1 flex-col lg:overflow-hidden lg:flex lg:flex-col">
-        <div className="max-lg:contents lg:z-30 lg:shrink-0 lg:bg-[#03060c]">
-          <div className="relative shrink-0 bg-black/20 px-4 pb-4 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6 sm:pb-5 sm:pt-6 lg:bg-transparent lg:px-6 lg:pb-3 lg:pt-4">
+        <div className="max-lg:contents lg:z-30 lg:shrink-0 lg:bg-[#05070D]">
+          <div className="relative shrink-0 px-4 pb-4 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6 sm:pb-5 sm:pt-6 lg:bg-transparent lg:px-6 lg:pb-3 lg:pt-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
-                <Link href={backHref} className="text-sm font-medium text-[#D4AF37] transition hover:text-[#F5E6B3]">
+                <Link
+                  href={backHref}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 transition hover:text-[#D4AF37]"
+                >
                   ← {backLabel}
                 </Link>
-                <h1 className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-3xl">
-                  <span className="text-emerald-500">Buy</span> / <span className="text-zinc-600">sell</span>{" "}
+                <p className="mt-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#D4AF37]/90">
+                  P2P marketplace
+                </p>
+                <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white sm:text-[1.75rem]">
+                  <span className="text-[#00C076]">Buy</span> / <span className="text-zinc-500">sell</span>{" "}
                   <span className="text-[#D4AF37]">crypto</span>
                 </h1>
-                <p className="mt-1 hidden max-w-xl text-sm text-zinc-500 sm:block lg:block">
+                <p className="mt-1.5 hidden max-w-xl text-sm leading-relaxed sm:block lg:block" style={{ color: DASHBOARD_MUTED }}>
                   {subtitle}
                 </p>
               </div>
               <Link
                 href="/dashboard"
-                className="shrink-0 rounded-xl border border-[#D4AF37]/30 bg-black/30 px-4 py-2 text-sm font-medium text-[#F5E6B3] backdrop-blur-sm transition hover:border-[#D4AF37]/50 hover:bg-black/45"
+                className="shrink-0 rounded-xl border border-white/[0.12] bg-white/[0.03] px-4 py-2 text-xs font-semibold text-zinc-100 transition hover:border-[#D4AF37]/35 hover:text-[#F5E6B3]"
               >
                 Dashboard
               </Link>
             </div>
           </div>
 
-          <div className="z-[60] bg-[#03060c]/95 shadow-[0_12px_32px_-16px_rgba(0,0,0,0.85)] backdrop-blur-xl supports-[backdrop-filter]:bg-[#03060c]/88 max-lg:sticky max-lg:top-[env(safe-area-inset-top)] lg:shadow-none">
+          <div className="z-[60] border-b border-white/[0.06] bg-[rgba(5,7,13,0.92)] shadow-[0_12px_32px_-16px_rgba(0,0,0,0.85)] backdrop-blur-xl supports-[backdrop-filter]:bg-[rgba(5,7,13,0.82)] max-lg:sticky max-lg:top-[env(safe-area-inset-top)] lg:shadow-none">
           <P2pMarketToolbar
             tab={tab}
             onTabChange={(t) => {
@@ -422,15 +447,15 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
           </div>
         </div>
 
-        {tab === "sell" && listViewMode === "offers" ? (
-          <div className="max-lg:contents lg:shrink-0 lg:border-b lg:border-zinc-800/80 lg:bg-[#03060c]">
+        {tab === "sell" && listViewMode === "offers" && p2pListingsLive ? (
+          <div className="max-lg:contents lg:shrink-0 lg:border-b lg:border-white/[0.06] lg:bg-[#05070D]">
             <P2pSellableBalance defaultAsset={asset} refreshKey={sellableRefresh} />
           </div>
         ) : null}
 
         <div className="relative z-0 flex min-w-0 flex-1 flex-col px-4 pb-6 pt-5 sm:px-6 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain">
           {error ? (
-            <div className="mb-4 rounded-2xl border border-red-500/35 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+            <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
               {error}
             </div>
           ) : null}
@@ -452,12 +477,14 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
               </div>
             )             : offersDisplayed.length === 0 ? (
               <div className="-mx-4 border-t border-white/[0.06] px-2 py-20 text-center sm:-mx-6">
-                <p className="text-zinc-400">
-                  {offersRaw.length === 0
+                <p style={{ color: DASHBOARD_MUTED }}>
+                  {!p2pListingsLive
+                    ? p2pListingsUnavailableMessage(asset)
+                    : offersRaw.length === 0
                     ? "No live ads on this side yet. Try Refresh, switch Buy/Sell, or pick another payment method."
                     : "No ads match your size right now."}
                   {offersRaw.length > 0 && toolbarAmount != null ? (
-                    <span className="block mt-2 text-zinc-500">
+                    <span className="mt-2 block" style={{ color: DASHBOARD_MUTED }}>
                       Widen your amount or change payment method — listings update as you adjust the toolbar.
                     </span>
                   ) : null}
@@ -483,7 +510,7 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
             )}
           </div>
 
-          <p className="mt-10 text-center text-xs text-zinc-600">
+          <p className="mt-10 text-center text-xs" style={{ color: DASHBOARD_MUTED }}>
             <Link href="/p2p" className="text-[#D4AF37] hover:text-[#F5E6B3] hover:underline">
               Marketplace home
             </Link>
@@ -519,7 +546,7 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
           onClick={closeAmountPrompt}
         >
           <div
-            className="w-full max-w-sm rounded-t-3xl border border-[#D4AF37]/20 bg-[#0a0f1a] p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-[0_-30px_80px_-20px_rgba(0,0,0,0.8)] sm:rounded-2xl sm:pb-6 sm:shadow-[0_30px_80px_-20px_rgba(0,0,0,0.8)]"
+            className={`w-full max-w-sm rounded-t-3xl border border-[#D4AF37]/20 ${DASHBOARD_CARD} p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-[0_-30px_80px_-20px_rgba(0,0,0,0.8)] sm:rounded-2xl sm:pb-6 sm:shadow-[0_30px_80px_-20px_rgba(0,0,0,0.8)]`}
             onClick={(e) => e.stopPropagation()}
           >
             <div
@@ -529,17 +556,20 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
             <h3 id="amount-prompt-title" className="text-base font-bold text-white">
               Choose an amount
             </h3>
-            <p className="mt-1 text-[12px] text-zinc-400">
+            <p className="mt-1 text-[12px]" style={{ color: DASHBOARD_MUTED }}>
               How much do you want to {tab === "buy" ? "buy" : "sell"} from{" "}
-              <span className="font-semibold text-[#F5E6B3]">
-                {amountPromptRow.merchant_display_name}
-              </span>{" "}
+              <MerchantNameLink
+                merchantUserId={amountPromptRow.merchant_user_id}
+                className="font-semibold text-[#F5E6B3]"
+              >
+                {amountPromptRow.merchant_display_name || "Merchant"}
+              </MerchantNameLink>{" "}
               in <span className="font-semibold text-[#F5E6B3]">{promptFiat}</span>?
             </p>
-            <p className="mt-2 text-[11px] tabular-nums text-zinc-500">{limitsLine}</p>
+            <p className="mt-2 text-[11px] tabular-nums" style={{ color: DASHBOARD_MUTED }}>{limitsLine}</p>
 
             <label className="mt-4 block">
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: DASHBOARD_MUTED }}>
                 Amount ({promptFiat})
               </span>
               <input
@@ -558,7 +588,7 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
                   }
                 }}
                 placeholder={placeholderVal}
-                className="mt-2 w-full rounded-xl border border-white/12 bg-black/45 px-3 py-3 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-[#D4AF37]/45 focus:ring-2 focus:ring-[#D4AF37]/20"
+                className="mt-2 w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-3 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-[#D4AF37]/40 focus:ring-1 focus:ring-[#D4AF37]/20"
               />
             </label>
 
@@ -572,7 +602,7 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
               <button
                 type="button"
                 onClick={closeAmountPrompt}
-                className="min-h-[44px] flex-1 rounded-xl border border-white/14 py-3 text-sm font-semibold text-zinc-300 transition hover:bg-white/[0.04]"
+                className="min-h-[44px] flex-1 rounded-xl border border-white/[0.12] bg-white/[0.03] py-3 text-sm font-semibold text-zinc-100 transition hover:border-white/[0.2]"
               >
                 Cancel
               </button>

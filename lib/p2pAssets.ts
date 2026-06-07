@@ -2,6 +2,10 @@ import type { P2pMarketTab } from "@/components/p2p/p2pTypes";
 import type { FxRateMap } from "@/lib/exchangeRates";
 import { formatMoneyAmount } from "@/lib/formatMoney";
 import {
+  isP2pRpcTradeableAsset,
+  type SupportedCryptoCode,
+} from "@/lib/supportedCrypto";
+import {
   clampFiatToLimits,
   cryptoToFiat,
   fiatToCrypto,
@@ -9,18 +13,26 @@ import {
   inputToOfferFiat,
 } from "@/lib/p2pValue";
 
-export type P2pAssetCode = "USDT" | "BTC";
+export type P2pAssetCode = SupportedCryptoCode;
 
 export type P2pOfferSide = "sell_usdt" | "buy_usdt" | "sell_btc" | "buy_btc";
 
-export function merchantOfferSide(tab: P2pMarketTab, asset: P2pAssetCode): P2pOfferSide {
+export function merchantOfferSide(tab: P2pMarketTab, asset: "USDT" | "BTC"): P2pOfferSide {
   if (tab === "sell") return asset === "BTC" ? "sell_btc" : "sell_usdt";
   return asset === "BTC" ? "buy_btc" : "buy_usdt";
 }
 
-export function p2pOfferSide(tab: P2pMarketTab, asset: P2pAssetCode): P2pOfferSide {
+export function p2pOfferSide(tab: P2pMarketTab, asset: "USDT" | "BTC"): P2pOfferSide {
   if (tab === "buy") return asset === "BTC" ? "sell_btc" : "sell_usdt";
   return asset === "BTC" ? "buy_btc" : "buy_usdt";
+}
+
+export function resolveP2pOfferSide(
+  tab: P2pMarketTab,
+  asset: P2pAssetCode,
+): P2pOfferSide | null {
+  if (!isP2pRpcTradeableAsset(asset)) return null;
+  return p2pOfferSide(tab, asset);
 }
 
 export function assetFromOfferSide(side: string): P2pAssetCode {
@@ -32,8 +44,12 @@ export function fmtAssetAmount(
   value: number | string | null | undefined,
 ): string {
   const n = Number(value ?? 0);
-  if (!Number.isFinite(n)) return asset === "BTC" ? "0.00000000 BTC" : "0.00 USDT";
-  return asset === "BTC" ? `${n.toFixed(8)} BTC` : `${formatMoneyAmount(n)} USDT`;
+  if (!Number.isFinite(n)) {
+    return asset === "BTC" ? "0.00000000 BTC" : asset === "USDT" ? "0.00 USDT" : `0 ${asset}`;
+  }
+  if (asset === "BTC") return `${n.toFixed(8)} BTC`;
+  if (asset === "USDT") return `${formatMoneyAmount(n)} USDT`;
+  return `${n.toLocaleString(undefined, { maximumFractionDigits: 8 })} ${asset}`;
 }
 
 export function inputAmountToCrypto(

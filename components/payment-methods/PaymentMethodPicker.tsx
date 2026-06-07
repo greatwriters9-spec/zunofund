@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { ChevronDown, ChevronRight, Pencil } from "lucide-react";
 
+import { PaymentMethodsDropdown } from "@/components/payment-methods/PaymentMethodsDropdown";
 import { PaymentMethodsSheet } from "@/components/payment-methods/PaymentMethodsSheet";
 import { findPaymentMethodLabel } from "@/components/payment-methods/paymentMethodsCatalog";
 
@@ -33,6 +35,7 @@ export function PaymentMethodPicker({
   sheetOverlayClassName = "",
 }: PaymentMethodPickerProps) {
   const [open, setOpen] = useState(false);
+  const useToolbarDropdown = variant === "toolbar";
 
   const displayLabel =
     !value.trim() && !allowAllMethods
@@ -51,8 +54,8 @@ export function PaymentMethodPicker({
         type="button"
         className={`flex h-[42px] w-full items-center justify-between gap-2 rounded-xl border border-white/[0.1] bg-black/35 px-3 py-2 text-left text-[12px] font-medium text-zinc-200 hover:border-[#D4AF37]/35 ${className}`}
         aria-expanded={open}
-        aria-haspopup="dialog"
-        onClick={() => setSheetOpen(true)}
+        aria-haspopup="listbox"
+        onClick={() => setSheetOpen(!open)}
       >
         <span className="truncate">{displayLabel}</span>
         <ChevronDown className="h-4 w-4 shrink-0 opacity-75" aria-hidden />
@@ -95,17 +98,36 @@ export function PaymentMethodPicker({
       </div>
     );
 
+  const sheet =
+    typeof document !== "undefined"
+      ? createPortal(
+          <PaymentMethodsSheet
+            open={open && !useToolbarDropdown}
+            selectedCode={value}
+            allowAllMethods={allowAllMethods}
+            onClose={() => setSheetOpen(false)}
+            onApply={(code) => onChange(code)}
+            overlayClassName={sheetOverlayClassName}
+            zIndexClass="z-[300]"
+          />,
+          document.body,
+        )
+      : null;
+
   return (
-    <>
+    <div className={`relative ${open && useToolbarDropdown ? "z-[110]" : ""}`}>
       {trigger}
-      <PaymentMethodsSheet
-        open={open}
-        selectedCode={value}
-        allowAllMethods={allowAllMethods}
-        onClose={() => setSheetOpen(false)}
-        onApply={(code) => onChange(code)}
-        overlayClassName={sheetOverlayClassName}
-      />
-    </>
+      {useToolbarDropdown ? (
+        <PaymentMethodsDropdown
+          open={open}
+          selectedCode={value}
+          allowAllMethods={allowAllMethods}
+          onClose={() => setSheetOpen(false)}
+          onSelect={onChange}
+        />
+      ) : (
+        sheet
+      )}
+    </div>
   );
 }

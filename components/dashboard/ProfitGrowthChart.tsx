@@ -38,11 +38,11 @@ function MobileProfitSummary(props: { data: ProfitChartDatum[] }) {
   const latest = props.data[props.data.length - 1];
 
   return (
-    <div className="flex min-h-[200px] flex-col justify-center rounded-lg border border-zinc-800/80 bg-zinc-950 px-4 py-6">
+    <div className="flex min-h-[200px] flex-col justify-center rounded-xl border border-white/[0.06] bg-black/20 px-4 py-6">
       <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
         Cumulative profit
       </p>
-      <p className="mt-2 text-2xl font-bold tabular-nums text-yellow-500">
+      <p className="mt-2 text-2xl font-bold tabular-nums text-[#D4AF37]">
         {formatUsdAmount(total)}
       </p>
       {latest ? (
@@ -79,23 +79,23 @@ export function ProfitGrowthChart(props: { data: ProfitChartDatum[] }) {
         <AreaChart data={props.data} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
           <defs>
             <linearGradient id="profit" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#facc15" stopOpacity={0.35} />
-              <stop offset="95%" stopColor="#facc15" stopOpacity={0} />
+              <stop offset="5%" stopColor="#D4AF37" stopOpacity={0.28} />
+              <stop offset="95%" stopColor="#D4AF37" stopOpacity={0} />
             </linearGradient>
           </defs>
 
-          <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
 
-          <XAxis dataKey="date" stroke="#71717a" tick={{ fontSize: 11 }} />
+          <XAxis dataKey="date" stroke="#8A93A5" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
 
-          <YAxis stroke="#71717a" tick={{ fontSize: 11 }} width={44} />
+          <YAxis stroke="#8A93A5" tick={{ fontSize: 10 }} width={44} axisLine={false} tickLine={false} />
 
           <Tooltip
             formatter={(value) => formatUsdAmount(Number(value ?? 0))}
             contentStyle={{
-              backgroundColor: "#09090b",
-              border: "1px solid #3f3f46",
-              borderRadius: "8px",
+              backgroundColor: "rgba(12,17,28,0.95)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              borderRadius: "12px",
               color: "#fff",
               fontSize: "12px",
             }}
@@ -104,7 +104,7 @@ export function ProfitGrowthChart(props: { data: ProfitChartDatum[] }) {
           <Area
             type="monotone"
             dataKey="profit"
-            stroke="#facc15"
+            stroke="#D4AF37"
             fill="url(#profit)"
             strokeWidth={2}
             isAnimationActive={false}

@@ -1,12 +1,15 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
+import { AuthRecaptcha, type AuthRecaptchaHandle } from "@/components/auth/AuthRecaptcha";
 import {
   SUPABASE_EMAIL_LINK_OTP_TYPES,
   supabaseAuthHashLooksLikeSession,
 } from "@/lib/auth/supabaseEmailLink";
+import { RECAPTCHA_MESSAGES } from "@/lib/recaptcha/messages";
+import { guardAuthActionWithRecaptcha } from "@/lib/recaptcha/guardSubmit";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 
 /** Shown when PKCE / in-app browsers break the exchange even though the link can work in Safari or Chrome. */
@@ -23,6 +26,8 @@ function ResetPasswordInner() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [recaptchaError, setRecaptchaError] = useState<string | null>(null);
+  const recaptchaRef = useRef<AuthRecaptchaHandle>(null);
 
   /** Finished consuming email link params (or confirmed no link was required). */
   const [authGate, setAuthGate] = useState<"pending" | "ready" | "error">(
@@ -178,21 +183,23 @@ function ResetPasswordInner() {
       return;
     }
 
-    setFormError(null);
-    setLoading(true);
+    await guardAuthActionWithRecaptcha(recaptchaRef, setRecaptchaError, async () => {
+      setFormError(null);
+      setLoading(true);
 
-    const { error } = await supabase.auth.updateUser({
-      password,
+      const { error } = await supabase.auth.updateUser({
+        password,
+      });
+
+      setLoading(false);
+
+      if (error) {
+        setFormError(formatSupabaseError(error));
+        return;
+      }
+
+      setSuccess(true);
     });
-
-    setLoading(false);
-
-    if (error) {
-      setFormError(formatSupabaseError(error));
-      return;
-    }
-
-    setSuccess(true);
   }
 
   return (
@@ -278,6 +285,19 @@ function ResetPasswordInner() {
                   className="w-full bg-black border border-zinc-800 rounded-2xl px-5 py-4 text-white outline-none focus:border-yellow-500 transition"
                 />
               </div>
+            </div>
+
+            <div className="mt-6">
+              {recaptchaError ? (
+                <p className="mb-2 text-center text-sm text-red-300" role="alert">
+                  {recaptchaError}
+                </p>
+              ) : null}
+              <AuthRecaptcha
+                ref={recaptchaRef}
+                theme="dark"
+                onExpire={() => setRecaptchaError(RECAPTCHA_MESSAGES.expired)}
+              />
             </div>
 
             <button

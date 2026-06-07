@@ -14,7 +14,11 @@ import {
 } from "@/lib/p2pValue";
 import { useFxRates } from "@/lib/useFx";
 import { formatInvestorMerchantPresence } from "@/lib/merchantPresence";
+import { MerchantBadge } from "@/components/p2p/MerchantBadge";
+import { MerchantNameLink } from "@/components/p2p/MerchantNameLink";
 import { MerchantOfferAvatar } from "@/components/p2p/MerchantOfferAvatar";
+import { MerchantReputationStrip } from "@/components/p2p/MerchantReputationStrip";
+import type { MerchantReputationFields } from "@/lib/merchantReputation";
 import { paymentMethodLabelCaps } from "./utils";
 
 export type OfferCardRow = {
@@ -25,6 +29,7 @@ export type OfferCardRow = {
   merchant_last_seen_at?: string | null;
   merchant_presence_mode?: string | null;
   merchant_avatar_url?: string | null;
+} & Partial<MerchantReputationFields> & {
   side: string;
   payment_methods: string[];
   min_limit: number;
@@ -127,12 +132,12 @@ const OFFER_MOBILE_GRID_CLASS =
 
 /** Desktop columns: merchant | note (fixed) | payment | pay | receive | gap | action */
 export const OFFER_ROW_GRID_CLASS =
-  "md:grid-cols-[minmax(0,19rem)_10rem_11.25rem_8rem_8rem_minmax(5.5rem,1.5fr)_9.5rem] md:items-start md:gap-x-0 md:py-4 md:text-[13px]";
+  "md:grid-cols-[minmax(0,27rem)_11rem_11.25rem_8rem_8rem_minmax(5.5rem,1.5fr)_9.5rem] md:items-start md:gap-x-0 md:py-4 md:text-[13px]";
 
 const PAYMENT_METHOD_CLASS =
   "text-[14px] font-extrabold uppercase leading-snug tracking-[0.04em] text-white line-clamp-3 break-words max-md:text-[10px] max-md:font-bold max-md:leading-tight max-md:line-clamp-2";
 
-const DETAIL_GAP = "md:pl-4";
+const DETAIL_GAP = "md:pl-5";
 
 const AMOUNT_VALUE_CLASS =
   "w-full min-w-0 tabular-nums text-[15px] font-bold leading-tight tracking-tight text-white max-md:text-[10px] max-md:font-semibold max-md:leading-snug";
@@ -142,6 +147,34 @@ const TRADE_BTN_CLASS =
 
 const NOTE_BOX_CLASS =
   "mt-1.5 flex min-h-[2.75rem] items-center justify-center rounded-lg border border-[#D4AF37]/22 bg-[#D4AF37]/10 px-2.5 py-2 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] ring-1 ring-[#D4AF37]/18 md:min-h-[3rem]";
+
+function MerchantPresenceInline({
+  online,
+  primary,
+}: {
+  online: boolean;
+  primary: string;
+}) {
+  const label = online
+    ? "online"
+    : primary === "Offline"
+      ? "offline"
+      : primary.toLowerCase();
+
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1 text-[10px] font-medium lowercase text-zinc-500 max-md:text-[9px]">
+      <span
+        className={`h-1.5 w-1.5 shrink-0 rounded-full max-md:h-1 max-md:w-1 ${
+          online
+            ? "bg-[#00C076] shadow-[0_0_6px_rgba(0,192,118,0.55)]"
+            : "bg-zinc-600"
+        }`}
+        aria-hidden
+      />
+      <span className="whitespace-nowrap">{label}</span>
+    </span>
+  );
+}
 
 function OfferDetailCol({
   label,
@@ -227,51 +260,49 @@ export function OfferCard({
   return (
     <article
       aria-label={`Offer from ${name}`}
-      className={`grid border-b border-white/[0.07] px-3 text-zinc-200 last:border-b-0 sm:px-6 ${OFFER_MOBILE_GRID_CLASS} ${OFFER_ROW_GRID_CLASS}`}
+      className={`grid border-b border-white/[0.06] px-3 text-zinc-200 transition-colors last:border-b-0 hover:bg-white/[0.02] sm:px-6 ${OFFER_MOBILE_GRID_CLASS} ${OFFER_ROW_GRID_CLASS}`}
     >
-      <div className="flex min-w-0 items-start gap-2 max-md:col-span-4 max-md:row-start-1 md:col-span-1 md:row-start-auto md:min-h-[4.75rem] md:gap-3">
+      <div className="grid max-md:col-span-4 max-md:row-start-1 md:col-span-1 md:row-start-auto md:pr-2 grid-cols-[auto_minmax(0,1fr)] items-start gap-x-2.5 gap-y-0">
         <MerchantOfferAvatar
           avatarUrl={row.merchant_avatar_url}
           displayName={name}
           size="sm"
-          className="shrink-0 max-md:h-8 max-md:w-8 max-md:text-[9px]"
+          className="row-start-1 shrink-0 self-center max-md:h-8 max-md:w-8 max-md:text-[9px]"
         />
-        <div className="min-w-0 flex-1">
-          <h3
-            className="truncate text-[15px] font-bold leading-[15px] tracking-tight text-[#F5E6B3] max-md:text-[12px] max-md:leading-tight"
-            title={name}
-          >
-            {name}
-          </h3>
-          <div className="mt-1.5 max-md:mt-0.5">
-            <p
-              className={`flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wide max-md:gap-1 max-md:text-[9px] ${
-                presence.online ? "text-emerald-300" : "text-yellow-300"
-              }`}
-            >
-              <span
-                className={`h-2 w-2 shrink-0 rounded-full max-md:h-1.5 max-md:w-1.5 ${
-                  presence.online
-                    ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.75)]"
-                    : "bg-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.65)]"
-                }`}
-                aria-hidden
-              />
-              {presence.primary}
-            </p>
-            {presence.secondary ? (
-              <p className="mt-0.5 pl-3.5 text-[10px] font-medium tabular-nums text-zinc-500 max-md:hidden">
-                {presence.secondary}
-              </p>
+
+        {/* Identity block — username + reputation as one unit */}
+        <div className="col-start-2 row-start-1 flex min-w-0 flex-col gap-0.5">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0">
+            <h3 className="m-0 shrink-0 text-[15px] font-bold leading-tight tracking-tight text-white max-md:text-[13px]">
+              <MerchantNameLink
+                merchantUserId={row.merchant_user_id}
+                className="whitespace-nowrap hover:text-[#F5E6B3]"
+                title={name}
+              >
+                {name}
+              </MerchantNameLink>
+            </h3>
+            {row.merchant_badge_slug ? (
+              <MerchantBadge slug={row.merchant_badge_slug} variant="marketplace" />
             ) : null}
+            <MerchantPresenceInline online={presence.online} primary={presence.primary} />
           </div>
-          <p className="mt-1 text-[12px] font-semibold tabular-nums text-zinc-300 max-md:mt-0.5 max-md:text-[9px] max-md:leading-tight">
-            {formatFiat(minFiat, fiatCode)} – {formatFiat(maxFiat, fiatCode)}
-          </p>
-          <div className="mt-2 flex flex-wrap items-center gap-1.5 max-md:mt-1 max-md:gap-1">
-            <OfferUnitPrice fiatPerCrypto={fiatPerCrypto} fiatCode={fiatCode} asset={offerAsset} />
-            <RateVsMpBadge ratePct={ratePct} />
-          </div>
+          <MerchantReputationStrip
+            rating={row.merchant_rating}
+            completionRate={row.merchant_completion_rate}
+            totalTrades={row.merchant_total_trades}
+          />
+        </div>
+
+        {/* Limits */}
+        <p className="col-start-2 row-start-2 mt-2 text-[12px] font-semibold tabular-nums text-zinc-300 max-md:mt-1.5 max-md:text-[9px] max-md:leading-tight">
+          {formatFiat(minFiat, fiatCode)} – {formatFiat(maxFiat, fiatCode)}
+        </p>
+
+        {/* Unit price */}
+        <div className="col-start-2 row-start-3 mt-1.5 flex flex-wrap items-center gap-1.5 max-md:mt-1 max-md:gap-1">
+          <OfferUnitPrice fiatPerCrypto={fiatPerCrypto} fiatCode={fiatCode} asset={offerAsset} />
+          <RateVsMpBadge ratePct={ratePct} />
         </div>
       </div>
 
