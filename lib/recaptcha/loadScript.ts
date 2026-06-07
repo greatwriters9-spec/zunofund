@@ -1,26 +1,18 @@
 import { logRecaptchaDiagnostic } from "@/lib/recaptcha/diagnostics";
+import "@/lib/recaptcha/types";
 
 const RECAPTCHA_SCRIPT_SRC = "https://www.google.com/recaptcha/api.js?render=explicit";
 const RECAPTCHA_SCRIPT_MARKER = "recaptcha/api.js";
 
-type GrecaptchaReady = {
-  ready: (callback: () => void) => void;
-};
-
-declare global {
-  interface Window {
-    grecaptcha?: GrecaptchaReady;
-  }
-}
-
 let loadPromise: Promise<void> | null = null;
 
 function isScriptAlreadyLoaded(script: HTMLScriptElement): boolean {
+  const readyState = (script as HTMLScriptElement & { readyState?: string }).readyState;
   return (
     script.dataset.loaded === "true" ||
     script.getAttribute("data-loaded") === "true" ||
-    script.readyState === "complete" ||
-    script.readyState === "loaded"
+    readyState === "complete" ||
+    readyState === "loaded"
   );
 }
 

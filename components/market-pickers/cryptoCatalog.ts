@@ -1,4 +1,4 @@
-import { ZUNO_SUPPORTED_CRYPTO_CODES } from "@/lib/supportedCrypto";
+import { ZUNO_SUPPORTED_CRYPTO_CODES, isSupportedCryptoCode } from "@/lib/supportedCrypto";
 
 /** Selectable in authenticated P2P portal (no "Coming soon" gate). */
 export const ZUNO_LIVE_CRYPTO_CODES = new Set(ZUNO_SUPPORTED_CRYPTO_CODES);
@@ -12,7 +12,8 @@ export type CryptoAssetItem = {
   liveOnPlatform: boolean;
 };
 
-const LIVE = (code: string) => ZUNO_LIVE_CRYPTO_CODES.has(code);
+const LIVE = (code: string) =>
+  isSupportedCryptoCode(code) && ZUNO_LIVE_CRYPTO_CODES.has(code);
 
 export const CRYPTO_ASSET_CATALOG: CryptoAssetItem[] = [
   {

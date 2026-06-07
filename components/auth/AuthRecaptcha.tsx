@@ -35,28 +35,6 @@ type AuthRecaptchaProps = {
 
 type LoadState = "idle" | "loading" | "ready" | "error";
 
-type Grecaptcha = {
-  ready: (callback: () => void) => void;
-  render: (
-    container: HTMLElement,
-    options: {
-      sitekey: string;
-      theme?: "light" | "dark";
-      callback?: () => void;
-      "expired-callback"?: () => void;
-      "error-callback"?: () => void;
-    },
-  ) => number;
-  reset: (widgetId?: number) => void;
-  getResponse: (widgetId?: number) => string;
-};
-
-declare global {
-  interface Window {
-    grecaptcha?: Grecaptcha;
-  }
-}
-
 const IS_DEV = process.env.NODE_ENV === "development";
 
 export const AuthRecaptcha = forwardRef<AuthRecaptchaHandle, AuthRecaptchaProps>(

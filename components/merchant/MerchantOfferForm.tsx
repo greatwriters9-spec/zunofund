@@ -10,7 +10,6 @@ import {
   FIAT_CURRENCIES,
   type FiatCurrencyCode,
 } from "@/lib/currencies";
-import type { P2pAssetCode } from "@/lib/p2pAssets";
 import { merchantOfferSide } from "@/lib/p2pAssets";
 import { P2P_PAYMENT_METHOD_OPTIONS } from "@/lib/p2pPaymentMethods";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
@@ -32,11 +31,15 @@ type MerchantOfferFormProps = {
   initial?: MerchantOfferFormInitial;
 };
 
+type MerchantListingAsset = "USDT" | "BTC";
+
 export function MerchantOfferForm({ mode, initial }: MerchantOfferFormProps) {
   const supabase = useSupabase();
   const parsed = initial ? parseMerchantOfferSide(initial.side) : null;
 
-  const [listingAsset, setListingAsset] = useState<P2pAssetCode>(parsed?.asset ?? "USDT");
+  const [listingAsset, setListingAsset] = useState<MerchantListingAsset>(
+    parsed?.asset === "BTC" ? "BTC" : "USDT",
+  );
   const [listingTab, setListingTab] = useState<P2pMarketTab>(parsed?.tab ?? "sell");
   const side = mode === "edit" && initial ? initial.side : merchantOfferSide(listingTab, listingAsset);
 

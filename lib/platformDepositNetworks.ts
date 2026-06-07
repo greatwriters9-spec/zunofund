@@ -40,9 +40,10 @@ function toNetwork(
   fallbackOrder: number,
 ): PlatformDepositNetwork | null {
   const asset = normalizeAsset(row.asset);
+  if (!asset) return null;
   const networkName = normalizeNetworkName(asset, String(row.network_name ?? ""));
   const walletAddress = String(row.wallet_address ?? "").trim();
-  if (!asset || !networkName || !walletAddress) return null;
+  if (!networkName || !walletAddress) return null;
 
   const sortOrder = Number(row.sort_order);
   const networkLabel = String(row.network_label ?? "").trim();
