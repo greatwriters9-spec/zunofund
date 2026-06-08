@@ -140,6 +140,7 @@ export function P2pOrderWorkspace({
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelBusy, setCancelBusy] = useState(false);
   const [disputeOpen, setDisputeOpen] = useState(false);
+  const [disputeModalVariant, setDisputeModalVariant] = useState<"party" | "admin-reopen">("party");
   const [disputeBusy, setDisputeBusy] = useState(false);
   const [resolveNote, setResolveNote] = useState("");
   const [serverMessages, setServerMessages] = useState<OrderMessageRow[]>([]);
@@ -782,17 +783,27 @@ export function P2pOrderWorkspace({
   async function confirmOpenDispute(reason: string) {
     setDisputeBusy(true);
     setError(null);
-    const { error: e } = await supabase.rpc("open_merchant_order_dispute", {
+    const rpc =
+      disputeModalVariant === "admin-reopen"
+        ? "admin_reopen_merchant_order_dispute"
+        : "open_merchant_order_dispute";
+    const { error: e } = await supabase.rpc(rpc, {
       p_order_id: id,
       p_reason: reason,
     });
     setDisputeBusy(false);
     setDisputeOpen(false);
+    setDisputeModalVariant("party");
     if (e) {
       setError(formatSupabaseError(e));
       return;
     }
     await load();
+  }
+
+  function openDisputeModal(variant: "party" | "admin-reopen") {
+    setDisputeModalVariant(variant);
+    setDisputeOpen(true);
   }
 
   async function adminResolveDispute(winner: "investor" | "merchant") {
@@ -1067,6 +1078,10 @@ export function P2pOrderWorkspace({
     (order.status === "pending_payment" || order.status === "paid");
   const canOpenDispute =
     !adminMode && !isDisputed && order.status === "paid" && (isInvestor || isMerchant);
+  const canAdminReopenDispute =
+    (adminMode || isAdminUser) &&
+    !isDisputed &&
+    (order.status === "completed" || order.status === "paid");
   const canAdminResolve = (adminMode || isAdminUser) && isDisputed;
 
   const summaryStrip = deriveSummaryStrip(order, isMerchant, fiatTradeAmount, cryptoTradeAmount);
@@ -1129,7 +1144,7 @@ export function P2pOrderWorkspace({
                 label: "Open Dispute",
                 variant: "dispute" as const,
                 busyKey: "dispute",
-                onClick: () => setDisputeOpen(true),
+                onClick: () => openDisputeModal("party"),
               }
             : null;
 
@@ -1311,11 +1326,29 @@ export function P2pOrderWorkspace({
                     <button
                       type="button"
                       disabled={busy !== null}
-                      onClick={() => setDisputeOpen(true)}
+                      onClick={() => openDisputeModal("party")}
                       className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-amber-500/40 bg-amber-500/[0.08] px-4 text-[14px] font-semibold text-amber-200 transition hover:border-amber-400/55 hover:bg-amber-500/12 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Open dispute
                     </button>
+                  ) : null}
+
+                  {canAdminReopenDispute ? (
+                    <div className="space-y-2 rounded-xl border border-violet-500/30 bg-violet-500/[0.08] p-3">
+                      <p className="text-[12px] leading-relaxed text-violet-100/90">
+                        {order.status === "completed"
+                          ? "Crypto was already released on-platform. Reopen to hold the investor balance and send this trade straight to dispute."
+                          : "Reopen this paid trade into dispute for admin review."}
+                      </p>
+                      <button
+                        type="button"
+                        disabled={busy !== null}
+                        onClick={() => openDisputeModal("admin-reopen")}
+                        className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-violet-400/45 bg-violet-600/25 px-4 text-[14px] font-semibold text-violet-100 transition hover:bg-violet-600/35 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Reopen as dispute & hold balance
+                      </button>
+                    </div>
                   ) : null}
 
                   {showInvestorCancel || showMerchantCancel ? (
@@ -1575,8 +1608,12 @@ export function P2pOrderWorkspace({
       <DisputeModal
         open={disputeOpen}
         busy={disputeBusy}
+        variant={disputeModalVariant}
         onClose={() => {
-          if (!disputeBusy) setDisputeOpen(false);
+          if (!disputeBusy) {
+            setDisputeOpen(false);
+            setDisputeModalVariant("party");
+          }
         }}
         onConfirm={(reason) => void confirmOpenDispute(reason)}
       />

@@ -481,6 +481,7 @@ export default function AdminMerchantsPage() {
                                   <th className="p-3">Status</th>
                                   <th className="p-3">Fiat</th>
                                   <th className="p-3">Volume (USD)</th>
+                                  <th className="p-3" />
                                 </tr>
                               </thead>
                               <tbody>
@@ -498,6 +499,16 @@ export default function AdminMerchantsPage() {
                                     </td>
                                     <td className="p-3 tabular-nums text-emerald-300/80">
                                       {formatUsdLocale(Number(o.volume_usd))}
+                                    </td>
+                                    <td className="p-3 text-right">
+                                      <Link
+                                        href={`/admin/p2p-disputes/${o.id}`}
+                                        className="inline-flex rounded-lg border border-violet-500/35 bg-violet-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-violet-200 transition hover:bg-violet-500/20"
+                                      >
+                                        {o.status === "completed" || o.status === "paid"
+                                          ? "Review / reopen"
+                                          : "Open trade"}
+                                      </Link>
                                     </td>
                                   </tr>
                                 ))}
