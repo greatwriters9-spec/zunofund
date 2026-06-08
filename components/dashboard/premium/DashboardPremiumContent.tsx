@@ -23,6 +23,7 @@ import type { P2pAssetCode } from "@/lib/p2pAssets";
 type MerchantProfile = { status: string } | null;
 
 type DashboardPremiumContentProps = {
+  layout?: "mobile" | "desktop";
   showKpi?: boolean;
   showCompactSupport?: boolean;
   showBalance: boolean;
@@ -40,6 +41,7 @@ type DashboardPremiumContentProps = {
 };
 
 export function DashboardPremiumContent({
+  layout = "desktop",
   showKpi = true,
   showCompactSupport = true,
   showBalance,
@@ -55,6 +57,84 @@ export function DashboardPremiumContent({
   accountStatus,
   merchantProfile,
 }: DashboardPremiumContentProps) {
+  const portfolioSection = (
+    <div className="grid gap-6 xl:grid-cols-2">
+      <DashboardPortfolioOverview
+        showBalance={showBalance}
+        balance={balance}
+        withdrawable={withdrawable}
+        fxRates={fxRates}
+      />
+      <DashboardAssetGrowthCard />
+    </div>
+  );
+
+  const activePlanSection = (
+    <DashboardActivePlanCard
+      showBalance={showBalance}
+      planKey={planKey}
+      balance={balance}
+      totalProfit={totalProfit}
+      accountStatus={accountStatus}
+    />
+  );
+
+  const activePlanWithUpgradeSection = (
+    <div className="grid gap-6 xl:grid-cols-2">
+      {activePlanSection}
+      <DashboardEliteUpgradeAd planKey={planKey} balance={balance} />
+    </div>
+  );
+
+  const merchantSection =
+    merchantProfile &&
+    (merchantProfile.status === "active" || merchantProfile.status === "pending") ? (
+      <div className="rounded-2xl border border-[#D4AF37]/20 bg-[#D4AF37]/[0.04] p-4 sm:p-5">
+        <div className="flex gap-3">
+          <Store className="mt-0.5 h-5 w-5 shrink-0 text-[#D4AF37]" aria-hidden />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold uppercase tracking-wider text-[#D4AF37]/90">
+              Merchant offers
+            </p>
+            {merchantProfile.status === "active" ? (
+              <p className="mt-1 text-sm" style={{ color: DASHBOARD_MUTED }}>
+                Manage P2P listings from your merchant dashboard.
+              </p>
+            ) : (
+              <p className="mt-1 text-sm" style={{ color: DASHBOARD_MUTED }}>
+                Your merchant application is pending approval.
+              </p>
+            )}
+            <Link
+              href="/merchant"
+              className="mt-3 inline-flex text-xs font-semibold text-[#D4AF37] hover:text-[#F5E6B3]"
+            >
+              Open merchant →
+            </Link>
+          </div>
+        </div>
+      </div>
+    ) : null;
+
+  const tailSections = (
+    <>
+      <DashboardLiveMarketsStripe />
+
+      {layout === "mobile" ? (
+        <div className="grid gap-6 xl:grid-cols-2">
+          <DashboardRecentTransactions activities={activities} />
+          <DashboardEliteUpgradeAd planKey={planKey} balance={balance} />
+        </div>
+      ) : (
+        <DashboardRecentTransactions activities={activities} />
+      )}
+
+      {merchantSection}
+
+      {showCompactSupport ? <DashboardCompactSupport /> : null}
+    </>
+  );
+
   return (
     <div className="space-y-6 lg:space-y-8">
       {showKpi ? (
@@ -70,62 +150,19 @@ export function DashboardPremiumContent({
         />
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        <DashboardPortfolioOverview
-          showBalance={showBalance}
-          balance={balance}
-          withdrawable={withdrawable}
-          fxRates={fxRates}
-        />
-        <DashboardAssetGrowthCard />
-      </div>
-
-      <DashboardLiveMarketsStripe />
-
-      <div className="grid gap-6 xl:grid-cols-2">
-        <DashboardRecentTransactions activities={activities} />
-        <div className="flex flex-col gap-6">
-          <DashboardActivePlanCard
-            showBalance={showBalance}
-            planKey={planKey}
-            balance={balance}
-            totalProfit={totalProfit}
-            accountStatus={accountStatus}
-          />
-          <DashboardEliteUpgradeAd planKey={planKey} balance={balance} />
-        </div>
-      </div>
-
-      {merchantProfile &&
-      (merchantProfile.status === "active" || merchantProfile.status === "pending") ? (
-        <div className="rounded-2xl border border-[#D4AF37]/20 bg-[#D4AF37]/[0.04] p-4 sm:p-5">
-          <div className="flex gap-3">
-            <Store className="mt-0.5 h-5 w-5 shrink-0 text-[#D4AF37]" aria-hidden />
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold uppercase tracking-wider text-[#D4AF37]/90">
-                Merchant offers
-              </p>
-              {merchantProfile.status === "active" ? (
-                <p className="mt-1 text-sm" style={{ color: DASHBOARD_MUTED }}>
-                  Manage P2P listings from your merchant dashboard.
-                </p>
-              ) : (
-                <p className="mt-1 text-sm" style={{ color: DASHBOARD_MUTED }}>
-                  Your merchant application is pending approval.
-                </p>
-              )}
-              <Link
-                href="/merchant"
-                className="mt-3 inline-flex text-xs font-semibold text-[#D4AF37] hover:text-[#F5E6B3]"
-              >
-                Open merchant →
-              </Link>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {showCompactSupport ? <DashboardCompactSupport /> : null}
+      {layout === "mobile" ? (
+        <>
+          {activePlanSection}
+          {portfolioSection}
+          {tailSections}
+        </>
+      ) : (
+        <>
+          {activePlanWithUpgradeSection}
+          {portfolioSection}
+          {tailSections}
+        </>
+      )}
     </div>
   );
 }

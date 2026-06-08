@@ -417,7 +417,7 @@ export default function DashboardPage() {
     <div className="page-content-stable relative min-h-screen overflow-x-clip bg-[#05070D] text-white">
       <div className="relative z-10 mx-auto max-w-7xl p-5 lg:mx-0 lg:max-w-none lg:p-0">
 
-        {/* Mobile: original orientation — balance hero, quick actions, then premium cards */}
+        {/* Mobile: balance hero, quick actions, active plan, portfolio, then remaining cards */}
         <div className="lg:hidden">
           <InvestorBalanceBlock
             balanceUsd={balance}
@@ -452,6 +452,7 @@ export default function DashboardPage() {
 
           <div className="mt-6">
             <DashboardPremiumContent
+              layout="mobile"
               showKpi={false}
               showCompactSupport={false}
               showBalance={showBalance}
