@@ -134,10 +134,12 @@ export function TradeChat({
                   <div className={`max-w-[88%] sm:max-w-[68%] ${isAdminMsg ? "w-full max-w-[92%] sm:max-w-[85%]" : ""}`}>
                     {isAdminMsg ? (
                       <p className="mb-0.5 px-1 text-center text-[10px] font-semibold uppercase tracking-wide text-violet-300/90">
-                        Admin
+                        {m.senderLabel ?? "Platform admin"}
                       </p>
-                    ) : !m.mine && counterpartLabel ? (
-                      <p className="mb-0.5 px-1 text-[10px] font-medium text-[#D4AF37]/80">{counterpartLabel}</p>
+                    ) : !m.mine && (m.senderLabel || counterpartLabel) ? (
+                      <p className="mb-0.5 px-1 text-[10px] font-medium text-[#D4AF37]/80">
+                        {m.senderLabel ?? counterpartLabel}
+                      </p>
                     ) : null}
                     <div
                       className={`px-3 py-2 text-[14px] leading-relaxed ${

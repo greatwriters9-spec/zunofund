@@ -143,14 +143,21 @@ export default function AdminDepositsPage() {
 
                 <p
                   className={`mt-2 font-medium ${
-                    deposit.status === "approved"
+                    deposit.status === "approved" || deposit.status === "resolved"
                       ? "text-green-500"
                       : deposit.status === "pending"
                         ? "text-yellow-500"
-                        : "text-red-500"
+                        : deposit.status === "disputed"
+                          ? "text-violet-400"
+                          : "text-red-500"
                   }`}
                 >
-                  Status: {deposit.status}
+                  Status:{" "}
+                  {deposit.status === "disputed"
+                    ? "Disputed (funds held)"
+                    : deposit.status === "resolved"
+                      ? "Resolved"
+                      : deposit.status}
                 </p>
               </div>
 

@@ -73,14 +73,18 @@ const FAQ_ITEMS = [
 
 function statusBadgeClass(status: string): string {
   const s = status.toLowerCase();
-  if (s === "approved" || s === "completed") return "text-emerald-400";
-  if (s === "rejected" || s === "failed") return "text-red-400";
+  if (s === "approved" || s === "completed" || s === "resolved") return "text-emerald-400";
+  if (s === "disputed") return "text-violet-400";
+  if (s === "rejected" || s === "failed" || s === "reversed") return "text-red-400";
   return "text-amber-300";
 }
 
 function formatStatusLabel(status: string): string {
   const s = status.toLowerCase();
   if (s === "approved") return "Completed";
+  if (s === "resolved") return "Dispute resolved";
+  if (s === "disputed") return "Under dispute";
+  if (s === "reversed") return "Reversed";
   if (s === "pending") return "Pending Review";
   return status.charAt(0).toUpperCase() + status.slice(1);
 }

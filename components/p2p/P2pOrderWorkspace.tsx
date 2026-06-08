@@ -169,15 +169,58 @@ export function P2pOrderWorkspace({
     return deriveTradePanels(order, merchantView);
   }, [order, userId]);
 
+  const investorDisplayName =
+    investorContact?.full_name?.trim() || investorContact?.email?.trim() || "Buyer";
+  const merchantDisplayName = merchantListingName?.trim() || "Seller";
+
+  const viewerIsPartyOnOrder = Boolean(
+    userId &&
+      order &&
+      (order.investor_user_id === userId || order.merchant_user_id === userId),
+  );
+  const viewingAsAdmin = Boolean(adminMode || (isAdminUser && !viewerIsPartyOnOrder));
+
+  const partySenderLabel = useCallback(
+    (senderUserId: string | null | undefined) => {
+      if (!order || !senderUserId) return "Party";
+      if (senderUserId === order.investor_user_id) {
+        return `Buyer · ${investorDisplayName}`;
+      }
+      if (senderUserId === order.merchant_user_id) {
+        return `Seller · ${merchantDisplayName}`;
+      }
+      return "Party";
+    },
+    [order, investorDisplayName, merchantDisplayName],
+  );
+
   const chatDisplayMessages: ChatMessage[] = useMemo(
     () =>
       serverMessages.map((r) => {
+        if (r.sender_role === "system") {
+          return {
+            id: r.id,
+            kind: "system" as const,
+            systemTone: "default" as const,
+            mine: false,
+            body: r.body,
+            at: new Date(r.created_at),
+          };
+        }
+
         const isAdminMsg = r.sender_role === "admin";
+        const isOwnPartyMessage =
+          Boolean(userId && r.sender_user_id === userId) && !isAdminMsg && !viewingAsAdmin;
         return {
           id: r.id,
           kind: "user" as const,
           senderRole: isAdminMsg ? ("admin" as const) : ("party" as const),
-          mine: Boolean(userId && r.sender_user_id === userId && !isAdminMsg),
+          senderLabel: isAdminMsg
+            ? "Platform admin"
+            : viewingAsAdmin
+              ? partySenderLabel(r.sender_user_id)
+              : undefined,
+          mine: isOwnPartyMessage,
           body: r.body,
           at: new Date(r.created_at),
           attachmentUrl: r.attachment_path,
@@ -185,7 +228,7 @@ export function P2pOrderWorkspace({
           attachmentName: r.attachment_name,
         };
       }),
-    [serverMessages, userId],
+    [serverMessages, userId, viewingAsAdmin, partySenderLabel],
   );
 
   const tradeTimelineMessages = useMemo((): ChatMessage[] => {
@@ -319,9 +362,11 @@ export function P2pOrderWorkspace({
     } = await supabase.auth.getUser();
     setUserId(user?.id ?? null);
 
+    let adminFlag = false;
     if (user?.id) {
-      const { data: adminFlag } = await supabase.rpc("is_admin", { check_uid: user.id });
-      setIsAdminUser(Boolean(adminMode || adminFlag));
+      const { data: adminRpc } = await supabase.rpc("is_admin", { check_uid: user.id });
+      adminFlag = Boolean(adminRpc);
+      setIsAdminUser(Boolean(adminMode || adminRpc));
       await expireStaleP2pOrders(supabase);
     } else {
       setIsAdminUser(adminMode);
@@ -369,6 +414,7 @@ export function P2pOrderWorkspace({
 
     const viewerIsInvestor = user?.id === ord.investor_user_id;
     const viewerIsMerchant = user?.id === ord.merchant_user_id;
+    const viewerIsAdmin = Boolean(adminMode || adminFlag);
 
     setMerchantListingName(null);
     setMerchantAvatarUrl(null);
@@ -453,28 +499,55 @@ export function P2pOrderWorkspace({
           });
         }
       }
-    } else {
-      const { data: mpRow } = await supabase
-        .from("merchant_profiles")
-        .select("display_name, is_online, last_seen_at, presence_mode")
-        .eq("user_id", ord.merchant_user_id)
-        .maybeSingle();
-      const merchantRow = mpRow as {
-        display_name: string | null;
-        is_online: boolean | null;
-        last_seen_at: string | null;
-        presence_mode?: MerchantPresenceMode | null;
-      } | null;
-      setMerchantListingName(merchantRow?.display_name ?? null);
-      setMerchantPresence(
-        merchantRow
-          ? {
-              is_online: merchantRow.is_online,
-              last_seen_at: merchantRow.last_seen_at,
-              presence_mode: merchantRow.presence_mode ?? "auto",
-            }
-          : null,
-      );
+    } else if (viewerIsAdmin) {
+      const [{ data: merchantProfData }, { data: invData }] = await Promise.all([
+        supabase.rpc("investor_get_order_merchant_profile", { p_order_id: id }),
+        supabase.rpc("merchant_get_order_investor_presence", { p_order_id: id }),
+      ]);
+
+      const merchantRow = (Array.isArray(merchantProfData) ? merchantProfData[0] : merchantProfData) as
+        | {
+            display_name?: string | null;
+            is_online?: boolean | null;
+            last_seen_at?: string | null;
+            presence_mode?: MerchantPresenceMode | null;
+            avatar_url?: string | null;
+          }
+        | null
+        | undefined;
+      if (merchantRow) {
+        setMerchantListingName(merchantRow.display_name ?? null);
+        setMerchantAvatarUrl(merchantRow.avatar_url?.trim() ? merchantRow.avatar_url.trim() : null);
+        setMerchantPresence({
+          is_online: merchantRow.is_online ?? null,
+          last_seen_at: merchantRow.last_seen_at ?? null,
+          presence_mode: merchantRow.presence_mode ?? "auto",
+        });
+      }
+
+      const invRow = (Array.isArray(invData) ? invData[0] : invData) as
+        | {
+            is_online?: boolean;
+            last_seen_at?: string | null;
+            full_name?: string | null;
+            email?: string | null;
+            phone?: string | null;
+            avatar_url?: string | null;
+          }
+        | null
+        | undefined;
+      if (invRow) {
+        setInvestorPresence({
+          is_online: Boolean(invRow.is_online),
+          last_seen_at: invRow.last_seen_at ?? null,
+        });
+        setInvestorContact({
+          full_name: invRow.full_name ?? null,
+          email: invRow.email ?? null,
+          phone: invRow.phone ?? null,
+          avatar_url: invRow.avatar_url?.trim() ? invRow.avatar_url.trim() : null,
+        });
+      }
     }
 
     setOrder({
@@ -482,7 +555,7 @@ export function P2pOrderWorkspace({
       merchant_offers: off ? { payment_instructions: off.payment_instructions } : null,
     });
     setError(null);
-  }, [id, supabase]);
+  }, [id, supabase, adminMode]);
 
   const refreshMerchantPresence = useCallback(async () => {
     if (!id?.trim()) return;
@@ -690,9 +763,18 @@ export function P2pOrderWorkspace({
     if (!trimmed || !userId || !order || chatDisabled) return;
     setChatSending(true);
     setChatSyncError(null);
+    const insertPayload: {
+      order_id: string;
+      body: string;
+      sender_role?: string;
+    } = { order_id: order.id, body: trimmed };
+    if (viewingAsAdmin && order.status === "disputed") {
+      insertPayload.sender_role = "admin";
+    }
+
     const { data: inserted, error: insErr } = await supabase
       .from("merchant_order_messages")
-      .insert({ order_id: order.id, body: trimmed })
+      .insert(insertPayload)
       .select(
         "id, sender_user_id, sender_role, body, attachment_path, attachment_mime_type, attachment_name, created_at",
       )
@@ -1211,6 +1293,31 @@ export function P2pOrderWorkspace({
                 </div>
               ) : null}
 
+              {viewingAsAdmin ? (
+                <div className={`hidden space-y-2 p-4 lg:block ${innerCard}`}>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-violet-200/90">
+                    Parties in this chat
+                  </p>
+                  <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] px-3 py-2.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-300/80">
+                      Buyer
+                    </p>
+                    <p className="mt-1 text-[13px] font-medium text-white">{investorDisplayName}</p>
+                    <p className="text-[11px] text-zinc-400">{investorContact?.email?.trim() || "—"}</p>
+                  </div>
+                  <div className="rounded-xl border border-[#D4AF37]/20 bg-[#D4AF37]/[0.06] px-3 py-2.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#F5E6B3]/80">
+                      Seller
+                    </p>
+                    <p className="mt-1 text-[13px] font-medium text-white">{merchantDisplayName}</p>
+                    <p className="text-[11px] text-zinc-400">{merchantPresenceLabel}</p>
+                  </div>
+                  <p className="text-[11px] leading-relaxed text-zinc-500">
+                    Your messages appear as Platform admin and are visible to both parties.
+                  </p>
+                </div>
+              ) : null}
+
               <details className={`group p-3 sm:p-4 [&_summary::-webkit-details-marker]:hidden ${innerCard}`}>
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#D4AF37]/85">
                   Offer terms
@@ -1457,42 +1564,90 @@ export function P2pOrderWorkspace({
               <div className="flex shrink-0 items-center justify-between gap-2 overflow-hidden whitespace-nowrap border-b border-white/[0.06] bg-[rgba(8,12,20,0.45)] px-2 py-2 backdrop-blur-md sm:px-4 lg:px-5 lg:py-2.5">
                 <div className="flex min-w-0 flex-1 items-center gap-2">
                   {mobileBack}
-                  <MerchantOfferAvatar
-                    avatarUrl={counterpartAvatarUrl}
-                    displayName={counterpartName}
-                    size="sm"
-                    className="h-8 w-8 shrink-0 ring-[#D4AF37]/35 lg:h-9 lg:w-9"
-                  />
-                  <div className="min-w-0 overflow-hidden">
-                    <p className="truncate text-[13px] font-semibold text-white lg:text-[15px]">
-                      {!isMerchant ? (
-                        <MerchantNameLink
-                          merchantUserId={order.merchant_user_id}
-                          className="text-white hover:text-[#D4AF37]"
-                        >
-                          {counterpartName}
-                        </MerchantNameLink>
-                      ) : (
-                        counterpartName
-                      )}
-                    </p>
-                    <p
-                      className={`flex items-center gap-1 truncate text-[9px] font-bold uppercase tracking-wide lg:text-[10.5px] ${
-                        counterpartOnline ? "text-[#00C076]" : "text-yellow-300"
-                      }`}
-                    >
-                      <span
-                        className="h-1.5 w-1.5 shrink-0 rounded-full"
-                        style={
-                          counterpartOnline
-                            ? { backgroundColor: DASHBOARD_SUCCESS }
-                            : { backgroundColor: "#facc15" }
-                        }
-                        aria-hidden
+                  {viewingAsAdmin ? (
+                    <div className="flex min-w-0 flex-1 items-center gap-2">
+                      <MerchantOfferAvatar
+                        avatarUrl={investorContact?.avatar_url}
+                        displayName={investorDisplayName}
+                        size="sm"
+                        className="h-8 w-8 shrink-0 ring-emerald-500/35 lg:h-9 lg:w-9"
                       />
-                      <span className="truncate">{counterpartPresenceText}</span>
-                    </p>
-                  </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[12px] font-semibold text-white lg:text-[13px]">
+                          Buyer · {investorDisplayName}
+                        </p>
+                        <p className="truncate text-[10px] text-zinc-500">
+                          {investorContact?.email?.trim() || "Investor"}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-zinc-600">
+                        vs
+                      </span>
+                      <MerchantOfferAvatar
+                        avatarUrl={merchantAvatarUrl}
+                        displayName={merchantDisplayName}
+                        size="sm"
+                        className="h-8 w-8 shrink-0 ring-[#D4AF37]/35 lg:h-9 lg:w-9"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[12px] font-semibold text-white lg:text-[13px]">
+                          Seller ·{" "}
+                          <MerchantNameLink
+                            merchantUserId={order.merchant_user_id}
+                            className="text-white hover:text-[#D4AF37]"
+                          >
+                            {merchantDisplayName}
+                          </MerchantNameLink>
+                        </p>
+                        <p
+                          className={`truncate text-[10px] ${
+                            merchantOnline ? "text-[#00C076]" : "text-yellow-300"
+                          }`}
+                        >
+                          {merchantPresenceLabel}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <MerchantOfferAvatar
+                        avatarUrl={counterpartAvatarUrl}
+                        displayName={counterpartName}
+                        size="sm"
+                        className="h-8 w-8 shrink-0 ring-[#D4AF37]/35 lg:h-9 lg:w-9"
+                      />
+                      <div className="min-w-0 overflow-hidden">
+                        <p className="truncate text-[13px] font-semibold text-white lg:text-[15px]">
+                          {!isMerchant ? (
+                            <MerchantNameLink
+                              merchantUserId={order.merchant_user_id}
+                              className="text-white hover:text-[#D4AF37]"
+                            >
+                              {counterpartName}
+                            </MerchantNameLink>
+                          ) : (
+                            counterpartName
+                          )}
+                        </p>
+                        <p
+                          className={`flex items-center gap-1 truncate text-[9px] font-bold uppercase tracking-wide lg:text-[10.5px] ${
+                            counterpartOnline ? "text-[#00C076]" : "text-yellow-300"
+                          }`}
+                        >
+                          <span
+                            className="h-1.5 w-1.5 shrink-0 rounded-full"
+                            style={
+                              counterpartOnline
+                                ? { backgroundColor: DASHBOARD_SUCCESS }
+                                : { backgroundColor: "#facc15" }
+                            }
+                            aria-hidden
+                          />
+                          <span className="truncate">{counterpartPresenceText}</span>
+                        </p>
+                      </div>
+                    </>
+                  )}
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5">
                   <span className="max-w-[5.5rem] truncate rounded-full border border-[#D4AF37]/25 bg-[#D4AF37]/10 px-2 py-0.5 text-[8px] font-semibold text-[#F5E6B3] sm:max-w-none sm:text-[10px]">
@@ -1560,17 +1715,17 @@ export function P2pOrderWorkspace({
 
               <div className="flex min-h-0 min-w-0 flex-1 flex-col">
                 <TradeChat
-                  counterpartLabel={counterpartName}
+                  counterpartLabel={viewingAsAdmin ? undefined : counterpartName}
                   messages={combinedChatMessages}
                   onSend={(t) => void sendTradeMessage(t)}
-                  onAttach={(file) => void attachPaymentProof(file)}
+                  onAttach={viewingAsAdmin ? undefined : (file) => void attachPaymentProof(file)}
                   disabled={chatInputDisabled}
                   mobileActionBar={mobileShowActionBar}
                   placeholder={
                     chatSending
                       ? "Sending…"
-                      : isAdminUser && isDisputed
-                        ? "Write as admin mediator…"
+                      : viewingAsAdmin && isDisputed
+                        ? "Write as platform admin…"
                         : "Type a message…"
                   }
                 />
