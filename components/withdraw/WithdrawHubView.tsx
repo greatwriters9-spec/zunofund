@@ -28,7 +28,7 @@ const METHODS = [
     cardClass:
       "border-white/[0.08] bg-white/[0.02] hover:border-emerald-500/35 hover:bg-emerald-500/[0.04]",
     description:
-      "Match a merchant, receive fiat off-platform, then release crypto — deduction applies like an approved exchange withdrawal.",
+      "Sell accrued profits to verified merchants. Principal remains locked — use crypto wallet for matured principal.",
   },
 ] as const;
 
@@ -105,8 +105,8 @@ export function WithdrawHubView() {
         </div>
 
         <p className="mt-8 max-w-xl text-[11px] leading-relaxed text-zinc-600">
-          P2P trades match you with verified merchants. Locked principal may not be available for
-          withdrawal until plan terms are met.
+          P2P marketplace trades use withdrawable profits only. Locked and matured principal follow
+          the crypto wallet withdrawal rules (30-day lock, then wallet).
         </p>
       </div>
     </main>

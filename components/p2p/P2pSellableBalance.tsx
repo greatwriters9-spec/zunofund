@@ -70,10 +70,10 @@ export function P2pSellableBalance({
   return (
     <div
       className="dashboard-balance-stable border-b border-white/[0.06] bg-[rgba(5,7,13,0.95)] px-4 pb-4 pt-3 sm:px-6"
-      aria-label="Est. total value"
+      aria-label="P2P sellable profit balance"
     >
       <p className="text-sm font-normal tracking-tight" style={{ color: DASHBOARD_MUTED }}>
-        Est. Total Value (
+        P2P sellable (
         <button
           type="button"
           onClick={cycleCryptoUnit}
@@ -105,6 +105,9 @@ export function P2pSellableBalance({
           />
         </div>
       </div>
+      <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
+        Profits only. Principal stays locked here — withdraw matured principal via crypto wallet.
+      </p>
     </div>
   );
 }
