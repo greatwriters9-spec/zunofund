@@ -73,30 +73,49 @@ export function AccountStatusProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   useEffect(() => {
+    let cancelled = false;
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
-    void supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user?.id) return;
+    void (async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (cancelled || !user?.id) return;
 
-      channel = supabase
-        .channel(`account-status-${user.id}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "investors",
-            filter: `user_id=eq.${user.id}`,
-          },
-          () => {
-            void refresh();
-          },
-        )
-        .subscribe();
-    });
+      const nextChannel = supabase.channel(`account-status-${user.id}`);
+      nextChannel.on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "investors",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          if (!cancelled) void refresh();
+        },
+      );
+
+      if (cancelled) {
+        void supabase.removeChannel(nextChannel);
+        return;
+      }
+
+      channel = nextChannel;
+      if (cancelled) {
+        void supabase.removeChannel(nextChannel);
+        channel = null;
+        return;
+      }
+      nextChannel.subscribe();
+    })();
 
     return () => {
-      if (channel) void supabase.removeChannel(channel);
+      cancelled = true;
+      if (channel) {
+        void supabase.removeChannel(channel);
+        channel = null;
+      }
     };
   }, [supabase, refresh]);
 
