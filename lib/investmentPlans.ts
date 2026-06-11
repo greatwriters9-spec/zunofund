@@ -1,122 +1,106 @@
 import { formatUsdAmount } from "@/lib/formatMoney";
+import {
+  displayPlanName,
+  normalizeInvestmentPlan,
+  tierRank,
+  type CanonicalInvestmentPlan,
+} from "@/lib/investmentPlanIdentity";
+export {
+  CANONICAL_INVESTMENT_PLANS,
+  displayPlanName,
+  normalizeInvestmentPlan,
+  tierRank,
+  type CanonicalInvestmentPlan,
+} from "@/lib/investmentPlanIdentity";
+import { FALLBACK_PLANS } from "@/lib/platformConfig/fallbacks";
+import {
+  dailyCompoundLabelFromPlans,
+  formatPlanDepositRange,
+  platformMinDepositUsd,
+  planDailyRoi,
+  planDepositRange,
+  tierFromPrincipalUsd,
+} from "@/lib/platformConfig/helpers";
+import type { InvestmentPlanRow } from "@/lib/platformConfig/types";
 
-/** Canonical tiers — must align with Postgres `daily_compound_percent_for_plan` matching order (elite→growth→pro→starter). */
-export const CANONICAL_INVESTMENT_PLANS = [
-  "Starter",
-  "Growth",
-  "Pro",
-  "Elite",
-] as const;
+/** @deprecated Use platformMinDepositUsd(plans) from live config. */
+export const MIN_INTEREST_QUALIFYING_USD = platformMinDepositUsd(FALLBACK_PLANS);
 
-export type CanonicalInvestmentPlan =
-  (typeof CANONICAL_INVESTMENT_PLANS)[number];
-
-const ORDER: Record<CanonicalInvestmentPlan, number> = {
-  Starter: 0,
-  Growth: 1,
-  Pro: 2,
-  Elite: 3,
-};
-
-/** Minimum qualifying principal (USD) before daily interest accrues. P2P remains available below this. */
-export const MIN_INTEREST_QUALIFYING_USD = 100;
-
-/** Map free-text DB values ("Starter Level", legacy "starter", etc.) to a canonical slug. */
-export function normalizeInvestmentPlan(
-  raw: string | null | undefined,
-): CanonicalInvestmentPlan {
-  const s = (raw ?? "").toLowerCase();
-  if (s.includes("elite")) return "Elite";
-  if (s.includes("growth")) return "Growth";
-  if (s.includes("pro")) return "Pro";
-  if (s.includes("starter")) return "Starter";
-  return "Starter";
-}
-
-/** Human label for dashboards (matches marketing names). */
-export function displayPlanName(key: CanonicalInvestmentPlan): string {
-  switch (key) {
-    case "Starter":
-      return "Starter Level";
-    case "Growth":
-      return "Growth Level";
-    case "Pro":
-      return "Pro Level";
-    case "Elite":
-      return "Elite Level";
-    default:
-      return key;
-  }
-}
-
+/** @deprecated Prefer planDailyRoi(plans, key) from usePlatformConfig(). */
 export const PLAN_DAILY_COMPOUND_PERCENT: Record<
   CanonicalInvestmentPlan,
   number
 > = {
-  Starter: 10,
-  Growth: 20,
-  Pro: 30,
-  Elite: 50,
+  Starter: planDailyRoi(FALLBACK_PLANS, "Starter"),
+  Growth: planDailyRoi(FALLBACK_PLANS, "Growth"),
+  Pro: planDailyRoi(FALLBACK_PLANS, "Pro"),
+  Elite: planDailyRoi(FALLBACK_PLANS, "Elite"),
 };
 
-export function dailyCompoundLabel(key: CanonicalInvestmentPlan): string {
-  return `${PLAN_DAILY_COMPOUND_PERCENT[key]}% Daily Compound`;
+export function dailyCompoundLabel(
+  key: CanonicalInvestmentPlan,
+  plans?: InvestmentPlanRow[] | null,
+): string {
+  const source = plans?.length ? plans : FALLBACK_PLANS;
+  return dailyCompoundLabelFromPlans(source, key);
 }
 
-/**
- * USD brackets per tier (inclusive). Used for marketing copy and for automatic tier assignment
- * from qualifying principal (must stay aligned with `investment_plan_slug_for_principal` in Postgres).
- */
+/** @deprecated Prefer planDepositRange(plans, key) from usePlatformConfig(). */
 export const PLAN_DEPOSIT_RANGE_USD: Record<
   CanonicalInvestmentPlan,
   { min: number; max: number | null }
 > = {
-  Starter: { min: 100, max: 500 },
-  Growth: { min: 500, max: 1500 },
-  Pro: { min: 1500, max: 5000 },
-  Elite: { min: 5000, max: null },
+  Starter: planDepositRange(FALLBACK_PLANS, "Starter"),
+  Growth: planDepositRange(FALLBACK_PLANS, "Growth"),
+  Pro: planDepositRange(FALLBACK_PLANS, "Pro"),
+  Elite: planDepositRange(FALLBACK_PLANS, "Elite"),
 };
 
-/** Minimum single crypto deposit request (global); DB trigger enforces the same floor. */
-export const MIN_PLATFORM_DEPOSIT_USD = 100;
-
-/** Highest tier whose bracket contains `usd` (matches SQL Elite→Pro→Growth→Starter scan). */
-export function canonicalTierFromQualifyingPrincipalUsd(
-  usd: number,
-): CanonicalInvestmentPlan {
-  const x = Number.isFinite(usd) ? usd : 0;
-  if (x >= 5000) return "Elite";
-  if (x >= 1500) return "Pro";
-  if (x >= 500) return "Growth";
-  return "Starter";
+/** Minimum single crypto deposit request; mirrors platform_min_deposit_usd() in Postgres. */
+export function minPlatformDepositUsd(plans?: InvestmentPlanRow[] | null): number {
+  return platformMinDepositUsd(plans?.length ? plans : FALLBACK_PLANS);
 }
 
-export function qualifiesForDailyInterest(qualifyingPrincipalUsd: number): boolean {
+/** @deprecated Use minPlatformDepositUsd(plans). */
+export const MIN_PLATFORM_DEPOSIT_USD = minPlatformDepositUsd(FALLBACK_PLANS);
+
+/** Highest tier whose bracket contains `usd` (matches SQL investment_plan_slug_for_principal). */
+export function canonicalTierFromQualifyingPrincipalUsd(
+  usd: number,
+  plans?: InvestmentPlanRow[] | null,
+): CanonicalInvestmentPlan {
+  return tierFromPrincipalUsd(plans?.length ? plans : FALLBACK_PLANS, usd);
+}
+
+export function qualifiesForDailyInterest(
+  qualifyingPrincipalUsd: number,
+  plans?: InvestmentPlanRow[] | null,
+): boolean {
   const x = Number.isFinite(qualifyingPrincipalUsd) ? qualifyingPrincipalUsd : 0;
-  return x >= MIN_INTEREST_QUALIFYING_USD;
+  return x >= minPlatformDepositUsd(plans);
 }
 
 export function formatDepositRangeDescription(
   key: CanonicalInvestmentPlan,
+  plans?: InvestmentPlanRow[] | null,
 ): string {
-  const { min, max } = PLAN_DEPOSIT_RANGE_USD[key];
-  if (max === null) return `${formatUsdAmount(min)}+`;
-  return `${formatUsdAmount(min)} — ${formatUsdAmount(max)}`;
+  const source = plans?.length ? plans : FALLBACK_PLANS;
+  return formatPlanDepositRange(source, key);
 }
 
-/** Client-side guard for deposit amount; DB trigger enforces minimum only (no per-tier max). */
-export function validateMinimumDeposit(amount: number): string | null {
+/** Client-side guard for deposit amount; DB trigger enforces minimum from investment_plans. */
+export function validateMinimumDeposit(
+  amount: number,
+  plans?: InvestmentPlanRow[] | null,
+): string | null {
+  const minUsd = minPlatformDepositUsd(plans);
   if (!Number.isFinite(amount) || amount <= 0) {
     return "Enter a valid positive amount.";
   }
-  if (amount < MIN_PLATFORM_DEPOSIT_USD) {
-    return `The minimum deposit is ${formatUsdAmount(MIN_PLATFORM_DEPOSIT_USD)}.`;
+  if (amount < minUsd) {
+    return `The minimum deposit is ${formatUsdAmount(minUsd)}.`;
   }
   return null;
-}
-
-export function tierRank(plan: CanonicalInvestmentPlan): number {
-  return ORDER[plan];
 }
 
 /** Prefer higher tier numerically — used for downgrade warning in UI only. */

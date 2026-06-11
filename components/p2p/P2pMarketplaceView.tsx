@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { AccountActionBlockedNotice } from "@/components/account/AccountActionBlockedNotice";
 import { InvestorMarketplaceActiveTrades } from "@/components/p2p/InvestorMarketplaceActiveTrades";
 import { OffersScrollList } from "@/components/p2p/OffersScrollList";
 import { OfferCard, type OfferCardRow } from "@/components/p2p/OfferCard";
@@ -373,6 +374,9 @@ export function P2pMarketplaceView({ initialTab, backHref, backLabel }: P2pMarke
         aria-hidden
       />
       <main className="relative flex min-h-0 min-w-0 flex-1 flex-col lg:overflow-hidden lg:flex lg:flex-col">
+        <div className="px-4 pt-3 sm:px-6">
+          <AccountActionBlockedNotice action="p2p" actionLabel="P2P trading" />
+        </div>
         <div className="max-lg:contents lg:z-30 lg:shrink-0 lg:bg-[#05070D]">
           <div className="relative shrink-0 px-4 pb-4 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6 sm:pb-5 sm:pt-6 lg:bg-transparent lg:px-6 lg:pb-3 lg:pt-4">
             <div className="flex flex-wrap items-start justify-between gap-3">

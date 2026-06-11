@@ -4,12 +4,13 @@ import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { displayPlanName, normalizeInvestmentPlan } from "@/lib/investmentPlanIdentity";
 import {
-  CANONICAL_INVESTMENT_PLANS,
-  dailyCompoundLabel,
-  displayPlanName,
-  formatDepositRangeDescription,
-} from "@/lib/investmentPlans";
+  dailyCompoundLabelFromPlans,
+  formatPlanDepositRange,
+  platformMinDepositUsd,
+} from "@/lib/platformConfig/helpers";
+import { usePlatformConfig } from "@/lib/platformConfig";
 import {
   EMPTY_PLATFORM_CONTACT,
   PLATFORM_CONTACT_ID,
@@ -88,6 +89,9 @@ function SettingsSection({
 
 export default function AdminSettingsPage() {
   const supabase = useSupabase();
+  const { config: platformConfig } = usePlatformConfig();
+  const livePlans = [...platformConfig.plans].sort((a, b) => a.sort_order - b.sort_order);
+  const minDepositUsd = platformMinDepositUsd(platformConfig.plans);
   const [sessionEmail, setSessionEmail] = useState<string | null>(null);
   const [contact, setContact] = useState<PlatformContact>(EMPTY_PLATFORM_CONTACT);
   const [contactLoading, setContactLoading] = useState(true);
@@ -226,6 +230,13 @@ export default function AdminSettingsPage() {
             section above.
           </li>
           <li>
+            <strong>Investment plans, promotion settings, and announcements</strong> on the{" "}
+            <Link href="/admin/promotions" className="text-yellow-500 underline">
+              Promotions
+            </Link>{" "}
+            page — changes apply live across the platform (no deploy required).
+          </li>
+          <li>
             Investor <strong>tier / plan</strong> and{" "}
             <strong>automatic vs paused daily profit accrual</strong> (per
             investor) on the{" "}
@@ -247,13 +258,16 @@ export default function AdminSettingsPage() {
       </SettingsSection>
 
       <SettingsSection
-        title="Investment tiers (code + DB)"
-        description="Daily percentages and USD principal brackets drive automatic tier and mirror lib/investmentPlans.ts."
+        title="Investment tiers (live from database)"
+        description="Rates and brackets below reflect the current database values. Edit them on the Promotions page."
       >
         <p className="text-zinc-400 text-sm leading-relaxed">
-          Deposits enforce a global minimum ($100). Interest accrues from $100
-          qualifying principal. Changing rates or
-          brackets requires a migration or deploy.
+          Deposits enforce a global minimum (${minDepositUsd}). Interest accrues from qualifying
+          principal. Changes saved in{" "}
+          <Link href="/admin/promotions" className="text-yellow-500 underline">
+            Promotion Management
+          </Link>{" "}
+          take effect immediately for new deposits, accrual jobs, and investor-facing UI.
         </p>
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left border border-zinc-800 rounded-xl overflow-hidden">
@@ -265,22 +279,23 @@ export default function AdminSettingsPage() {
               </tr>
             </thead>
             <tbody>
-              {CANONICAL_INVESTMENT_PLANS.map((slug) => (
-                <tr
-                  key={slug}
-                  className="border-t border-zinc-800 bg-black/40"
-                >
-                  <td className="px-4 py-3 text-white">
-                    {displayPlanName(slug)}
-                  </td>
-                  <td className="px-4 py-3 text-zinc-300">
-                    {formatDepositRangeDescription(slug)}
-                  </td>
-                  <td className="px-4 py-3 text-green-400/90">
-                    {dailyCompoundLabel(slug)}
-                  </td>
-                </tr>
-              ))}
+              {livePlans.map((plan) => {
+                const slug = normalizeInvestmentPlan(plan.name);
+                return (
+                  <tr
+                    key={plan.id}
+                    className="border-t border-zinc-800 bg-black/40"
+                  >
+                    <td className="px-4 py-3 text-white">{displayPlanName(slug)}</td>
+                    <td className="px-4 py-3 text-zinc-300">
+                      {formatPlanDepositRange(platformConfig.plans, slug)}
+                    </td>
+                    <td className="px-4 py-3 text-green-400/90">
+                      {dailyCompoundLabelFromPlans(platformConfig.plans, slug)}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

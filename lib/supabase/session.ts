@@ -1,6 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+import {
+  accountStatusRedirectPath,
+  isPathAllowedForAccountStatus,
+} from "@/lib/accountStatus/access";
+import { normalizeAccountStatus } from "@/lib/accountStatus/labels";
+
 import { getSupabaseAnonKey, getSupabaseUrl } from "./env";
 
 const INVESTOR_PREFIXES = [
@@ -10,11 +16,28 @@ const INVESTOR_PREFIXES = [
   "/history",
   "/notifications",
   "/support",
+  "/p2p",
+  "/rewards",
+  "/investment-plans",
+  "/communication-center",
+  "/markets",
+  "/spot",
+  "/account-suspended",
+  "/account-banned",
 ] as const;
 
 function isInvestorProtectedPath(pathname: string) {
   return INVESTOR_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
+}
+
+function shouldSkipAccountStatusGuard(pathname: string) {
+  return (
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/merchant") ||
+    pathname.startsWith("/api/") ||
+    isAuthFlowPath(pathname)
   );
 }
 
@@ -44,11 +67,30 @@ function hasSupabaseSessionCookies(request: NextRequest): boolean {
   });
 }
 
+function isAuthFlowPath(pathname: string): boolean {
+  return (
+    pathname === "/auth" ||
+    pathname.startsWith("/auth/") ||
+    pathname === "/forgot-password" ||
+    pathname.startsWith("/forgot-password/") ||
+    pathname === "/reset-password" ||
+    pathname.startsWith("/reset-password/")
+  );
+}
+
 /**
  * Refreshes Supabase auth cookies and applies route guards for investor + admin areas.
  */
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
+
+  const path = request.nextUrl.pathname;
+  const isDev = process.env.NODE_ENV === "development";
+
+  // Logged-out auth pages: skip Auth network refresh (avoids 10s timeout when offline/TLS broken).
+  if (!hasSupabaseSessionCookies(request) && isAuthFlowPath(path)) {
+    return response;
+  }
 
   const supabase = createServerClient(getSupabaseUrl(), getSupabaseAnonKey(), {
     cookies: {
@@ -65,9 +107,6 @@ export async function updateSession(request: NextRequest) {
       },
     },
   });
-
-  const path = request.nextUrl.pathname;
-  const isDev = process.env.NODE_ENV === "development";
 
   /*
    * 1) Prefer getUser() — verifies with Auth (needs Node → Supabase HTTPS; fails on broken TLS).
@@ -117,6 +156,36 @@ export async function updateSession(request: NextRequest) {
       const redirect = NextResponse.redirect(url);
       copyCookies(response, redirect);
       return redirect;
+    }
+  }
+
+  if (uid && isInvestorProtectedPath(path) && !shouldSkipAccountStatusGuard(path)) {
+    try {
+      const { data: investor } = await supabase
+        .from("investors")
+        .select("account_status, status")
+        .eq("user_id", uid)
+        .maybeSingle();
+
+      const accountStatus = normalizeAccountStatus(
+        investor?.account_status ?? investor?.status,
+      );
+
+      if (!isPathAllowedForAccountStatus(accountStatus, path)) {
+        const target =
+          accountStatusRedirectPath(accountStatus) ?? "/dashboard";
+        if (path !== target) {
+          const url = request.nextUrl.clone();
+          url.pathname = target;
+          const redirect = NextResponse.redirect(url);
+          copyCookies(response, redirect);
+          return redirect;
+        }
+      }
+    } catch (e) {
+      if (isDev) {
+        console.error("[proxy] account status check failed:", e);
+      }
     }
   }
 

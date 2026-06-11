@@ -6,6 +6,7 @@ import {
   validateMinimumDeposit,
   type CanonicalInvestmentPlan,
 } from "@/lib/investmentPlans";
+import { usePlatformConfig } from "@/lib/platformConfig";
 import {
   DEFAULT_PLATFORM_DEPOSIT_NETWORKS,
   normalizePlatformDepositNetworkRows,
@@ -21,6 +22,7 @@ import {
 
 export default function DepositExchangePage() {
   const supabase = useSupabase();
+  const { config } = usePlatformConfig();
   const [amount, setAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("USDT");
   const [txid] = useState("");
@@ -205,7 +207,7 @@ export default function DepositExchangePage() {
     }
 
     const numAmount = Number(amount);
-    const planMsg = validateMinimumDeposit(numAmount);
+    const planMsg = validateMinimumDeposit(numAmount, config.plans);
     if (planMsg) {
       setFormError(planMsg);
       setLoading(false);

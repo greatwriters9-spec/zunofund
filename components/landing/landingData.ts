@@ -1,13 +1,13 @@
-import {
-  formatDepositRangeDescription,
-  PLAN_DAILY_COMPOUND_PERCENT,
-} from "@/lib/investmentPlans";
+import { formatPlanDepositRange } from "@/lib/platformConfig/helpers";
+import type { InvestmentPlanRow } from "@/lib/platformConfig/types";
+import { FALLBACK_PLANS } from "@/lib/platformConfig/fallbacks";
+import { normalizeInvestmentPlan } from "@/lib/investmentPlanIdentity";
 
-export const LANDING_PLANS = [
-  {
-    name: "Starter",
-    range: formatDepositRangeDescription("Starter"),
-    roi: `Up to ${PLAN_DAILY_COMPOUND_PERCENT.Starter}% Daily`,
+const LANDING_PLAN_COPY: Record<
+  string,
+  { description: string; benefits: string[]; button: string }
+> = {
+  Starter: {
     description:
       "Perfect for investors beginning their portfolio growth journey with manageable capital exposure.",
     benefits: [
@@ -18,10 +18,7 @@ export const LANDING_PLANS = [
     ],
     button: "Start Investing",
   },
-  {
-    name: "Growth",
-    range: formatDepositRangeDescription("Growth"),
-    roi: `Up to ${PLAN_DAILY_COMPOUND_PERCENT.Growth}% Daily`,
+  Growth: {
     description:
       "Designed for investors seeking stronger capital expansion and increased earning potential.",
     benefits: [
@@ -32,10 +29,7 @@ export const LANDING_PLANS = [
     ],
     button: "Upgrade to Growth",
   },
-  {
-    name: "Pro",
-    range: formatDepositRangeDescription("Pro"),
-    roi: `Up to ${PLAN_DAILY_COMPOUND_PERCENT.Pro}% Daily`,
+  Pro: {
     description:
       "Built for experienced investors focused on advanced portfolio participation.",
     benefits: [
@@ -46,10 +40,7 @@ export const LANDING_PLANS = [
     ],
     button: "Go Pro",
   },
-  {
-    name: "Elite",
-    range: formatDepositRangeDescription("Elite"),
-    roi: `Up to ${PLAN_DAILY_COMPOUND_PERCENT.Elite}% Daily`,
+  Elite: {
     description:
       "Exclusive portfolio management for high-capital investors seeking elite opportunities.",
     benefits: [
@@ -60,7 +51,29 @@ export const LANDING_PLANS = [
     ],
     button: "Join Elite",
   },
-] as const;
+};
+
+export function buildLandingPlans(plans: InvestmentPlanRow[] = FALLBACK_PLANS) {
+  const source = plans.length > 0 ? plans : FALLBACK_PLANS;
+  return source
+    .filter((p) => p.promotion_active)
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map((plan) => {
+      const key = normalizeInvestmentPlan(plan.name);
+      const copy = LANDING_PLAN_COPY[key] ?? LANDING_PLAN_COPY.Starter;
+      return {
+        name: plan.name,
+        range: formatPlanDepositRange(source, key),
+        roi: `Up to ${plan.daily_roi}% Daily`,
+        description: copy.description,
+        benefits: copy.benefits,
+        button: copy.button,
+      };
+    });
+}
+
+/** @deprecated Use buildLandingPlans(config.plans) */
+export const LANDING_PLANS = buildLandingPlans(FALLBACK_PLANS);
 
 export const PROBLEM_CARDS = [
   {

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Search, X } from "lucide-react";
 import {
   CANONICAL_INVESTMENT_PLANS,
   dailyCompoundLabel,
@@ -10,20 +11,64 @@ import {
   type CanonicalInvestmentPlan,
 } from "@/lib/investmentPlans";
 import { formatUsdAmount } from "@/lib/formatMoney";
+import { AdminAccountStatusPanel } from "@/components/admin/AdminAccountStatusPanel";
+import {
+  ACCOUNT_STATUS_BADGE_CLASS,
+  ACCOUNT_STATUS_LABEL,
+  normalizeAccountStatus,
+} from "@/lib/accountStatus";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 
 interface InvestorRow {
   id: string;
   email: string;
   full_name?: string | null;
+  first_name?: string | null;
+  middle_name?: string | null;
+  surname?: string | null;
   phone?: string | null;
   balance?: number | null;
   total_profit?: number | null;
   investment_plan?: string | null;
   status?: string | null;
+  account_status?: string | null;
+  status_reason?: string | null;
+  status_updated_at?: string | null;
+  status_updated_by?: string | null;
+  withdrawal_eligible_at?: string | null;
   tier_qualifying_principal?: number | null;
   tier_manual_override?: boolean | null;
   profit_auto_accrue?: boolean | null;
+}
+
+function investorMatchesSearch(inv: InvestorRow, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+
+  const qDigits = q.replace(/\D/g, "");
+  const phoneDigits = (inv.phone ?? "").replace(/\D/g, "");
+
+  const nameParts = [inv.first_name, inv.middle_name, inv.surname]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(" ");
+
+  const fields = [
+    inv.email,
+    inv.full_name,
+    inv.first_name,
+    inv.middle_name,
+    inv.surname,
+    nameParts,
+    inv.phone,
+  ]
+    .filter(Boolean)
+    .map((value) => String(value).toLowerCase());
+
+  if (fields.some((value) => value.includes(q))) return true;
+  if (qDigits.length >= 3 && phoneDigits.includes(qDigits)) return true;
+
+  return false;
 }
 
 export default function InvestorsPage() {
@@ -40,6 +85,12 @@ export default function InvestorsPage() {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredInvestors = useMemo(
+    () => investors.filter((inv) => investorMatchesSearch(inv, searchQuery)),
+    [investors, searchQuery],
+  );
 
   useEffect(() => {
     fetchInvestors();
@@ -148,9 +199,38 @@ export default function InvestorsPage() {
 
   return (
     <div className="p-10 text-white min-h-screen">
-      <h1 className="text-3xl mb-6 font-bold text-yellow-500">
-        All Investors
-      </h1>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <h1 className="text-3xl font-bold text-yellow-500">All Investors</h1>
+        <div className="w-full sm:max-w-md">
+          <label htmlFor="investor-search" className="sr-only">
+            Search investors
+          </label>
+          <div className="relative">
+            <Search
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500"
+              aria-hidden
+            />
+            <input
+              id="investor-search"
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by name, email, or phone…"
+              className="w-full rounded-xl border border-zinc-700 bg-black py-2.5 pl-10 pr-10 text-sm text-white outline-none placeholder:text-zinc-500 focus:border-yellow-500"
+            />
+            {searchQuery ? (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-zinc-500 transition hover:bg-zinc-800 hover:text-zinc-200"
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4" aria-hidden />
+              </button>
+            ) : null}
+          </div>
+        </div>
+      </div>
 
       {formError ? (
         <div
@@ -170,13 +250,25 @@ export default function InvestorsPage() {
         </div>
       ) : null}
 
+      {!loading && investors.length > 0 ? (
+        <p className="mb-4 text-sm text-zinc-500">
+          {searchQuery.trim()
+            ? `${filteredInvestors.length} of ${investors.length} investors`
+            : `${investors.length} investors`}
+        </p>
+      ) : null}
+
       {loading ? (
         <p className="text-gray-400">Loading investors...</p>
       ) : investors.length === 0 ? (
         <p className="text-gray-400">No investors found</p>
+      ) : filteredInvestors.length === 0 ? (
+        <p className="text-gray-400">
+          No investors match &ldquo;{searchQuery.trim()}&rdquo;
+        </p>
       ) : (
         <div className="space-y-4">
-          {investors.map((inv) => (
+          {filteredInvestors.map((inv) => (
             <div
               key={inv.id}
               className="border border-zinc-800 bg-zinc-950 p-4 rounded-xl space-y-3"
@@ -203,7 +295,34 @@ export default function InvestorsPage() {
               <p className="text-green-500">
                 Profit: {formatUsdAmount(inv.total_profit)}
               </p>
-              <p className="text-blue-400">Status: {inv.status}</p>
+              {(() => {
+                const acct = normalizeAccountStatus(inv.account_status ?? inv.status);
+                return (
+                  <p className="text-sm">
+                    <span
+                      className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-semibold ${ACCOUNT_STATUS_BADGE_CLASS[acct]}`}
+                    >
+                      {ACCOUNT_STATUS_LABEL[acct]}
+                    </span>
+                  </p>
+                );
+              })()}
+
+              <AdminAccountStatusPanel
+                investorId={inv.id}
+                currentStatus={inv.account_status ?? inv.status}
+                currentReason={inv.status_reason}
+                statusUpdatedAt={inv.status_updated_at}
+                withdrawalEligibleAt={inv.withdrawal_eligible_at}
+                onSaved={() => void fetchInvestors()}
+                onWithdrawalDateSaved={(id, withdrawalEligibleAt) => {
+                  setInvestors((prev) =>
+                    prev.map((row) =>
+                      row.id === id ? { ...row, withdrawal_eligible_at: withdrawalEligibleAt } : row,
+                    ),
+                  );
+                }}
+              />
 
               <div className="space-y-3 pt-2 border-t border-zinc-800">
                 <label className="flex items-start gap-3 text-sm text-zinc-300 cursor-pointer select-none max-w-xl">

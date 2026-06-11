@@ -8,10 +8,11 @@ import {
   dailyCompoundLabel,
   displayPlanName,
   formatDepositRangeDescription,
-  MIN_INTEREST_QUALIFYING_USD,
+  minPlatformDepositUsd,
   qualifiesForDailyInterest,
   type CanonicalInvestmentPlan,
 } from "@/lib/investmentPlans";
+import { usePlatformConfig } from "@/lib/platformConfig";
 import { projectedMonthlyEarningsUsd } from "@/lib/investorBalanceMetrics";
 import { formatMoneyAmount, formatUsdAmount } from "@/lib/formatMoney";
 
@@ -26,8 +27,10 @@ export function InvestorPlanEarningsSection({
   balanceUsd,
   showBalance,
 }: InvestorPlanEarningsSectionProps) {
-  const earnsInterest = qualifiesForDailyInterest(balanceUsd);
-  const monthly = projectedMonthlyEarningsUsd(balanceUsd, planKey);
+  const { config } = usePlatformConfig();
+  const plans = config.plans;
+  const earnsInterest = qualifiesForDailyInterest(balanceUsd, plans);
+  const monthly = projectedMonthlyEarningsUsd(balanceUsd, planKey, plans);
   const hidden = "••••••";
 
   return (
@@ -37,9 +40,9 @@ export function InvestorPlanEarningsSection({
           Current investment plan
         </p>
         <p className="mt-2 text-xl font-semibold text-[#F5E6B3]">{displayPlanName(planKey)}</p>
-        <p className="mt-1 text-sm text-[#D4AF37]">{dailyCompoundLabel(planKey)}</p>
+        <p className="mt-1 text-sm text-[#D4AF37]">{dailyCompoundLabel(planKey, plans)}</p>
         <p className="mt-2 text-xs" style={{ color: DASHBOARD_MUTED }}>
-          Qualifying principal range: {formatDepositRangeDescription(planKey)}
+          Qualifying principal range: {formatDepositRangeDescription(planKey, plans)}
         </p>
         <Link
           href="/investment-plans"
@@ -70,9 +73,9 @@ export function InvestorPlanEarningsSection({
             </>
           ) : (
             <>
-              Balances below {formatUsdAmount(MIN_INTEREST_QUALIFYING_USD)} do not accrue daily interest.
+              Balances below {formatUsdAmount(minPlatformDepositUsd(plans))} do not accrue daily interest.
               You can still trade on P2P. Deposit at least{" "}
-              {formatUsdAmount(MIN_INTEREST_QUALIFYING_USD)} to start earning.
+              {formatUsdAmount(minPlatformDepositUsd(plans))} to start earning.
             </>
           )}
         </p>

@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { ArrowLeft, ChevronRight, Users, Wallet } from "lucide-react";
 
-import { MIN_INTEREST_QUALIFYING_USD, MIN_PLATFORM_DEPOSIT_USD } from "@/lib/investmentPlans";
+import { AccountActionBlockedNotice } from "@/components/account/AccountActionBlockedNotice";
+import { minPlatformDepositUsd } from "@/lib/investmentPlans";
+import { usePlatformConfig } from "@/lib/platformConfig";
 import { formatUsdAmount } from "@/lib/formatMoney";
 
 const METHODS = [
@@ -37,6 +39,8 @@ const METHODS = [
 ] as const;
 
 export function DepositHubView() {
+  const { config } = usePlatformConfig();
+  const minDeposit = minPlatformDepositUsd(config.plans);
   return (
     <main className="relative min-h-[calc(100dvh-3.5rem)] overflow-x-clip text-white lg:min-h-[calc(100dvh-3.5rem)]">
       <div
@@ -45,6 +49,7 @@ export function DepositHubView() {
       />
 
       <div className="relative mx-auto w-full max-w-4xl px-4 py-5 sm:px-6 sm:py-8">
+        <AccountActionBlockedNotice action="deposit" actionLabel="Deposits" />
         <Link
           href="/dashboard"
           className="inline-flex items-center gap-1.5 text-xs text-zinc-500 transition hover:text-[#D4AF37]"
@@ -108,8 +113,8 @@ export function DepositHubView() {
         </div>
 
         <p className="mt-8 max-w-xl text-[11px] leading-relaxed text-zinc-600">
-          Minimum on-chain deposit {formatUsdAmount(MIN_PLATFORM_DEPOSIT_USD)}. Daily interest
-          starts at {formatUsdAmount(MIN_INTEREST_QUALIFYING_USD)} qualifying principal. P2P
+          Minimum on-chain deposit {formatUsdAmount(minDeposit)}. Daily interest
+          starts at {formatUsdAmount(minDeposit)} qualifying principal. P2P
           trading is available at any balance.
         </p>
       </div>

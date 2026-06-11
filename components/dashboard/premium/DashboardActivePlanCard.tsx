@@ -9,6 +9,7 @@ import {
   displayPlanName,
   type CanonicalInvestmentPlan,
 } from "@/lib/investmentPlans";
+import { usePlatformConfig } from "@/lib/platformConfig";
 import { formatMoneyAmount } from "@/lib/formatMoney";
 
 type DashboardActivePlanCardProps = {
@@ -44,6 +45,7 @@ export function DashboardActivePlanCard({
   totalProfit,
   accountStatus,
 }: DashboardActivePlanCardProps) {
+  const { config } = usePlatformConfig();
   const hidden = "••••••";
   const progress = payoutProgressPercent();
   const isActive = accountStatus.toLowerCase() === "active";
@@ -92,7 +94,7 @@ export function DashboardActivePlanCard({
             Daily ROI
           </dt>
           <dd className="mt-1 text-sm font-semibold text-[#D4AF37]">
-            {dailyCompoundLabel(planKey)}
+            {dailyCompoundLabel(planKey, config.plans)}
           </dd>
         </div>
         <div>

@@ -5,6 +5,9 @@ import {
   tierRank,
   type CanonicalInvestmentPlan,
 } from "@/lib/investmentPlans";
+import { FALLBACK_PLANS } from "@/lib/platformConfig/fallbacks";
+import { tierThresholdUsd } from "@/lib/platformConfig/helpers";
+import type { InvestmentPlanRow } from "@/lib/platformConfig/types";
 
 export type LoyaltyTierSlug = "bronze" | "silver" | "gold" | "platinum" | "elite";
 
@@ -226,17 +229,16 @@ export function nextInvestmentTier(plan: CanonicalInvestmentPlan): CanonicalInve
   return CANONICAL_INVESTMENT_PLANS[idx + 1];
 }
 
-export function tierProgressPercent(plan: CanonicalInvestmentPlan, portfolioUsd: number): number {
-  const thresholds: Record<CanonicalInvestmentPlan, number> = {
-    Starter: 20,
-    Growth: 500,
-    Pro: 1500,
-    Elite: 5000,
-  };
+export function tierProgressPercent(
+  plan: CanonicalInvestmentPlan,
+  portfolioUsd: number,
+  plans?: InvestmentPlanRow[] | null,
+): number {
+  const source = plans?.length ? plans : FALLBACK_PLANS;
   const next = nextInvestmentTier(plan);
   if (!next) return 100;
-  const cur = thresholds[plan];
-  const nxt = thresholds[next];
+  const cur = tierThresholdUsd(source, plan);
+  const nxt = tierThresholdUsd(source, next);
   const span = nxt - cur;
   if (span <= 0) return 0;
   return Math.min(100, Math.max(0, ((portfolioUsd - cur) / span) * 100));

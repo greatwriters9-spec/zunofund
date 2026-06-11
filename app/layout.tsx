@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
+import { AccountStatusGate } from "@/components/account/AccountStatusGate";
+import { AccountStatusRoot } from "@/components/platform/AccountStatusRoot";
+import { PlatformConfigRoot } from "@/components/platform/PlatformConfigRoot";
 import { InvestorPresenceBridge } from "@/components/InvestorPresenceBridge";
 import { MerchantPresenceBridge } from "@/components/MerchantPresenceBridge";
 import { RealtimeNotificationBridge } from "@/components/RealtimeNotificationBridge";
@@ -81,10 +84,14 @@ export default function RootLayout({
           <div className="ambient-blur-orb absolute -bottom-48 left-[20%] h-[640px] w-[640px] rounded-full bg-[#1E293B]/60 blur-[200px]" />
         </div>
 
-        <RealtimeNotificationBridge />
-        <InvestorPresenceBridge />
-        <MerchantPresenceBridge />
-        {children}
+        <PlatformConfigRoot>
+          <AccountStatusRoot>
+            <RealtimeNotificationBridge />
+            <InvestorPresenceBridge />
+            <MerchantPresenceBridge />
+            <AccountStatusGate>{children}</AccountStatusGate>
+          </AccountStatusRoot>
+        </PlatformConfigRoot>
       </body>
     </html>
   );

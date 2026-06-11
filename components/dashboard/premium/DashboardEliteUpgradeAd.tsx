@@ -9,10 +9,11 @@ import {
   dailyCompoundLabel,
   displayPlanName,
   formatDepositRangeDescription,
-  MIN_INTEREST_QUALIFYING_USD,
-  PLAN_DEPOSIT_RANGE_USD,
+  minPlatformDepositUsd,
   type CanonicalInvestmentPlan,
 } from "@/lib/investmentPlans";
+import { planDepositRange } from "@/lib/platformConfig/helpers";
+import { usePlatformConfig } from "@/lib/platformConfig";
 import { formatUsdAmount } from "@/lib/formatMoney";
 
 type DashboardEliteUpgradeAdProps = {
@@ -29,9 +30,12 @@ function nextTier(planKey: CanonicalInvestmentPlan): CanonicalInvestmentPlan | n
 }
 
 export function DashboardEliteUpgradeAd({ planKey, balance }: DashboardEliteUpgradeAdProps) {
+  const { config } = usePlatformConfig();
+  const plans = config.plans;
   const upcoming = nextTier(planKey);
-  const eliteMin = PLAN_DEPOSIT_RANGE_USD.Elite.min;
+  const eliteMin = planDepositRange(plans, "Elite").min;
   const gapToElite = Math.max(0, eliteMin - balance);
+  const minInterest = minPlatformDepositUsd(plans);
 
   if (planKey === "Elite") {
     return (
@@ -104,8 +108,8 @@ export function DashboardEliteUpgradeAd({ planKey, balance }: DashboardEliteUpgr
 
         <p className="mt-2 text-sm leading-relaxed" style={{ color: DASHBOARD_MUTED }}>
           Invest more to climb tiers and access our highest growth structure. Daily interest starts
-          at {formatUsdAmount(MIN_INTEREST_QUALIFYING_USD)}. Elite members earn{" "}
-          {dailyCompoundLabel("Elite").toLowerCase()} with VIP portfolio allocation.
+          at {formatUsdAmount(minInterest)}. Elite members earn{" "}
+          {dailyCompoundLabel("Elite", plans).toLowerCase()} with VIP portfolio allocation.
         </p>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -114,7 +118,7 @@ export function DashboardEliteUpgradeAd({ planKey, balance }: DashboardEliteUpgr
               Your tier
             </p>
             <p className="mt-1 text-sm font-semibold text-white">{displayPlanName(planKey)}</p>
-            <p className="mt-0.5 text-xs text-[#D4AF37]">{dailyCompoundLabel(planKey)}</p>
+            <p className="mt-0.5 text-xs text-[#D4AF37]">{dailyCompoundLabel(planKey, plans)}</p>
           </div>
           <div className="rounded-xl border border-[#D4AF37]/20 bg-[#D4AF37]/[0.06] px-3 py-2.5">
             <p className="text-[10px] uppercase tracking-wider text-[#D4AF37]/80">
@@ -124,7 +128,7 @@ export function DashboardEliteUpgradeAd({ planKey, balance }: DashboardEliteUpgr
               {upcoming ? displayPlanName(upcoming) : displayPlanName("Elite")}
             </p>
             <p className="mt-0.5 text-xs text-[#D4AF37]">
-              {upcoming ? dailyCompoundLabel(upcoming) : dailyCompoundLabel("Elite")}
+              {upcoming ? dailyCompoundLabel(upcoming, plans) : dailyCompoundLabel("Elite", plans)}
             </p>
           </div>
         </div>
@@ -136,11 +140,11 @@ export function DashboardEliteUpgradeAd({ planKey, balance }: DashboardEliteUpgr
               <>
                 Deposit{" "}
                 <span className="font-semibold text-[#F5E6B3]">{formatUsdAmount(gapToElite)}</span>{" "}
-                more to qualify for Elite ({formatDepositRangeDescription("Elite")}).
+                more to qualify for Elite ({formatDepositRangeDescription("Elite", plans)}).
               </>
             ) : (
               <>
-                Your balance qualifies for Elite ({formatDepositRangeDescription("Elite")}). Confirm
+                Your balance qualifies for Elite ({formatDepositRangeDescription("Elite", plans)}). Confirm
                 your upgrade on the plans page.
               </>
             )}

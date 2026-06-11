@@ -1,5 +1,6 @@
 "use client";
 
+import { AccountActionBlockedNotice } from "@/components/account/AccountActionBlockedNotice";
 import Link from "next/link";
 import { ArrowLeft, ChevronRight, Users, Wallet } from "lucide-react";
 
@@ -40,6 +41,7 @@ export function WithdrawHubView() {
       />
 
       <div className="relative mx-auto w-full max-w-4xl px-4 py-5 sm:px-6 sm:py-8">
+        <AccountActionBlockedNotice action="withdraw" actionLabel="Withdrawals" />
         <Link
           href="/dashboard"
           className="inline-flex items-center gap-1.5 text-xs text-zinc-500 transition hover:text-[#D4AF37]"

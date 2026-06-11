@@ -4,9 +4,13 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 
-import { LANDING_PLANS } from "@/components/landing/landingData";
+import { buildLandingPlans } from "@/components/landing/landingData";
+import { usePlatformConfig } from "@/lib/platformConfig";
 
 export function InvestmentPlansSection() {
+  const { config } = usePlatformConfig();
+  const landingPlans = buildLandingPlans(config.plans);
+
   return (
     <section id="plans" className="relative px-6 py-20 lg:px-10 lg:py-28">
       <div className="mx-auto max-w-7xl">
@@ -22,7 +26,7 @@ export function InvestmentPlansSection() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-          {LANDING_PLANS.map((plan, index) => (
+          {landingPlans.map((plan, index) => (
             <motion.article
               key={plan.name}
               initial={{ opacity: 0, y: 24 }}

@@ -1,8 +1,9 @@
 import {
-  MIN_INTEREST_QUALIFYING_USD,
-  PLAN_DAILY_COMPOUND_PERCENT,
+  minPlatformDepositUsd,
   type CanonicalInvestmentPlan,
 } from "@/lib/investmentPlans";
+import { planDailyRoi } from "@/lib/platformConfig/helpers";
+import type { InvestmentPlanRow } from "@/lib/platformConfig/types";
 
 export type ProfitRow = {
   amount: number;
@@ -59,9 +60,10 @@ export function portfolioInvestedSliceUsd(balanceUsd: number, withdrawableUsd: n
 export function projectedMonthlyEarningsUsd(
   balanceUsd: number,
   plan: CanonicalInvestmentPlan,
+  plans?: InvestmentPlanRow[] | null,
 ): number {
   const b = Number.isFinite(balanceUsd) ? balanceUsd : 0;
-  if (b < MIN_INTEREST_QUALIFYING_USD) return 0;
-  const dailyRate = PLAN_DAILY_COMPOUND_PERCENT[plan] / 100;
+  if (b < minPlatformDepositUsd(plans)) return 0;
+  const dailyRate = planDailyRoi(plans ?? [], plan) / 100;
   return b * (Math.pow(1 + dailyRate, 30) - 1);
 }

@@ -7,7 +7,9 @@ import { Bell, Headset, LogOut, UserRound } from "lucide-react";
 
 import { InvestorMobileTopBar } from "@/components/investor/InvestorMobileTopBar";
 import { DashboardMobileBottomNav } from "@/components/navigation/DashboardMobileBottomNav";
+import { AccountBannedScreen } from "@/components/account/AccountBannedScreen";
 import { useAuthUser } from "@/hooks/useAuthUser";
+import { isPathAllowedForAccountStatus, useAccountStatus } from "@/lib/accountStatus";
 import {
   INVESTOR_SIDEBAR_NAV,
   INVESTOR_TOP_NAV,
@@ -170,8 +172,26 @@ type InvestorDesktopShellProps = {
  */
 export function InvestorDesktopShell({ children }: InvestorDesktopShellProps) {
   const { isAuthenticated } = useAuthUser();
+  const { status, snapshot, loading: statusLoading } = useAccountStatus();
   const pathname = usePathname();
   const hideMobileChrome = (pathname ?? "").startsWith("/p2p/order/");
+
+  if (
+    isAuthenticated &&
+    !statusLoading &&
+    status === "banned" &&
+    !isPathAllowedForAccountStatus(status, pathname ?? "")
+  ) {
+    return <AccountBannedScreen snapshot={snapshot} />;
+  }
+
+  if (isAuthenticated && statusLoading) {
+    return (
+      <div className="flex min-h-[100dvh] items-center justify-center bg-[#05070D] text-sm text-zinc-400">
+        Checking account status…
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[100dvh] bg-[#05070D] text-white lg:pl-[232px]">

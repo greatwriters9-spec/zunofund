@@ -21,6 +21,7 @@ import {
 import { DASHBOARD_CARD, DASHBOARD_MUTED } from "@/components/dashboard/premium/dashboardStyles";
 import { formatSignedUsdAmount, formatUsdAmount } from "@/lib/formatMoney";
 import { displayPlanName, normalizeInvestmentPlan } from "@/lib/investmentPlans";
+import { usePlatformConfig } from "@/lib/platformConfig";
 import {
   badgeLabel,
   buildRewardCatalog,
@@ -206,6 +207,7 @@ function RewardsLoadingShell() {
 
 export function RewardsCenterView() {
   const supabase = useSupabase();
+  const { config } = usePlatformConfig();
   const [data, setData] = useState<InvestorRewardsDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -291,7 +293,7 @@ export function RewardsCenterView() {
 
   const loyalty = normalizeLoyaltyTier(data.loyalty_tier);
   const plan = normalizeInvestmentPlan(data.investment_plan);
-  const tierPct = tierProgressPercent(plan, data.portfolio_usd);
+  const tierPct = tierProgressPercent(plan, data.portfolio_usd, config.plans);
   const loyaltyIdx = LOYALTY_TIER_ORDER.indexOf(loyalty);
   const merchantStatus = data.merchant_status?.toLowerCase() ?? null;
 

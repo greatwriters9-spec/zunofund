@@ -7,7 +7,8 @@ import QRCode from "react-qr-code";
 
 import { DepositInlineCoinSelector } from "@/components/deposit/DepositInlineCoinSelector";
 import { CryptoIcon } from "@/components/market-pickers/CryptoIcon";
-import { displayPlanName, MIN_PLATFORM_DEPOSIT_USD, type CanonicalInvestmentPlan } from "@/lib/investmentPlans";
+import { displayPlanName, minPlatformDepositUsd, type CanonicalInvestmentPlan } from "@/lib/investmentPlans";
+import { usePlatformConfig } from "@/lib/platformConfig";
 import { formatUsdAmount } from "@/lib/formatMoney";
 import {
   DEPOSIT_EXCHANGE_ASSETS,
@@ -195,6 +196,8 @@ export function DepositExchangeView({
   recentDeposits,
   recentDepositsLoading,
 }: DepositExchangeViewProps) {
+  const { config } = usePlatformConfig();
+  const minDeposit = minPlatformDepositUsd(config.plans);
   const [coinPickerOpen, setCoinPickerOpen] = useState(true);
   const selectedAsset = findDepositExchangeAsset(paymentMethod);
   const hasNetwork = Boolean(selectedDepositNetwork?.wallet_address);
@@ -259,7 +262,7 @@ export function DepositExchangeView({
         {qualifyingPrincipal !== null
           ? ` · ${formatUsdAmount(qualifyingPrincipal)} qualifying`
           : ""}{" "}
-        · Min {formatUsdAmount(MIN_PLATFORM_DEPOSIT_USD)}
+        · Min {formatUsdAmount(minDeposit)}
       </p>
 
       {formError ? (
@@ -393,7 +396,7 @@ export function DepositExchangeView({
                       <p className="mt-1 text-[11px] text-emerald-400">Copied</p>
                     ) : null}
                     <p className="mt-3 text-[11px] text-zinc-500">
-                      Minimum deposit: more than {formatUsdAmount(MIN_PLATFORM_DEPOSIT_USD)}
+                      Minimum deposit: more than {formatUsdAmount(minDeposit)}
                     </p>
                   </div>
                 </div>

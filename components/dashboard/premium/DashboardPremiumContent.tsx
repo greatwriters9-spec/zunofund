@@ -10,6 +10,7 @@ import { DashboardLiveMarketsStripe } from "@/components/dashboard/premium/Dashb
 import { DashboardCompactSupport } from "@/components/dashboard/premium/DashboardCompactSupport";
 import { DashboardKpiCards } from "@/components/dashboard/premium/DashboardKpiCards";
 import { DashboardPortfolioOverview } from "@/components/dashboard/premium/DashboardPortfolioOverview";
+import { DashboardPromotionOverview } from "@/components/dashboard/premium/DashboardPromotionOverview";
 import {
   DashboardRecentTransactions,
   type DashboardActivity,
@@ -58,13 +59,14 @@ export function DashboardPremiumContent({
   merchantProfile,
 }: DashboardPremiumContentProps) {
   const portfolioSection = (
-    <div className="grid gap-6 xl:grid-cols-2">
+    <div className="space-y-6">
       <DashboardPortfolioOverview
         showBalance={showBalance}
         balance={balance}
         withdrawable={withdrawable}
         fxRates={fxRates}
       />
+      <DashboardPromotionOverview />
       <DashboardAssetGrowthCard />
     </div>
   );

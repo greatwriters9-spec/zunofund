@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -23,6 +23,7 @@ import {
   type CanonicalInvestmentPlan,
 } from "@/lib/investmentPlans";
 import { formatUsdAmount } from "@/lib/formatMoney";
+import { usePlatformConfig } from "@/lib/platformConfig";
 import { formatSupabaseError, useSupabase } from "@/lib/supabase";
 
 type PlanTheme = {
@@ -187,6 +188,16 @@ const PLAN_ICONS = [Shield, Rocket, Gem, Crown] as const;
 
 export default function InvestmentPlansPage() {
   const supabase = useSupabase();
+  const { config } = usePlatformConfig();
+  const displayPlans = useMemo(
+    () =>
+      plans.map((plan) => ({
+        ...plan,
+        range: formatDepositRangeDescription(plan.slug, config.plans),
+        rate: dailyCompoundLabel(plan.slug, config.plans),
+      })),
+    [config.plans],
+  );
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentPlanSlug, setCurrentPlanSlug] =
     useState<CanonicalInvestmentPlan | null>(null);
@@ -382,7 +393,7 @@ export default function InvestmentPlansPage() {
           transition={{ duration: 0.35 }}
           className="grid grid-cols-1 items-start gap-5 md:grid-cols-2 xl:grid-cols-4 xl:gap-6"
         >
-          {plans.map((plan, index) => {
+          {displayPlans.map((plan, index) => {
             const Icon = PLAN_ICONS[index] ?? Shield;
             const isExpanded = expandedSlugs.has(plan.slug);
             const isCurrentPlan =
