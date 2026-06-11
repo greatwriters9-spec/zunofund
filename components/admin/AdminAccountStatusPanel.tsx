@@ -134,35 +134,51 @@ export function AdminAccountStatusPanel({
       withdrawalIso = parsed.toISOString();
     }
 
-    let response: Response;
-    try {
-      response = await fetch("/api/admin/investors/withdrawal-eligible-at", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          investorId,
-          withdrawalEligibleAt: withdrawalIso,
-        }),
-      });
-    } catch {
+    let savedAt: string | null = withdrawalIso;
+
+    const { data: rpcData, error: rpcError } = await supabase.rpc(
+      "admin_set_investor_withdrawal_eligible_at",
+      {
+        p_investor_id: investorId,
+        p_withdrawal_eligible_at: withdrawalIso,
+      },
+    );
+
+    if (rpcError) {
+      let response: Response;
+      try {
+        response = await fetch("/api/admin/investors/withdrawal-eligible-at", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            investorId,
+            withdrawalEligibleAt: withdrawalIso,
+          }),
+        });
+      } catch {
+        setSavingDate(false);
+        setError(formatSupabaseError(rpcError));
+        return;
+      }
+
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+        withdrawal_eligible_at?: string | null;
+      } | null;
+
       setSavingDate(false);
-      setError("Network error while saving withdrawal date. Please try again.");
-      return;
+
+      if (!response.ok) {
+        setError(payload?.error ?? formatSupabaseError(rpcError));
+        return;
+      }
+
+      savedAt = payload?.withdrawal_eligible_at ?? withdrawalIso;
+    } else {
+      setSavingDate(false);
+      const row = rpcData as { withdrawal_eligible_at?: string | null } | null;
+      savedAt = row?.withdrawal_eligible_at ?? withdrawalIso;
     }
-
-    const payload = (await response.json().catch(() => null)) as {
-      error?: string;
-      withdrawal_eligible_at?: string | null;
-    } | null;
-
-    setSavingDate(false);
-
-    if (!response.ok) {
-      setError(payload?.error ?? "Failed to save withdrawal date.");
-      return;
-    }
-
-    const savedAt = payload?.withdrawal_eligible_at ?? withdrawalIso;
     setSavedWithdrawalEligibleAt(savedAt);
     setWithdrawalEligibleAtDraft(toDatetimeLocalValue(savedAt));
     onWithdrawalDateSaved?.(investorId, savedAt);
@@ -295,7 +311,8 @@ export function AdminAccountStatusPanel({
             ) : null}
           </div>
           <p className="text-xs text-zinc-500">
-            Saved separately from status. Shown on the investor ban/suspension screen.
+            Informational only — shown on the investor dashboard and status screens. Does not
+            trigger automatic withdrawals.
           </p>
           {dateMessage ? (
             <p className="text-sm text-green-300" role="status">

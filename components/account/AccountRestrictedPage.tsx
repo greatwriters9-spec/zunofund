@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { WithdrawalDateNotice } from "@/components/account/WithdrawalDateNotice";
 import { formatUsdAmount } from "@/lib/formatMoney";
 import type { AccountStatus } from "@/lib/accountStatus";
 
@@ -11,6 +12,7 @@ type AccountRestrictedPageProps = {
   email: string;
   balance: number;
   reason: string | null;
+  withdrawalEligibleAt?: string | null;
 };
 
 export function AccountRestrictedPage({
@@ -19,6 +21,7 @@ export function AccountRestrictedPage({
   email,
   balance,
   reason,
+  withdrawalEligibleAt,
 }: AccountRestrictedPageProps) {
   const isBanned = variant === "banned";
   const title = isBanned ? "Account Banned" : "Account Suspended";
@@ -60,12 +63,9 @@ export function AccountRestrictedPage({
           </div>
         </div>
 
-        {isBanned ? (
-          <p className="mt-5 text-xs leading-relaxed text-zinc-500">
-            Any future withdrawal eligibility will be determined by administration. Admin retains
-            authority to manually release funds if applicable.
-          </p>
-        ) : null}
+        <div className="mt-5">
+          <WithdrawalDateNotice withdrawalEligibleAt={withdrawalEligibleAt} />
+        </div>
 
         <div className="mt-6 flex flex-wrap gap-3">
           <Link

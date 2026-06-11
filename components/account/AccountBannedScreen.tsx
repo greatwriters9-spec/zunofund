@@ -2,10 +2,7 @@
 
 import { LogOut } from "lucide-react";
 
-import {
-  formatWithdrawalEligibilityLabel,
-  getWithdrawalEligibilityInfo,
-} from "@/lib/accountStatus/withdrawalEligibility";
+import { WithdrawalDateNotice } from "@/components/account/WithdrawalDateNotice";
 import { formatUsdAmount } from "@/lib/formatMoney";
 import { useSupabase } from "@/lib/supabase";
 import type { AccountStatusSnapshot } from "@/lib/accountStatus";
@@ -19,14 +16,6 @@ export function AccountBannedScreen({ snapshot }: AccountBannedScreenProps) {
 
   const balance = snapshot?.balance ?? 0;
   const withdrawableBalance = balance;
-  const withdrawalEligibleAt = snapshot?.withdrawal_eligible_at ?? null;
-  const withdrawalDateLabel = formatWithdrawalEligibilityLabel(withdrawalEligibleAt);
-  const hasScheduledDate = Boolean(withdrawalEligibleAt && withdrawalDateLabel);
-  const withdrawalInfo = getWithdrawalEligibilityInfo(
-    balance,
-    withdrawableBalance,
-    withdrawalEligibleAt,
-  );
 
   async function handleLogout() {
     try {
@@ -76,34 +65,16 @@ export function AccountBannedScreen({ snapshot }: AccountBannedScreenProps) {
               <p className="text-xs text-zinc-400">{snapshot?.email ?? ""}</p>
             </div>
             <div className="rounded-xl border border-zinc-800 bg-black/30 px-4 py-3">
-              <p className="text-xs text-zinc-500">Withdrawable balance</p>
+              <p className="text-xs text-zinc-500">Account balance</p>
               <p className="mt-1 text-lg font-semibold text-[#F5E6B3]">
                 {formatUsdAmount(withdrawableBalance)}
               </p>
-              <p className="mt-1 text-xs text-zinc-500">Full account balance</p>
             </div>
           </div>
 
-          {hasScheduledDate ? (
-            <div className="mt-3 rounded-xl border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-4 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#F5E6B3]">
-                Withdrawal available from
-              </p>
-              <p className="mt-1 text-xl font-semibold text-white">{withdrawalDateLabel}</p>
-              {withdrawableBalance > 0 && withdrawalInfo ? (
-                <p className="mt-2 text-sm leading-relaxed text-zinc-300">
-                  {withdrawalInfo.detail}
-                </p>
-              ) : null}
-            </div>
-          ) : withdrawalInfo ? (
-            <div className="mt-5 rounded-xl border border-zinc-700 bg-black/30 px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                {withdrawalInfo.headline}
-              </p>
-              <p className="mt-1 text-sm leading-relaxed text-zinc-300">{withdrawalInfo.detail}</p>
-            </div>
-          ) : null}
+          <div className="mt-3">
+            <WithdrawalDateNotice withdrawalEligibleAt={snapshot?.withdrawal_eligible_at} />
+          </div>
         </div>
       </main>
     </div>

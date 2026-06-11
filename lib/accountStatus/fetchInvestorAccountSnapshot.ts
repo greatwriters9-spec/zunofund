@@ -77,11 +77,17 @@ function buildAccountSnapshotFromRpc(
   });
 }
 
-/** Load live account status; RPC fallback ensures withdrawal_eligible_at is always read. */
+/** Load live account status; RPC is authoritative for withdrawal_eligible_at. */
 export async function fetchInvestorAccountSnapshot(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<AccountStatusSnapshot | null> {
+  const { data: rpcData, error: rpcError } = await supabase.rpc("investor_get_account_status");
+  const fromRpc = buildAccountSnapshotFromRpc(rpcData as InvestorStatusRpcPayload);
+  if (!rpcError && fromRpc) {
+    return fromRpc;
+  }
+
   const { data, error } = await supabase
     .from("investors")
     .select(
@@ -94,7 +100,5 @@ export async function fetchInvestorAccountSnapshot(
     return buildAccountSnapshotFromInvestorRow(data as InvestorStatusRow);
   }
 
-  const { data: rpcData, error: rpcError } = await supabase.rpc("investor_get_account_status");
-  if (rpcError) return null;
-  return buildAccountSnapshotFromRpc(rpcData as InvestorStatusRpcPayload);
+  return null;
 }

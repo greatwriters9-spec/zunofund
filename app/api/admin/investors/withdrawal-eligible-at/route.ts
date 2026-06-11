@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 type Body = {
   investorId?: string;
@@ -49,25 +49,53 @@ export async function POST(request: Request) {
     withdrawalEligibleAt = parsed.toISOString();
   }
 
-  const service = createServiceRoleClient();
-  const { data, error } = await service
-    .from("investors")
-    .update({ withdrawal_eligible_at: withdrawalEligibleAt })
-    .eq("id", investorId)
-    .select("id, withdrawal_eligible_at")
-    .maybeSingle();
+  const { data: rpcData, error: rpcError } = await supabase.rpc(
+    "admin_set_investor_withdrawal_eligible_at",
+    {
+      p_investor_id: investorId,
+      p_withdrawal_eligible_at: withdrawalEligibleAt,
+    },
+  );
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  if (!rpcError && rpcData && typeof rpcData === "object") {
+    const payload = rpcData as { withdrawal_eligible_at?: string | null; unchanged?: boolean };
+    return NextResponse.json({
+      ok: true,
+      investorId,
+      unchanged: Boolean(payload.unchanged),
+      withdrawal_eligible_at: payload.withdrawal_eligible_at ?? withdrawalEligibleAt,
+    });
   }
 
-  if (!data) {
-    return NextResponse.json({ error: "Investor not found" }, { status: 404 });
-  }
+  try {
+    const service = createServiceRoleClient();
+    const { data, error } = await service
+      .from("investors")
+      .update({ withdrawal_eligible_at: withdrawalEligibleAt })
+      .eq("id", investorId)
+      .select("id, withdrawal_eligible_at")
+      .maybeSingle();
 
-  return NextResponse.json({
-    ok: true,
-    investorId: data.id,
-    withdrawal_eligible_at: data.withdrawal_eligible_at,
-  });
+    if (error) {
+      return NextResponse.json(
+        { error: rpcError?.message ?? error.message },
+        { status: 400 },
+      );
+    }
+
+    if (!data) {
+      return NextResponse.json({ error: "Investor not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      ok: true,
+      investorId: data.id,
+      withdrawal_eligible_at: data.withdrawal_eligible_at,
+    });
+  } catch {
+    return NextResponse.json(
+      { error: rpcError?.message ?? "Failed to save withdrawal date" },
+      { status: 400 },
+    );
+  }
 }

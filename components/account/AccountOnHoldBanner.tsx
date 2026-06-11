@@ -1,5 +1,6 @@
 "use client";
 
+import { WithdrawalDateNotice } from "@/components/account/WithdrawalDateNotice";
 import { useAccountStatus } from "@/lib/accountStatus";
 
 export function AccountOnHoldBanner() {
@@ -23,6 +24,10 @@ export function AccountOnHoldBanner() {
           {snapshot.status_reason}
         </p>
       ) : null}
+      <WithdrawalDateNotice
+        withdrawalEligibleAt={snapshot?.withdrawal_eligible_at}
+        variant="compact"
+      />
     </div>
   );
 }

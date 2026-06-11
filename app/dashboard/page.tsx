@@ -10,7 +10,9 @@ import { notificationsOwnerOrFilter } from "@/lib/notificationQuery";
 import { buildReferralSignupPath } from "@/lib/referrals";
 import { useDisplayCryptoUnit, useDisplayCurrency, useFxRates } from "@/lib/useFx";
 import { sumTodayPnlUsd, type ProfitRow } from "@/lib/investorBalanceMetrics";
+import { WithdrawalDateNotice } from "@/components/account/WithdrawalDateNotice";
 import { DashboardQuickActions } from "@/components/dashboard/DashboardQuickActions";
+import { useAccountStatus } from "@/lib/accountStatus";
 import { InvestorBalanceBlock } from "@/components/dashboard/InvestorBalanceBlock";
 import { DashboardPremiumContent } from "@/components/dashboard/premium/DashboardPremiumContent";
 import { DashboardPremiumView } from "@/components/dashboard/premium/DashboardPremiumView";
@@ -79,6 +81,7 @@ export default function DashboardPage() {
   const [globalMarketCapUsd, setGlobalMarketCapUsd] = useState<number | null>(
     null,
   );
+  const { snapshot: accountSnapshot, status: accountStatus } = useAccountStatus();
   const balance = Number(investor?.balance || 0);
   const withdrawable = Number(investor?.withdrawable_balance ?? balance);
   const planKey = normalizeInvestmentPlan(investor?.investment_plan);
@@ -416,6 +419,11 @@ export default function DashboardPage() {
   return (
     <div className="page-content-stable relative min-h-screen overflow-x-clip bg-[#05070D] text-white">
       <div className="relative z-10 mx-auto max-w-7xl p-5 lg:mx-0 lg:max-w-none lg:p-0">
+        {accountSnapshot?.withdrawal_eligible_at && accountStatus !== "active" ? (
+          <div className="mb-4">
+            <WithdrawalDateNotice withdrawalEligibleAt={accountSnapshot.withdrawal_eligible_at} />
+          </div>
+        ) : null}
 
         {/* Mobile: balance hero, quick actions, active plan, portfolio, then remaining cards */}
         <div className="lg:hidden">

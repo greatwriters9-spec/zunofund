@@ -21,6 +21,7 @@ export default function AccountSuspendedPage() {
       email={snapshot?.email ?? ""}
       balance={snapshot?.balance ?? 0}
       reason={snapshot?.status_reason ?? null}
+      withdrawalEligibleAt={snapshot?.withdrawal_eligible_at}
     />
   );
 }
