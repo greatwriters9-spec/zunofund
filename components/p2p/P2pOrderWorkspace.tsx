@@ -29,7 +29,7 @@ import {
 } from "@/components/p2p/utils";
 import { deriveTradePanels } from "@/components/p2p/deriveTradePanels";
 import { expireStaleP2pOrders } from "@/lib/p2pExpiry";
-import { formatSupabaseError, useSupabase } from "@/lib/supabase";
+import { formatSupabaseError, isSupabaseError, useSupabase } from "@/lib/supabase";
 import {
   createP2pProofSignedUrl,
   uploadP2pPaymentProof,
@@ -898,7 +898,11 @@ export function P2pOrderWorkspace({
     });
     setBusy(null);
     if (e) {
-      setError(formatSupabaseError(e));
+      setError(
+        isSupabaseError(e) && e.message
+          ? e.message
+          : formatSupabaseError(e),
+      );
       return;
     }
     setResolveNote("");
