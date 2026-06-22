@@ -83,6 +83,11 @@ function adminEmailSubject(type: string | undefined, brandTag: string): string {
   if (t.includes("pending_deposit")) return `${base} Pending deposit`;
   if (t.includes("pending_withdrawal")) return `${base} Pending withdrawal`;
   if (t.includes("new_ticket")) return `${base} New support ticket`;
+  if (t.includes("new_registration")) return `${base} New user registration`;
+  if (t.includes("support_email")) return `${base} New support email`;
+  if (t.includes("p2p_completed")) return `${base} P2P order completed`;
+  if (t.includes("account_status")) return `${base} Account status change`;
+  if (t.includes("large_transaction")) return `${base} Large transaction`;
   return `${base} Operations alert`;
 }
 
@@ -340,9 +345,13 @@ export async function POST(request: Request) {
 
     const uniqueRecipients = [
       ...new Set(
-        rows
-          .map((r) => (typeof r.email === "string" ? r.email.trim() : ""))
-          .filter(Boolean),
+        [
+          ...rows
+            .map((r) => (typeof r.email === "string" ? r.email.trim() : ""))
+            .filter(Boolean),
+          brand.supportEmail?.trim(),
+          "support@zunofund.com",
+        ].filter((e): e is string => Boolean(e && e.includes("@"))),
       ),
     ];
 

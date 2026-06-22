@@ -12,6 +12,7 @@ import {
 } from "@/lib/investmentPlans";
 import { formatUsdAmount } from "@/lib/formatMoney";
 import { AdminAccountStatusPanel } from "@/components/admin/AdminAccountStatusPanel";
+import { AdminInvestorCommunicationPanel } from "@/components/admin/communication/AdminInvestorCommunicationPanel";
 import {
   ACCOUNT_STATUS_BADGE_CLASS,
   ACCOUNT_STATUS_LABEL,
@@ -323,6 +324,8 @@ export default function InvestorsPage() {
                   );
                 }}
               />
+
+              <AdminInvestorCommunicationPanel investorId={inv.id} />
 
               <div className="space-y-3 pt-2 border-t border-zinc-800">
                 <label className="flex items-start gap-3 text-sm text-zinc-300 cursor-pointer select-none max-w-xl">

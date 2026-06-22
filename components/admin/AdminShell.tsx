@@ -9,6 +9,7 @@ import {
   ArrowDownCircle,
   LayoutDashboard,
   LogOut,
+  Mail,
   MessageCircle,
   Scale,
   Settings,
@@ -21,6 +22,7 @@ import {
   Megaphone,
 } from "lucide-react";
 
+import { AdminNotificationBell } from "@/components/admin/communication/AdminNotificationBell";
 import { useSupabase } from "@/lib/supabase";
 
 export function AdminShell({ children }: { children: ReactNode }) {
@@ -97,6 +99,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
               <Megaphone className={iconCls} aria-hidden />
               Promotions
             </Link>
+            <Link href="/admin/communication" className={linkClass("/admin/communication")}>
+              <Mail className={iconCls} aria-hidden />
+              Messages
+            </Link>
             <Link href="/admin/support" className={linkClass("/admin/support")}>
               <MessageCircle className={iconCls} aria-hidden />
               Support
@@ -118,7 +124,19 @@ export function AdminShell({ children }: { children: ReactNode }) {
         </button>
       </aside>
 
-      <main className="min-h-0 min-w-0 flex-1 overflow-auto p-6 sm:p-8">{children}</main>
+      <main className="min-h-0 min-w-0 flex-1 overflow-auto p-6 sm:p-8">
+        <div className="mb-6 flex justify-end lg:hidden">
+          <AdminNotificationBell />
+        </div>
+        <div className="relative">
+          <div className="pointer-events-none absolute right-0 top-0 z-10 hidden lg:block">
+            <div className="pointer-events-auto">
+              <AdminNotificationBell />
+            </div>
+          </div>
+          {children}
+        </div>
+      </main>
     </div>
   );
 }
