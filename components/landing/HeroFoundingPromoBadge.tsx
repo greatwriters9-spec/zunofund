@@ -5,8 +5,11 @@ import { ArrowUpRight, Clock } from "lucide-react";
 import { motion } from "framer-motion";
 
 import { GoldRewardParticles } from "@/components/landing/GoldRewardParticles";
+import { maxDailyRoiHeadline } from "@/lib/platformConfig/helpers";
+import { usePlatformConfig } from "@/lib/platformConfig";
 
 export function HeroFoundingPromoBadge({ className = "" }: { className?: string }) {
+  const { config } = usePlatformConfig();
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -19,7 +22,7 @@ export function HeroFoundingPromoBadge({ className = "" }: { className?: string 
 
       <div className="relative">
         <p className="gold-gradient text-lg font-bold leading-[1.18] sm:text-xl">
-          Up to 50% Daily Return on Investment
+          {maxDailyRoiHeadline(config.plans)}
         </p>
 
         <p className="mt-2 flex items-center gap-2 text-[11px] text-zinc-400 sm:text-xs">

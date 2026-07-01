@@ -5,12 +5,15 @@ import { Clock, Lock, ShieldCheck } from "lucide-react";
 import { GoldRewardParticles, GoldShimmerSweep } from "@/components/landing/GoldRewardParticles";
 import { GrowthChart } from "@/components/landing/GrowthChart";
 import { padCountdown, useEnrollmentCountdown } from "@/components/landing/useEnrollmentCountdown";
+import { maxDailyRoiHeadline } from "@/lib/platformConfig/helpers";
+import { usePlatformConfig } from "@/lib/platformConfig";
 
 type FoundingInvestorPromoCardProps = {
   className?: string;
 };
 
 export function FoundingInvestorPromoCard({ className = "" }: FoundingInvestorPromoCardProps) {
+  const { config } = usePlatformConfig();
   const timeLeft = useEnrollmentCountdown();
   const countdownSegments = timeLeft
     ? [
@@ -42,7 +45,7 @@ export function FoundingInvestorPromoCard({ className = "" }: FoundingInvestorPr
             Potential Daily Returns
           </p>
           <p className="gold-gradient relative mt-2 text-3xl font-bold leading-none sm:text-4xl lg:text-5xl">
-            Up to 50% Daily Return on Investment
+            {maxDailyRoiHeadline(config.plans)}
           </p>
           <p className="mt-3 max-w-xs text-sm leading-relaxed text-zinc-400">
             Structured growth allocations designed for early investors.

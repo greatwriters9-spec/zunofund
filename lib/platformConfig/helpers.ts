@@ -28,6 +28,32 @@ export function planDailyRoi(
   return findPlanByName(plans, key)?.daily_roi ?? 10;
 }
 
+/** Whole or one-decimal display for marketing copy (e.g. 15, 12.5). */
+export function formatDailyRoiPercent(value: number): string {
+  const n = Number.isFinite(value) ? value : 0;
+  if (Number.isInteger(n)) return String(n);
+  return n.toFixed(1).replace(/\.0$/, "");
+}
+
+/** Highest daily_roi across active plans (falls back to all plans, then 15). */
+export function maxDailyRoiPercent(plans: InvestmentPlanRow[]): number {
+  const source = plans.length > 0 ? plans : [];
+  const active = source.filter((p) => p.promotion_active);
+  const pool = active.length > 0 ? active : source;
+  if (pool.length === 0) return 15;
+  return Math.max(...pool.map((p) => p.daily_roi));
+}
+
+export function maxDailyRoiHeadline(plans: InvestmentPlanRow[]): string {
+  const pct = formatDailyRoiPercent(maxDailyRoiPercent(plans));
+  return `Up to ${pct}% Daily Return on Investment`;
+}
+
+export function maxDailyRoiShortLabel(plans: InvestmentPlanRow[]): string {
+  const pct = formatDailyRoiPercent(maxDailyRoiPercent(plans));
+  return `${pct}% Daily`;
+}
+
 export function planDepositRange(
   plans: InvestmentPlanRow[],
   key: CanonicalInvestmentPlan,

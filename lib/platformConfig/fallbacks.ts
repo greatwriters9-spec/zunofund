@@ -59,7 +59,7 @@ export const FALLBACK_PLANS: InvestmentPlanRow[] = [
     name: "Elite",
     min_deposit: 5000,
     max_deposit: 999999999,
-    daily_roi: 50,
+    daily_roi: 15,
     promotion_return_target: 10000,
     promotion_active: true,
     sort_order: 4,

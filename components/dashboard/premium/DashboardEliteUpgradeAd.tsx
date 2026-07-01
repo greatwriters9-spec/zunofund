@@ -12,7 +12,11 @@ import {
   minPlatformDepositUsd,
   type CanonicalInvestmentPlan,
 } from "@/lib/investmentPlans";
-import { planDepositRange } from "@/lib/platformConfig/helpers";
+import {
+  formatDailyRoiPercent,
+  maxDailyRoiPercent,
+  planDepositRange,
+} from "@/lib/platformConfig/helpers";
 import { usePlatformConfig } from "@/lib/platformConfig";
 import { formatUsdAmount } from "@/lib/formatMoney";
 
@@ -36,6 +40,7 @@ export function DashboardEliteUpgradeAd({ planKey, balance }: DashboardEliteUpgr
   const eliteMin = planDepositRange(plans, "Elite").min;
   const gapToElite = Math.max(0, eliteMin - balance);
   const minInterest = minPlatformDepositUsd(plans);
+  const maxDailyRoi = formatDailyRoiPercent(maxDailyRoiPercent(plans));
 
   if (planKey === "Elite") {
     return (
@@ -103,7 +108,7 @@ export function DashboardEliteUpgradeAd({ planKey, balance }: DashboardEliteUpgr
           <span className="bg-gradient-to-r from-[#F7E3A0] via-[#D4AF37] to-[#F5E6B3] bg-clip-text text-transparent">
             Elite Level
           </span>{" "}
-          — up to 50% daily returns
+          — up to {maxDailyRoi}% daily returns
         </h3>
 
         <p className="mt-2 text-sm leading-relaxed" style={{ color: DASHBOARD_MUTED }}>
